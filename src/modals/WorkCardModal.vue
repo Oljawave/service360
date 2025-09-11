@@ -1,9 +1,7 @@
-<!-- src/components/work/WorkCardModal.vue -->
 <template>
   <ModalWrapper title="Карточка плановой работы" @close="closeModal">
     <div class="work-card-content">
-      
-      <WorkHeaderInfo :record="record" />
+      <WorkHeaderInfo :record="record" :section="section" :date="date" />
       <ExistingDataBlock :existingRecords="existingRecords" />
 
       <div class="tabs-block">
@@ -14,7 +12,7 @@
             <div class="new-info-content">
               <div class="section-heading spaced-heading info-heading">Местоположение работы</div>
               <div class="coordinates-input-group info-coords">
-                <CoordinateInputs
+                <FullCoordinates
                   v-model="newRecord.coordinates"
                   label="Координаты начала"
                   class="coord-start"
@@ -45,7 +43,7 @@
             <div class="defects-content">
               <div class="section-heading spaced-heading defect-heading">Местоположение дефекта</div>
               <div class="coordinates-input-group defect-coords">
-                <CoordinateInputs
+                <FullCoordinates
                   v-model="defectRecord.startCoordinates"
                   label="Координаты начала"
                   class="coord-start"
@@ -84,7 +82,7 @@
             <div class="parameters-content">
               <div class="section-heading spaced-heading parameters-heading">Местоположение параметра</div>
               <div class="coordinates-input-group parameter-coords">
-                <CoordinateInputs
+                <FullCoordinates
                   v-model="parameterRecord.startCoordinates"
                   label="Координаты начала"
                   class="coord-start"
@@ -158,7 +156,7 @@ import { ref, watch, defineProps, defineEmits } from 'vue';
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue';
 import MainButton from '@/components/ui/MainButton.vue';
 import UiButton from '@/components/ui/UiButton.vue';
-import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue';
+import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue';
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue';
 import AppInput from '@/components/ui/FormControls/AppInput.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
@@ -169,8 +167,16 @@ import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
 const props = defineProps({
   record: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
+  section: {
+    type: String,
+    default: null,
+  },
+  date: {
+    type: String,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -198,7 +204,7 @@ const newRecord = ref({
     coordEndPk: null,
   },
   date: null,
-  deviationReason: ''
+  deviationReason: '',
 });
 
 const defectRecord = ref({
@@ -216,7 +222,7 @@ const defectRecord = ref({
   },
   component: null,
   defectType: '',
-  note: ''
+  note: '',
 });
 
 const parameterRecord = ref({
@@ -235,12 +241,12 @@ const parameterRecord = ref({
   component: null,
   parameterType: null,
   value: '',
-  note: ''
+  note: '',
 });
 
 const existingRecords = ref([
   { date: '03.04.2025', coordinates: '19км 3пк 0зв — 29км 10пк 0зв' },
-  { date: '03.04.2025', coordinates: '19км 3пк 0зв — 29км 10пк 0зв' }
+  { date: '03.04.2025', coordinates: '19км 3пк 0зв — 29км 10пк 0зв' },
 ]);
 
 const componentOptions = ref([
@@ -283,11 +289,15 @@ const saveWork = () => {
   }, 1000);
 };
 
-watch(() => props.record, (newRecord) => {
-  if (newRecord) {
-    // При получении новой записи, можно инициализировать поля
-  }
-}, { immediate: true });
+watch(
+  () => props.record,
+  (newRecord) => {
+    if (newRecord) {
+      // При получении новой записи, можно инициализировать поля
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

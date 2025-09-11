@@ -9,7 +9,7 @@
     <div class="info-row secondary-info">
       <div class="info-item">
         <span class="label">Участок</span>
-        <span class="value">{{ record?.section || 'Нет данных' }}</span>
+        <span class="value">{{ section || 'Нет данных' }}</span>
       </div>
       <div class="info-item">
         <span class="label">Место</span>
@@ -17,7 +17,7 @@
       </div>
       <div class="info-item">
         <span class="label">Дата</span>
-        <span class="value">{{ formattedDate(record?.date) || 'Нет данных' }}</span>
+        <span class="value">{{ formattedDate(date || record?.date) || 'Нет данных' }}</span>
       </div>
     </div>
     <div class="info-row tertiary-info">
@@ -31,9 +31,9 @@
       </div>
     </div>
     <div class="info-item">
-        <span class="label">Объект</span>
-        <span class="value">{{ record?.object || 'Нет данных' }}</span>
-      </div>
+      <span class="label">Объект</span>
+      <span class="value">{{ record?.object || 'Нет данных' }}</span>
+    </div>
   </div>
 </template>
 
@@ -43,8 +43,16 @@ import { defineProps } from 'vue';
 const props = defineProps({
   record: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
+  section: {
+    type: String,
+    default: null,
+  },
+  date: {
+    type: String,
+    default: null,
+  },
 });
 
 const formattedDate = (dateString) => {
@@ -53,7 +61,7 @@ const formattedDate = (dateString) => {
   return date.toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   });
 };
 </script>

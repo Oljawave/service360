@@ -17,7 +17,7 @@
           @update:value="onSectionChange"
         />
         <AppDropdown
-          :key="monthDropdownKey" 
+          :key="monthDropdownKey"
           v-model:value="selectedMonth"
           label="Месяц"
           placeholder="Выберите месяц"
@@ -28,7 +28,7 @@
           @update:value="onMonthChange"
         />
         <AppDropdown
-          :key="dayDropdownKey" 
+          :key="dayDropdownKey"
           v-model:value="selectedDay"
           label="День"
           placeholder="Выберите день"
@@ -69,10 +69,11 @@
       />
     </div>
 
-    <!-- 🔥 Модалка для карточки работы -->
     <WorkCardModal
       v-if="isWorkCardModalOpen"
       :record="selectedRecord"
+      :section="selectedSectionName"
+      :date="selectedDate"
       @close="isWorkCardModalOpen = false"
     />
   </div>
@@ -123,14 +124,19 @@ const formattedDate = computed(() => {
   return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   });
+});
+
+const selectedSectionName = computed(() => {
+  const section = sections.value.find((s) => s.value === selectedSection.value);
+  return section ? section.label : null;
 });
 
 // Получаем pv для выбранного участка
 const getSelectedSectionPv = () => {
   if (!selectedSection.value) return null;
-  const section = sectionsData.value.find(s => s.id === selectedSection.value);
+  const section = sectionsData.value.find((s) => s.id === selectedSection.value);
   return section ? section.pv : null;
 };
 
@@ -163,21 +169,15 @@ const loadWorkPlanForDate = async () => {
       throw new Error('PV участка не найден');
     }
 
-    const records = await loadWorkPlanUnfinishedByDate(
-      selectedSection.value,
-      pv,
-      selectedDate.value
-    );
+    const records = await loadWorkPlanUnfinishedByDate(selectedSection.value, pv, selectedDate.value);
 
-    tableData.value = records.map(record => ({
+    tableData.value = records.map((record) => ({
       id: record.id,
       name: record.fullNameWork || 'Без названия',
       place: record.nameSection || 'Не указано',
       objectType: record.nameClsObject || 'Неизвестно',
       object: record.fullNameObject || 'Объект не указан',
-      coordinates: record.StartKm && record.FinishKm
-        ? `${record.StartKm}км ${record.StartPicket || 0}пк — ${record.FinishKm}км ${record.FinishPicket || 0}пк`
-        : 'Координаты отсутствуют'
+      coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк — ${record.FinishKm}км ${record.FinishPicket || 0}пк` : 'Координаты отсутствуют',
     }));
   } catch (error) {
     console.error('Ошибка загрузки плана:', error);
@@ -193,11 +193,11 @@ const loadSectionsData = async () => {
   try {
     const data = await loadSections();
     sectionsData.value = data;
-    sections.value = data.map(section => ({
+    sections.value = data.map((section) => ({
       value: section.id,
       label: section.name,
     }));
-    
+
     if (data.length > 0) {
       selectedSection.value = data[0].id;
       await loadWorkPlanDatesData();
@@ -227,29 +227,29 @@ const loadWorkPlanDatesData = async () => {
 
     const monthsSet = new Set();
     const daysSet = new Set();
-    
-    dates.forEach(date => {
+
+    dates.forEach((date) => {
       const [year, month, day] = date.split('-');
       monthsSet.add(`${year}-${month}`);
       daysSet.add(day);
     });
-    
-    months.value = Array.from(monthsSet).map(month => ({
+
+    months.value = Array.from(monthsSet).map((month) => ({
       value: month,
-      label: new Date(`${month}-01`).toLocaleString('ru-RU', { month: 'long' })
+      label: new Date(`${month}-01`).toLocaleString('ru-RU', { month: 'long' }),
     }));
-    days.value = Array.from(daysSet).map(day => ({
+    days.value = Array.from(daysSet).map((day) => ({
       value: day,
-      label: day
+      label: day,
     }));
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const currentDay = now.getDate().toString();
 
-    if (months.value.some(m => m.value === currentMonth)) {
+    if (months.value.some((m) => m.value === currentMonth)) {
       selectedMonth.value = currentMonth;
-      if (days.value.some(d => d.value === currentDay)) {
+      if (days.value.some((d) => d.value === currentDay)) {
         selectedDay.value = currentDay;
       } else {
         selectedDay.value = days.value.length > 0 ? days.value[0].value : null;
@@ -261,7 +261,6 @@ const loadWorkPlanDatesData = async () => {
 
     monthDropdownKey.value++;
     dayDropdownKey.value++;
-
   } catch (error) {
     console.error('Ошибка при загрузке дат для плана:', error);
     window.$message?.error('Не удалось загрузить даты для плана');
@@ -282,7 +281,7 @@ const onSectionChange = async (newSectionId) => {
     days.value = [];
     monthDropdownKey.value++;
     dayDropdownKey.value++;
-    
+
     await loadWorkPlanDatesData();
   } else {
     months.value = [];

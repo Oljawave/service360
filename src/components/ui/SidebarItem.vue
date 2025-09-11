@@ -1,5 +1,5 @@
 <template>
-  <router-link :to="to" class="sidebar-item" active-class="active">
+  <router-link :to="to" class="sidebar-item" :class="{ active: isActive }">
     <UiIcon :name="icon" class="icon" />
     <span class="label">{{ label }}</span>
   </router-link>
@@ -7,10 +7,19 @@
 
 <script setup>
 import UiIcon from '../ui/UiIcon.vue'
-defineProps({
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const props = defineProps({
   label: String,
   to: String,
   icon: String
+})
+
+const route = useRoute()
+
+const isActive = computed(() => {
+  return route.path.startsWith(props.to)
 })
 </script>
 

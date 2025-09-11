@@ -22,6 +22,15 @@
         @blur="handleBlur"
       />
       <AppNumberInput
+        :modelValue="currentStartZv"
+        label="Начало (зв)"
+        placeholder="зв"
+        :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
+        @update:modelValue="handleStartZv"
+        @focus="handleFocus"
+        @blur="handleBlur"
+      />
+      <AppNumberInput
         :modelValue="currentEndKm"
         label="Конец (км)"
         placeholder="км"
@@ -40,6 +49,15 @@
         @focus="handleFocus"
         @blur="handleBlur"
       />
+      <AppNumberInput
+        :modelValue="currentEndZv"
+        label="Конец (зв)"
+        placeholder="зв"
+        :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
+        @update:modelValue="handleEndZv"
+        @focus="handleFocus"
+        @blur="handleBlur"
+      />
     </div>
   </div>
 </template>
@@ -47,7 +65,7 @@
 <script setup>
 import { defineProps, defineEmits, computed, ref, watch } from 'vue'
 import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue'
-import { useNotificationStore } from '@/stores/notificationStore'  // Импортируем store для уведомлений
+import { useNotificationStore } from '@/stores/notificationStore'
 
 const props = defineProps({
   modelValue: {
@@ -55,8 +73,10 @@ const props = defineProps({
     default: () => ({
       coordStartKm: null,
       coordStartPk: null,
+      coordStartZv: null,
       coordEndKm: null,
-      coordEndPk: null
+      coordEndPk: null,
+      coordEndZv: null
     })
   },
   objectBounds: {
@@ -67,25 +87,27 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'invalidRange', 'out-of-bounds'])
 
-const notificationStore = useNotificationStore()  // Получаем доступ к store уведомлений
+const notificationStore = useNotificationStore()
 
 const isUserTyping = ref(false)
 const shouldShowError = ref(false)
 
 const currentStartKm = computed(() => props.modelValue.coordStartKm ?? 0)
 const currentStartPk = computed(() => props.modelValue.coordStartPk ?? 0)
+const currentStartZv = computed(() => props.modelValue.coordStartZv ?? 0)
 const currentEndKm = computed(() => props.modelValue.coordEndKm ?? 0)
 const currentEndPk = computed(() => props.modelValue.coordEndPk ?? 0)
+const currentEndZv = computed(() => props.modelValue.coordEndZv ?? 0)
 
-const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100)
-const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100)
+const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100 + currentStartZv.value)
+const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100 + currentEndZv.value)
 
 const isInvalid = computed(() => startAbs.value > endAbs.value)
 
 const isOutOfBounds = computed(() => {
   if (!props.objectBounds) return false
-  const objStartAbs = props.objectBounds.StartKm * 1000 + props.objectBounds.StartPicket * 100
-  const objEndAbs = props.objectBounds.FinishKm * 1000 + props.objectBounds.FinishPicket * 100
+  const objStartAbs = props.objectBounds.StartKm * 1000 + props.objectBounds.StartPicket * 100 + (props.objectBounds.StartZv || 0)
+  const objEndAbs = props.objectBounds.FinishKm * 1000 + props.objectBounds.FinishPicket * 100 + (props.objectBounds.FinishZv || 0)
   return startAbs.value < objStartAbs || endAbs.value > objEndAbs
 })
 
@@ -104,18 +126,20 @@ const updateCoords = (field, value) => {
 
 const handleStartKm = (value) => updateCoords('coordStartKm', clamp(value, 0, 9999))
 const handleStartPk = (value) => updateCoords('coordStartPk', clamp(value, 0, 10))
+const handleStartZv = (value) => updateCoords('coordStartZv', clamp(value, 0, 99)) // Assuming a max value for zv
 const handleEndKm = (value) => updateCoords('coordEndKm', clamp(value, 0, 9999))
 const handleEndPk = (value) => updateCoords('coordEndPk', clamp(value, 0, 10))
+const handleEndZv = (value) => updateCoords('coordEndZv', clamp(value, 0, 99)) // Assuming a max value for zv
 
 const performValidation = () => {
   if (isInvalid.value) {
     emit('invalidRange', isInvalid.value)
-    notificationStore.showNotification('Диапазон координат неверен!', 'error')  // Уведомление об ошибке диапазона
+    notificationStore.showNotification('Диапазон координат неверен!', 'error')
   }
 
   if (isOutOfBounds.value) {
     emit('out-of-bounds')
-    notificationStore.showNotification('Координаты выходят за пределы допустимого диапазона!', 'error')  // Уведомление о выходе за пределы
+    notificationStore.showNotification('Координаты выходят за пределы допустимого диапазона!', 'error')
   }
 }
 
@@ -148,31 +172,6 @@ watch(() => props.objectBounds, () => {
 
 <style scoped>
 .coordinate-wrapper {
-  margin-bottom: 16px;
-}
-
-.coordinate-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 8px;
-}
-
-.coordinate-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-@media (max-width: 600px) {
-  .coordinate-group {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
-
-<style scoped>
-.coordinate-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -193,7 +192,7 @@ watch(() => props.objectBounds, () => {
 
 .coordinate-group > * {
   flex: 1;
-  min-width: 152px;
+  min-width: 90px;
 }
 
 @media (max-width: 768px) {
