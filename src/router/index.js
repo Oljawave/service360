@@ -26,7 +26,7 @@ const routes = [
     name: 'Inspections',
     component: Inspections
   },
-    {
+  {
     path: '/inspections/record',
     name: 'InspectionRecord',
     component: WorkPlanForm
@@ -45,7 +45,7 @@ const routes = [
 
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/dtj/service/'),
   routes
 })
 

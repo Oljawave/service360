@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_OBJECT_URL;
+
 const deleteObject = async (objectId) => {
   try {
-    const response = await axios.post('http://192.168.1.20:9178/api/', {
+    const response = await axios.post(API_URL, {
       method: 'data/deleteObjWithProperties',
       params: [objectId],
     });

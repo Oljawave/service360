@@ -14,30 +14,29 @@ export default defineConfig({
     },
   },
   server: {
-  host: '0.0.0.0',
-  port: 3000,
-  proxy: {
-  
-    '/auth': {
-      target: 'http://192.168.1.20:9177',
-      changeOrigin: true,
-      secure: false,
-    },
-
-    '/userapi': {
-      target: 'http://192.168.1.20:9177/api',
-      changeOrigin: true,
-      rewrite: path => path.replace(/^\/userapi/, ''),
-      secure: false,
-    },
-    
-    '/userinfo': {
-      target: 'http://192.168.1.20:9179/api',
-      changeOrigin: true,
-      rewrite: path => path.replace(/^\/userinfo/, ''),
-      secure: false,
+    host: '0.0.0.0',
+    port: 3000,
+    proxy: {
+      '/dtj/service/auth': {
+        target: 'http://192.168.1.20:9177',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace('/dtj/service/', ''),
+      },
+      
+      '/dtj/service/userapi': {
+        target: 'http://192.168.1.20:9177/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace('/dtj/service/userapi', ''),
+        secure: false,
+      },
+      
+      '/dtj/service/userinfo': {
+        target: 'http://192.168.1.20:9179/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace('/dtj/service/userinfo', ''),
+        secure: false,
+      },
     },
   },
-},
-
 });

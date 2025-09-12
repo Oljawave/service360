@@ -90,7 +90,6 @@ import BackButton from '@/components/ui/BackButton.vue';
 import MainButton from '@/components/ui/MainButton.vue';
 import WorkCardModal from '@/modals/WorkCardModal.vue';
 
-// Данные
 const selectedSection = ref(null);
 const selectedMonth = ref(null);
 const selectedDay = ref(null);
@@ -102,15 +101,12 @@ const sectionsData = ref([]);
 const months = ref([]);
 const days = ref([]);
 
-// ⚡ Ключи для принудительного пересоздания dropdown'ов
 const monthDropdownKey = ref(0);
 const dayDropdownKey = ref(0);
 
-// 🚀 Для модалки
 const isWorkCardModalOpen = ref(false);
 const selectedRecord = ref(null);
 
-// Вычисляем дату
 const selectedDate = computed(() => {
   if (!selectedMonth.value || !selectedDay.value) return null;
   const [year, month] = selectedMonth.value.split('-');
@@ -133,14 +129,12 @@ const selectedSectionName = computed(() => {
   return section ? section.label : null;
 });
 
-// Получаем pv для выбранного участка
 const getSelectedSectionPv = () => {
   if (!selectedSection.value) return null;
   const section = sectionsData.value.find((s) => s.id === selectedSection.value);
   return section ? section.pv : null;
 };
 
-// Колонки таблицы
 const columns = [
   { key: 'name', label: 'НАИМЕНОВАНИЕ РАБОТЫ' },
   { key: 'place', label: 'МЕСТО' },
@@ -155,7 +149,6 @@ const goToInspections = () => {
   router.push({ name: 'Inspections' });
 };
 
-// Загрузка данных для плана
 const loadWorkPlanForDate = async () => {
   if (!selectedDate.value || !selectedSection.value) {
     window.$message?.error('Пожалуйста, выберите участок и дату.');
@@ -188,7 +181,6 @@ const loadWorkPlanForDate = async () => {
   }
 };
 
-// Загрузка участков
 const loadSectionsData = async () => {
   try {
     const data = await loadSections();
@@ -319,7 +311,6 @@ onMounted(async () => {
   await loadSectionsData();
 });
 
-// 🚀 Открываем модалку по двойному клику
 const onRowDoubleClick = (row) => {
   selectedRecord.value = row;
   isWorkCardModalOpen.value = true;
