@@ -3,19 +3,21 @@
     <p class="warning-text">
       По данной работе в Журнал осмотров/проверок уже внесена следующая информация:
     </p>
-    <div class="data-table">
-      <div class="data-row header-row">
-        <span class="data-cell number-cell">№</span>
-        <span class="data-cell date-cell">ДАТА</span>
-        <span class="data-cell coords-cell">КООРДИНАТЫ</span>
-      </div>
-      <div v-if="existingRecords.length === 0" class="data-row empty-row">
-        <span class="data-cell" colspan="3">Нет ранее внесенных записей</span>
-      </div>
-      <div v-else v-for="(item, index) in existingRecords" :key="index" class="data-row">
-        <span class="data-cell number-cell">{{ index + 1 }}</span>
-        <span class="data-cell date-cell">{{ item.date }}</span>
-        <span class="data-cell coords-cell">{{ item.coordinates }}</span>
+    <div class="data-table-scroll">
+      <div class="data-table">
+        <div class="data-row header-row">
+          <span class="data-cell number-cell">№</span>
+          <span class="data-cell date-cell">ДАТА</span>
+          <span class="data-cell coords-cell">КООРДИНАТЫ</span>
+        </div>
+        <div v-if="existingRecords.length === 0" class="data-row empty-row">
+          <span class="data-cell" colspan="3">Нет ранее внесенных записей</span>
+        </div>
+        <div v-else v-for="(item, index) in existingRecords" :key="index" class="data-row">
+          <span class="data-cell number-cell">{{ index + 1 }}</span>
+          <span class="data-cell date-cell">{{ item.date }}</span>
+          <span class="data-cell coords-cell">{{ item.coordinates }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -48,6 +50,11 @@ defineProps({
   font-weight: 500;
 }
 
+.data-table-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 .data-table {
   background-color: transparent;
   font-size: 14px;
@@ -63,6 +70,10 @@ defineProps({
 }
 
 .data-row.header-row {
+  position: sticky;
+  top: 0;
+  background-color: #fff8e1;
+  z-index: 10;
   font-weight: 600;
   color: #8b4513;
   border-bottom: 2px solid #d4ba8a;

@@ -1,6 +1,6 @@
 <template>
   <ModalWrapper
-    title="Редактировать план работы"
+    title="Редактировать плановую работу"
     :showDelete="true"
     @close="closeModal"
     @save="saveData"

@@ -36,7 +36,7 @@
         />
         <div class="action-buttons">
           <MainButton
-            label="Сформировать план работы"
+            label="Показать план работ"
             :loading="isGenerating"
             @click="generatePlan"
             class="generate-btn"
@@ -173,6 +173,7 @@ const loadWorkPlanForDate = async () => {
       place: record.nameSection || 'Не указано',
       objectType: record.nameClsObject || 'Неизвестно',
       object: record.fullNameObject || 'Объект не указан',
+      objObject: record.objObject,
       coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк ${record.StartLink || 0}зв — ${record.FinishKm}км ${record.FinishPicket || 0}пк ${record.FinishLink || 0}зв` : 'Координаты отсутствуют',
       StartKm: record.StartKm,
       StartPicket: record.StartPicket,

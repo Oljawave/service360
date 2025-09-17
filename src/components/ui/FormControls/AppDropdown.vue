@@ -15,7 +15,8 @@
       size="medium"
       label-field="label"
       value-field="value"
-      filterable 
+      filterable
+      clearable
       @update:value="updateValue"
     />
     <p v-if="hint" class="hint">{{ hint }}</p>

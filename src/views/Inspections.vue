@@ -126,7 +126,7 @@ const onRowDoubleClick = (row) => {
 
 const columns = [
   { key: 'index', label: '№' },
-  { key: 'work', label: 'Вид работы' },
+  { key: 'work', label: 'Наименование работы' },
   { key: 'name', label: 'Участок' },
   { key: 'location', label: 'Место' },
   { key: 'object', label: 'Объект' },
