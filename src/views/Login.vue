@@ -61,6 +61,8 @@ export default {
   },
   methods: {
     async handleLogin() {
+      if (this.loading) return; // Предотвращаем повторные вызовы
+      
       const notify = useNotificationStore()
       this.loading = true
 

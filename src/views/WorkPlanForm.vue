@@ -305,6 +305,8 @@ const onMonthChange = (newMonth) => {
 };
 
 const generatePlan = () => {
+  if (isGenerating.value) return; // Предотвращаем повторные вызовы
+  
   if (!selectedDate.value) {
     window.$message?.error('Пожалуйста, выберите корректную дату.');
     return;

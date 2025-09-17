@@ -141,6 +141,42 @@ const saveInspectionInfo = async (payload) => {
   }
 };
 
+const loadComponentsByTypObjectForSelect = async (objObject) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/loadComponentsByTypObjectForSelect",
+        params: [objObject],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    throw error;
+  }
+};
+
+const loadDefectsByComponentForSelect = async (objComponent) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/loadDefectsByComponentForSelect",
+        params: [objComponent],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    throw error;
+  }
+};
+
 export {
   loadSections,
   loadWorkPlanDates,
@@ -148,4 +184,6 @@ export {
   loadInspectionEntriesForWorkPlan,
   saveInspectionInfo,
   fetchUserData,
+  loadComponentsByTypObjectForSelect,
+  loadDefectsByComponentForSelect,
 };

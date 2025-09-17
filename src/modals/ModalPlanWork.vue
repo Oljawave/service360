@@ -161,7 +161,12 @@ const closeModal = () => {
   emit('close')
 }
 
+const isSaving = ref(false)
+
 const saveData = async () => {
+  if (isSaving.value) return; // Предотвращаем повторные вызовы
+  
+  isSaving.value = true
   try {
     if (!form.value.work) {
       notificationStore.showNotification('Не выбрана работа', 'error')
@@ -234,6 +239,8 @@ const saveData = async () => {
   } catch (e) {
     console.error('Ошибка при сохранении:', e)
     notificationStore.showNotification('Ошибка при сохранении: ' + (e.message || 'неизвестная ошибка'), 'error')
+  } finally {
+    isSaving.value = false
   }
 }
 

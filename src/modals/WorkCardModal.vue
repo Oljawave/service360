@@ -58,13 +58,17 @@
                   v-model="defectRecord.component"
                   placeholder="Выберите компонент"
                   class="half-width"
+                  :loading="loadingComponents"
+                  @update:value="handleDefectComponentChange"
                 />
-                <AppInput
+                <AppDropdown
                   label="Дефект / неисправность"
-                  id="defect-input"
+                  id="defect-dropdown"
+                  :options="defectOptions"
                   v-model="defectRecord.defectType"
-                  placeholder="Введите дефект"
+                  placeholder="Выберите дефект"
                   class="half-width"
+                  :loading="loadingDefects"
                 />
               </div>
               <AppInput
@@ -97,6 +101,8 @@
                   v-model="parameterRecord.component"
                   placeholder="Выберите компонент"
                   class="half-width"
+                  :loading="loadingComponents"
+                  @update:value="handleParameterComponentChange"
                 />
                 <AppDropdown
                   label="Параметр"
@@ -148,7 +154,7 @@ import TabsHeader from '@/components/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/components/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, fetchUserData } from '@/api/inspectionsApi.js';
+import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect } from '@/api/inspectionsApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -230,11 +236,11 @@ const parameterRecord = ref({
 
 const existingRecords = ref([]);
 
-const componentOptions = ref([
-  { label: 'Рельс', value: 'Рельс' },
-  { label: 'Шпалы', value: 'Шпалы' },
-  { label: 'Стрелочный перевод', value: 'Стрелочный перевод' },
-]);
+// Динамические опции для компонентов и дефектов
+const componentOptions = ref([]);
+const defectOptions = ref([]);
+const loadingComponents = ref(false);
+const loadingDefects = ref(false);
 
 const parameterOptions = ref([
   { label: 'Вертикальный износ', value: 'Вертикальный износ' },
@@ -262,6 +268,8 @@ const handleTabChange = (newTab) => {
 };
 
 const saveWork = async () => {
+  if (isSaving.value) return; // Предотвращаем повторные вызовы
+  
   if (activeTab.value === 'info') {
     isSaving.value = true;  
     try {
@@ -294,9 +302,38 @@ const saveWork = async () => {
 
       notificationStore.showNotification('Информация по работе успешно сохранена!', 'success');
       isInfoSaved.value = true;
+      
+      // Обновляем список существующих записей после успешного сохранения
+      await loadExistingData(props.record);
+      
+      // Автоматически заполняем координаты в табах "Дефекты" и "Параметры"
+      const savedCoordinates = {
+        coordStartKm: newRecord.value.coordinates.coordStartKm,
+        coordStartPk: newRecord.value.coordinates.coordStartPk,
+        coordStartZv: newRecord.value.coordinates.coordStartZv,
+        coordEndKm: newRecord.value.coordinates.coordEndKm,
+        coordEndPk: newRecord.value.coordinates.coordEndPk,
+        coordEndZv: newRecord.value.coordinates.coordEndZv,
+      };
+      
+      // Заполняем координаты для дефектов
+      defectRecord.value.startCoordinates = { ...savedCoordinates };
+      
+      // Заполняем координаты для параметров
+      parameterRecord.value.startCoordinates = { ...savedCoordinates };
     } catch (error) {
       console.error('Ошибка сохранения:', error);
-      notificationStore.showNotification('Не удалось сохранить информацию по работе.', 'error');
+      
+      // Извлекаем сообщение об ошибке из ответа сервера
+      let errorMessage = 'Не удалось сохранить информацию по работе.';
+      
+      if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Ошибка сервера. Попробуйте еще раз.';
+      }
+      
+      notificationStore.showNotification(errorMessage, 'error');
     } finally {
       isSaving.value = false;
     }
@@ -332,6 +369,72 @@ const loadExistingData = async (record) => {
   }
 };
 
+// Загрузка компонентов по objObject
+const loadComponents = async () => {
+  if (!props.record?.objObject) {
+    console.warn('objObject не найден в записи:', props.record);
+    return;
+  }
+
+  loadingComponents.value = true;
+  try {
+    const components = await loadComponentsByTypObjectForSelect(props.record.objObject);
+    componentOptions.value = components.map(component => ({
+      label: component.name || component.label,
+      value: component.id || component.value,
+      objComponent: component.id || component.value
+    }));
+  } catch (error) {
+    console.error('Ошибка загрузки компонентов:', error);
+    notificationStore.showNotification('Не удалось загрузить компоненты', 'error');
+    componentOptions.value = [];
+  } finally {
+    loadingComponents.value = false;
+  }
+};
+
+// Загрузка дефектов по выбранному компоненту
+const loadDefects = async (objComponent) => {
+  if (!objComponent) {
+    defectOptions.value = [];
+    return;
+  }
+
+  loadingDefects.value = true;
+  try {
+    const defects = await loadDefectsByComponentForSelect(objComponent);
+    defectOptions.value = defects.map(defect => ({
+      label: defect.name || defect.label,
+      value: defect.id || defect.value
+    }));
+  } catch (error) {
+    console.error('Ошибка загрузки дефектов:', error);
+    notificationStore.showNotification('Не удалось загрузить дефекты', 'error');
+    defectOptions.value = [];
+  } finally {
+    loadingDefects.value = false;
+  }
+};
+
+// Обработчик изменения компонента для дефектов
+const handleDefectComponentChange = async (selectedComponent) => {
+  defectRecord.value.defectType = null; // Сбрасываем выбранный дефект
+  if (selectedComponent) {
+    const component = componentOptions.value.find(c => c.value === selectedComponent);
+    if (component?.objComponent) {
+      await loadDefects(component.objComponent);
+    }
+  } else {
+    defectOptions.value = [];
+  }
+};
+
+// Обработчик изменения компонента для параметров
+const handleParameterComponentChange = async (selectedComponent) => {
+  parameterRecord.value.parameterType = null; // Сбрасываем выбранный параметр
+  // Здесь можно добавить загрузку параметров по компоненту, если потребуется
+};
+
 watch(
   () => props.record,
   (newRecordData) => {
@@ -355,6 +458,9 @@ watch(
       });
       
       loadExistingData(newRecordData);
+      
+      // Загружаем компоненты при инициализации
+      loadComponents();
     }
   },
   { immediate: true }
