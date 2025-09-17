@@ -106,8 +106,8 @@ const isInvalid = computed(() => startAbs.value > endAbs.value)
 
 const isOutOfBounds = computed(() => {
   if (!props.objectBounds) return false
-  const objStartAbs = props.objectBounds.StartKm * 1000 + props.objectBounds.StartPicket * 100 + (props.objectBounds.StartZv || 0)
-  const objEndAbs = props.objectBounds.FinishKm * 1000 + props.objectBounds.FinishPicket * 100 + (props.objectBounds.FinishZv || 0)
+  const objStartAbs = props.objectBounds.StartKm * 1000 + props.objectBounds.StartPicket * 100 + props.objectBounds.StartZv * 25
+  const objEndAbs = props.objectBounds.FinishKm * 1000 + props.objectBounds.FinishPicket * 100 + props.objectBounds.FinishZv * 25
   return startAbs.value < objStartAbs || endAbs.value > objEndAbs
 })
 

@@ -5,7 +5,7 @@
       <ExistingDataBlock :existingRecords="existingRecords" />
 
       <div class="tabs-block">
-        <TabsHeader :tabs="tabs" v-model="activeTab" />
+        <TabsHeader :tabs="tabs" :modelValue="activeTab" @update:modelValue="handleTabChange" />
 
         <div class="tab-content">
           <div v-if="activeTab === 'info'">
@@ -19,13 +19,13 @@
                   :objectBounds="objectBounds"
                 />
               </div>
-              <div class="input-row date-input-row">
+              <div class="form-grid">
                 <AppDatePicker
                   label="Дата"
                   placeholder="Выберите дату"
                   id="date-picker"
                   v-model="newRecord.date"
-                  class="date-picker"
+                  class="col-span-1"
                 />
               </div>
               <AppInput
@@ -127,22 +127,7 @@
         </div>
       </div>
 
-      <div v-if="activeTab === 'info'" class="button-container">
-        <UiButton text="Добавить местоположение" icon="Plus" class="add-location-btn" />
-        <div class="main-actions">
-          <MainButton label="Сохранить" :loading="isSaving" @click="saveWork" class="save-btn" />
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'defects'" class="button-container">
-        <UiButton text="Добавить дефект" icon="Plus" class="add-location-btn" />
-        <div class="main-actions">
-          <MainButton label="Сохранить" :loading="isSaving" @click="saveWork" class="save-btn" />
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'parameters'" class="button-container">
-        <UiButton text="Добавить параметр" icon="Plus" class="add-location-btn" />
+      <div class="button-container">
         <div class="main-actions">
           <MainButton label="Сохранить" :loading="isSaving" @click="saveWork" class="save-btn" />
         </div>
@@ -155,7 +140,6 @@
 import { ref, watch, defineProps, defineEmits } from 'vue';
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue';
 import MainButton from '@/components/ui/MainButton.vue';
-import UiButton from '@/components/ui/UiButton.vue';
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue';
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue';
 import AppInput from '@/components/ui/FormControls/AppInput.vue';
@@ -163,6 +147,9 @@ import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
 import TabsHeader from '@/components/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/components/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, fetchUserData } from '@/api/inspectionsApi.js';
+import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
   record: {
@@ -177,12 +164,21 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  sectionId: {
+    type: [Number, String],
+    default: null,
+  },
+  sectionPv: {
+    type: [Number, String],
+    default: null,
+  },
 });
 
 const emit = defineEmits(['close']);
 
 const isSaving = ref(false);
 const activeTab = ref('info');
+const isInfoSaved = ref(false);
 
 const tabs = ref([
   { name: 'info', label: 'Новая информация по работе', icon: 'Info' },
@@ -190,18 +186,16 @@ const tabs = ref([
   { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal' },
 ]);
 
+const notificationStore = useNotificationStore();
+
 const newRecord = ref({
   coordinates: {
     coordStartKm: null,
     coordStartPk: null,
+    coordStartZv: null,
     coordEndKm: null,
     coordEndPk: null,
-  },
-  endCoordinates: {
-    coordStartKm: null,
-    coordStartPk: null,
-    coordEndKm: null,
-    coordEndPk: null,
+    coordEndZv: null,
   },
   date: null,
   deviationReason: '',
@@ -213,16 +207,11 @@ const defectRecord = ref({
     coordStartPk: null,
     coordEndKm: null,
     coordEndPk: null,
+    coordEndZv: null,
   },
-  endCoordinates: {
-    coordStartKm: null,
-    coordStartPk: null,
-    coordEndKm: null,
-    coordEndPk: null,
-  },
-  component: null,
   defectType: '',
   note: '',
+  component: null,
 });
 
 const parameterRecord = ref({
@@ -231,12 +220,7 @@ const parameterRecord = ref({
     coordStartPk: null,
     coordEndKm: null,
     coordEndPk: null,
-  },
-  endCoordinates: {
-    coordStartKm: null,
-    coordStartPk: null,
-    coordEndKm: null,
-    coordEndPk: null,
+    coordEndZv: null,
   },
   component: null,
   parameterType: null,
@@ -244,10 +228,7 @@ const parameterRecord = ref({
   note: '',
 });
 
-const existingRecords = ref([
-  { date: '03.04.2025', coordinates: '19км 3пк 0зв — 29км 10пк 0зв' },
-  { date: '03.04.2025', coordinates: '19км 3пк 0зв — 29км 10пк 0зв' },
-]);
+const existingRecords = ref([]);
 
 const componentOptions = ref([
   { label: 'Рельс', value: 'Рельс' },
@@ -262,38 +243,118 @@ const parameterOptions = ref([
 ]);
 
 const objectBounds = ref({
-  StartKm: 19,
-  StartPicket: 0,
-  FinishKm: 30,
-  FinishPicket: 0,
+  StartKm: null,
+  StartPicket: null,
+  FinishKm: null,
+  FinishPicket: null,
 });
 
 const closeModal = () => {
   emit('close');
 };
 
-const saveWork = () => {
-  isSaving.value = true;
-  let dataToSave;
-  if (activeTab.value === 'info') {
-    dataToSave = newRecord.value;
-  } else if (activeTab.value === 'defects') {
-    dataToSave = defectRecord.value;
-  } else if (activeTab.value === 'parameters') {
-    dataToSave = parameterRecord.value;
+const handleTabChange = (newTab) => {
+  if (newTab !== 'info' && !isInfoSaved.value) {
+    notificationStore.showNotification('Сначала необходимо сохранить информацию по работе!', 'error');
+    return;
   }
-  console.log('Сохраняем данные:', dataToSave);
-  setTimeout(() => {
-    isSaving.value = false;
-    closeModal();
-  }, 1000);
+  activeTab.value = newTab;
+};
+
+const saveWork = async () => {
+  if (activeTab.value === 'info') {
+    isSaving.value = true;  
+    try {
+      const user = await fetchUserData();
+
+      const formattedDate = formatDateToISO(newRecord.value.date);
+
+      const dataToSave = {
+        name: `${props.record.id}-${formattedDate}`,
+        objLocationClsSection: props.sectionId,
+        pvLocationClsSection: parseInt(props.sectionPv),
+        objWorkPlan: props.record.id,
+        pvWorkPlan: props.record.pv,
+        objUser: user.id,
+        pvUser: user.pv,
+        StartKm: newRecord.value.coordinates.coordStartKm,
+        FinishKm: newRecord.value.coordinates.coordEndKm,
+        StartPicket: newRecord.value.coordinates.coordStartPk,
+        FinishPicket: newRecord.value.coordinates.coordEndPk,
+        StartLink: newRecord.value.coordinates.coordStartZv,
+        FinishLink: newRecord.value.coordinates.coordEndZv,
+        FactDateEnd: formattedDate,
+        CreatedAt: new Date().toISOString().split('T')[0],
+        UpdatedAt: new Date().toISOString().split('T')[0],
+        ReasonDeviation: newRecord.value.deviationReason,
+      };
+
+      console.log('Payload for API call:', dataToSave);
+      await saveInspectionInfo(dataToSave);
+
+      notificationStore.showNotification('Информация по работе успешно сохранена!', 'success');
+      isInfoSaved.value = true;
+    } catch (error) {
+      console.error('Ошибка сохранения:', error);
+      notificationStore.showNotification('Не удалось сохранить информацию по работе.', 'error');
+    } finally {
+      isSaving.value = false;
+    }
+  } else if (activeTab.value === 'defects') {
+    const dataToSave = defectRecord.value;
+    console.log('Сохраняем данные дефекта:', dataToSave);
+  } else if (activeTab.value === 'parameters') {
+    const dataToSave = parameterRecord.value;
+    console.log('Сохраняем данные параметра:', dataToSave);
+  }
+};
+
+const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
+  const startPart = startKm != null && startPk != null ? `${startKm}км ${startPk}пк${startZv != null ? ` ${startZv}зв` : ''}` : '';
+  const finishPart = finishKm != null && finishPk != null ? `${finishKm}км ${finishPk}пк${finishZv != null ? ` ${finishZv}зв` : ''}` : '';
+  return startPart && finishPart ? `${startPart} — ${finishPart}` : 'Координаты отсутствуют';
+};
+
+const loadExistingData = async (record) => {
+  if (!record || !record.id || !record.pv) {
+    return;
+  }
+  try {
+    const data = await loadInspectionEntriesForWorkPlan(record.id, record.pv);
+    existingRecords.value = data.map(item => ({
+      date: formatDate(item.FactDateEnd),
+      coordinates: formatCoordinates(item.StartKm, item.StartPicket, item.StartLink, item.FinishKm, item.FinishPicket, item.FinishLink)
+    }));
+  } catch (error) {
+    console.error("Не удалось загрузить существующие записи:", error);
+    notificationStore.showNotification('Не удалось загрузить ранее внесенные записи.', 'error');
+    existingRecords.value = [];
+  }
 };
 
 watch(
   () => props.record,
-  (newRecord) => {
-    if (newRecord) {
-      // При получении новой записи, можно инициализировать поля
+  (newRecordData) => {
+    if (newRecordData) {
+      objectBounds.value = {
+        StartKm: newRecordData.StartKm || null,
+        StartPicket: newRecordData.StartPicket || null,
+        StartLink: newRecordData.StartLink || null,
+        FinishKm: newRecordData.FinishKm || null,
+        FinishPicket: newRecordData.FinishPicket || null,
+        FinishLink: newRecordData.FinishLink || null,
+      };
+
+      Object.assign(newRecord.value.coordinates, {
+        coordStartKm: newRecordData.StartKm || null,
+        coordStartPk: newRecordData.StartPicket || null,
+        coordStartZv: newRecordData.StartLink || null,
+        coordEndKm: newRecordData.FinishKm || null,
+        coordEndPk: newRecordData.FinishPicket || null,
+        coordEndZv: newRecordData.FinishLink || null,
+      });
+      
+      loadExistingData(newRecordData);
     }
   },
   { immediate: true }
@@ -353,7 +414,6 @@ watch(
   gap: 12px;
 }
 
-/* New defect section styles */
 .defects-content {
   display: flex;
   flex-direction: column;

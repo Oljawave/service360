@@ -1,6 +1,29 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_INSPECTIONS_URL;
+const AUTH_API_URL = import.meta.env.VITE_OBJECT_URL;
+
+let userDataCache = null;
+
+const fetchUserData = async () => {
+  if (userDataCache) return userDataCache;
+
+  try {
+    const response = await axios.post(AUTH_API_URL, {
+      method: 'data/loadObjList',
+      params: ['Typ_Personnel', 'Prop_User', 'personnaldata']
+    });
+
+    const user = response.data?.result?.records?.[0];
+    if (!user) throw new Error('Данные пользователя не найдены');
+
+    userDataCache = user;
+    return user;
+  } catch (error) {
+    console.error('Ошибка при загрузке данных пользователя:', error);
+    throw error;
+  }
+};
 
 const loadSections = async () => {
   try {
@@ -9,8 +32,6 @@ const loadSections = async () => {
     if (!objLocation) {
       throw new Error("objLocation не найден в localStorage");
     }
-
-    console.log("Запрос на загрузку участков с objLocation:", objLocation);
 
     const response = await axios.post(
       API_BASE_URL,
@@ -23,18 +44,14 @@ const loadSections = async () => {
       }
     );
 
-    console.log("Ответ на загрузку участков:", response.data);
     return response.data.result?.records || [];
   } catch (error) {
-    console.error("Ошибка при загрузке участков:", error);
     throw error;
   }
 };
 
 const loadWorkPlanDates = async (selectedSectionId, pv) => {
   try {
-    console.log("Запрос на загрузку дат с selectedSectionId:", selectedSectionId, "и pv:", pv);
-
     const response = await axios.post(
       API_BASE_URL,
       {
@@ -51,18 +68,14 @@ const loadWorkPlanDates = async (selectedSectionId, pv) => {
       }
     );
 
-    console.log("Ответ на загрузку дат для плана:", response.data);
     return response.data.result || [];
   } catch (error) {
-    console.error("Ошибка при загрузке дат для плана работ:", error);
     throw error;
   }
 };
 
 const loadWorkPlanUnfinishedByDate = async (sectionId, pv, date) => {
   try {
-    console.log("Запрос на загрузку незавершённых работ:", { sectionId, pv, date });
-
     const response = await axios.post(
       API_BASE_URL,
       {
@@ -80,12 +93,59 @@ const loadWorkPlanUnfinishedByDate = async (sectionId, pv, date) => {
       }
     );
 
-    console.log("Ответ на загрузку работ:", response.data);
     return response.data.result?.records || [];
   } catch (error) {
-    console.error("Ошибка при загрузке незавершённых работ:", error);
     throw error;
   }
 };
 
-export { loadSections, loadWorkPlanDates, loadWorkPlanUnfinishedByDate };
+const loadInspectionEntriesForWorkPlan = async (workPlanId, workPlanPv) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/loadInspectionEntriesForWorkPlan",
+        params: [
+          {
+            id: workPlanId,
+            pv: workPlanPv,
+          }
+        ]
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    return response.data.result?.records || [];
+  } catch (error) {
+    throw error;
+  }
+};
+
+const saveInspectionInfo = async (payload) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/saveInspection",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export {
+  loadSections,
+  loadWorkPlanDates,
+  loadWorkPlanUnfinishedByDate,
+  loadInspectionEntriesForWorkPlan,
+  saveInspectionInfo,
+  fetchUserData,
+};

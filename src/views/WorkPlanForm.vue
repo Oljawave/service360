@@ -12,7 +12,6 @@
           placeholder="Выберите участок"
           :required="true"
           class="filter-item"
-          hint="Заполняется автоматически в зависимости от роли пользователя"
           :options="sections"
           @update:value="onSectionChange"
         />
@@ -23,7 +22,6 @@
           placeholder="Выберите месяц"
           :required="true"
           class="filter-item"
-          hint="Заполняется автоматически текущим месяцем"
           :options="months"
           @update:value="onMonthChange"
         />
@@ -74,6 +72,8 @@
       :record="selectedRecord"
       :section="selectedSectionName"
       :date="selectedDate"
+      :sectionId="selectedSection"
+      :sectionPv="selectedSectionPv"
       @close="isWorkCardModalOpen = false"
     />
   </div>
@@ -129,11 +129,13 @@ const selectedSectionName = computed(() => {
   return section ? section.label : null;
 });
 
-const getSelectedSectionPv = () => {
-  if (!selectedSection.value) return null;
+const getSelectedSectionData = () => {
+  if (!selectedSection.value) return { id: null, pv: null };
   const section = sectionsData.value.find((s) => s.id === selectedSection.value);
-  return section ? section.pv : null;
+  return { id: section.id, pv: section.pv };
 };
+
+const selectedSectionPv = computed(() => getSelectedSectionData().pv);
 
 const columns = [
   { key: 'name', label: 'НАИМЕНОВАНИЕ РАБОТЫ' },
@@ -157,20 +159,27 @@ const loadWorkPlanForDate = async () => {
 
   isLoading.value = true;
   try {
-    const pv = getSelectedSectionPv();
-    if (!pv) {
+    const sectionData = getSelectedSectionData();
+    if (!sectionData.pv) {
       throw new Error('PV участка не найден');
     }
 
-    const records = await loadWorkPlanUnfinishedByDate(selectedSection.value, pv, selectedDate.value);
+    const records = await loadWorkPlanUnfinishedByDate(sectionData.id, sectionData.pv, selectedDate.value);
 
     tableData.value = records.map((record) => ({
       id: record.id,
+      pv: record.pv,
       name: record.fullNameWork || 'Без названия',
       place: record.nameSection || 'Не указано',
       objectType: record.nameClsObject || 'Неизвестно',
       object: record.fullNameObject || 'Объект не указан',
-      coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк — ${record.FinishKm}км ${record.FinishPicket || 0}пк` : 'Координаты отсутствуют',
+      coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк ${record.StartLink || 0}зв — ${record.FinishKm}км ${record.FinishPicket || 0}пк ${record.FinishLink || 0}зв` : 'Координаты отсутствуют',
+      StartKm: record.StartKm,
+      StartPicket: record.StartPicket,
+      StartLink: record.StartLink,
+      FinishKm: record.FinishKm,
+      FinishPicket: record.FinishPicket,
+      FinishLink: record.FinishLink,
     }));
   } catch (error) {
     console.error('Ошибка загрузки плана:', error);
@@ -201,10 +210,9 @@ const loadSectionsData = async () => {
 };
 
 const loadWorkPlanDatesData = async () => {
-  const selectedSectionId = selectedSection.value;
-  const pv = getSelectedSectionPv();
+  const sectionData = getSelectedSectionData();
 
-  if (!pv) {
+  if (!sectionData.pv) {
     months.value = [];
     days.value = [];
     selectedMonth.value = null;
@@ -215,7 +223,7 @@ const loadWorkPlanDatesData = async () => {
   }
 
   try {
-    const dates = await loadWorkPlanDates(selectedSectionId, pv);
+    const dates = await loadWorkPlanDates(sectionData.id, sectionData.pv);
 
     const monthsSet = new Set();
     const daysSet = new Set();
@@ -380,7 +388,7 @@ const onRowDoubleClick = (row) => {
   font-size: 14px;
   padding: 0 16px;
   border-radius: 8px;
-  background-color: #3b82f6;
+  background-color: #2b6cb0 ;
   color: white;
   border: none;
   cursor: pointer;

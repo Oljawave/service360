@@ -12,6 +12,8 @@
             <UiIcon :name="isExpanded ? 'ChevronDown' : 'ChevronRight'" />
           </span>
         </span>
+        <!-- Добавляем отображение содержимого первой колонки -->
+        <span class="cell-content">{{ row[col.key] }}</span>
       </template>
       <template v-else>
         {{ row[col.key] }}
@@ -63,9 +65,22 @@ const toggleExpand = () => {
 
 const fullIndex = computed(() => {
   if (props.parentIndex) return props.parentIndex;
-  return props.row.index?.toString() || '';
+  // Для основных строк показываем порядковый номер вместо row.index
+  return props.row._rowNumber?.toString() || '';
 });
 </script>
+
+<style scoped>
+.index-icon-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cell-content {
+  margin-left: 8px;
+}
+</style>
 
 
 <style scoped>

@@ -1,9 +1,8 @@
 import axios from "axios";
 
-
 export async function login(username, password) {
   try {
-    const response = await axios.get(`/auth/login`, {
+    const response = await axios.get(`/dtj/service/auth/login`, {
       params: { username, password },
       withCredentials: true,
     });
@@ -11,7 +10,7 @@ export async function login(username, password) {
     const data = response.data;
 
     if (data?.error || data?.success === false) {
-      throw new Error(data.error || "Ошибка авторизации")
+      throw new Error(data.error || "Ошибка авторизации");
     }
 
     return data;
@@ -23,7 +22,7 @@ export async function login(username, password) {
 
 export async function getCurrentUser() {
   const response = await axios.post(
-    `/userapi`,
+    `/dtj/service/userapi`,
     {
       method: "data/getCurUserInfo",
       params: [],
@@ -33,13 +32,13 @@ export async function getCurrentUser() {
     }
   );
 
-  return response.data.result;
+  return response.data;
 }
 
 export async function getPersonnalInfo(userId) {
   try {
     const response = await axios.post(
-      `/userinfo`,
+      `/dtj/service/userinfo`,
       {
         method: "data/getPersonnalInfo",
         params: [userId],
@@ -50,11 +49,8 @@ export async function getPersonnalInfo(userId) {
     );
 
     return response.data.result;
-
   } catch (err) {
     console.error("Ошибка в getPersonnalInfo:", err.response?.data || err.message);
     throw err;
   }
 }
-
-

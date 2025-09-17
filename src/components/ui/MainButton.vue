@@ -25,7 +25,7 @@ export default {
 .main-button {
   width: 100%;
   padding: 10px;
-  background-color: #007bff;
+  background-color: #2b6cb0;
   color: white;
   font-size: 16px;
   border-radius: 8px;

@@ -1,4 +1,3 @@
-<!-- src/components/work/ExistingDataBlock.vue -->
 <template>
   <div class="existing-data-block">
     <p class="warning-text">
