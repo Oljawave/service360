@@ -209,7 +209,7 @@ const savedInspectionId = ref(null);
 
 const tabs = ref([
   { name: 'info', label: 'Новая информация по работе', icon: 'Info' },
-  { name: 'defects', label: 'Дефекты', icon: 'AlertTriangle' },
+  { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle' },
   { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal' },
 ]);
 

@@ -5,6 +5,7 @@ import Login from '../views/Login.vue';
 import WorkPlan from '@/views/WorkPlan.vue';
 import Inspections from '@/views/Inspections.vue';
 import WorkPlanForm from '@/views/WorkPlanForm.vue';
+import FaultJournalPage from '@/views/FaultJournalPage.vue';
 
 const routes = [
   {
@@ -25,6 +26,11 @@ const routes = [
     path: '/inspections',
     name: 'Inspections',
     component: Inspections
+  },
+  {
+    path: '/defects',
+    name: 'Defects',
+    component: FaultJournalPage
   },
   {
     path: '/inspections/record',
