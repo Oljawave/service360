@@ -25,6 +25,7 @@
         :modelValue="currentStartZv"
         label="Начало (зв)"
         placeholder="зв"
+        :max="99"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartZv"
         @focus="handleFocus"
@@ -53,6 +54,7 @@
         :modelValue="currentEndZv"
         label="Конец (зв)"
         placeholder="зв"
+        :max="99"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndZv"
         @focus="handleFocus"
@@ -99,15 +101,25 @@ const currentEndKm = computed(() => props.modelValue.coordEndKm ?? 0)
 const currentEndPk = computed(() => props.modelValue.coordEndPk ?? 0)
 const currentEndZv = computed(() => props.modelValue.coordEndZv ?? 0)
 
-const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100 + currentStartZv.value)
-const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100 + currentEndZv.value)
+const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100 + currentStartZv.value * 25)
+const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100 + currentEndZv.value * 25)
 
 const isInvalid = computed(() => startAbs.value > endAbs.value)
 
 const isOutOfBounds = computed(() => {
   if (!props.objectBounds) return false
-  const objStartAbs = props.objectBounds.StartKm * 1000 + props.objectBounds.StartPicket * 100 + props.objectBounds.StartZv * 25
-  const objEndAbs = props.objectBounds.FinishKm * 1000 + props.objectBounds.FinishPicket * 100 + props.objectBounds.FinishZv * 25
+  
+  // Проверяем наличие всех необходимых полей в objectBounds
+  const hasStartZv = props.objectBounds.StartZv !== undefined && props.objectBounds.StartZv !== null
+  const hasFinishZv = props.objectBounds.FinishZv !== undefined && props.objectBounds.FinishZv !== null
+  
+  const objStartAbs = props.objectBounds.StartKm * 1000 + 
+                      props.objectBounds.StartPicket * 100 + 
+                      (hasStartZv ? props.objectBounds.StartZv * 25 : 0)
+  const objEndAbs = props.objectBounds.FinishKm * 1000 + 
+                    props.objectBounds.FinishPicket * 100 + 
+                    (hasFinishZv ? props.objectBounds.FinishZv * 25 : 0)
+  
   return startAbs.value < objStartAbs || endAbs.value > objEndAbs
 })
 

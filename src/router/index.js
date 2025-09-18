@@ -6,6 +6,7 @@ import WorkPlan from '@/views/WorkPlan.vue';
 import Inspections from '@/views/Inspections.vue';
 import WorkPlanForm from '@/views/WorkPlanForm.vue';
 import FaultJournalPage from '@/views/FaultJournalPage.vue';
+import ParameterLogPage from '@/views/ParameterLogPage.vue';
 
 const routes = [
   {
@@ -26,6 +27,11 @@ const routes = [
     path: '/inspections',
     name: 'Inspections',
     component: Inspections
+  },
+  {
+    path: '/parameters',
+    name: 'Paramaters',
+    component: ParameterLogPage
   },
   {
     path: '/defects',
