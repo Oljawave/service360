@@ -21,6 +21,7 @@ import { useRouter } from 'vue-router';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadInspections } from '@/api/inspectionApi';
 import { loadPeriodTypes } from '@/api/periodApi';
+import WorkStatus from '../components/ui/WorkStatus.vue';
 
 const router = useRouter();
 
@@ -88,12 +89,11 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
 
     const sliced = records.slice(start, end).map((r, index) => ({
       index: start + index + 1,
-      name: r.nameLocationClsSection,
       work: r.fullNameWork,
-      fullNameWork: r.fullNameWork,
+      name: r.nameLocationClsSection,
       location: r.nameSection,
-      coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
       object: r.fullNameObject,
+      coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
       planDate: r.PlanDateEnd,
       factDate: r.FactDateEnd,
       inspector: r.fullNameUser,
@@ -102,12 +102,12 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
       rawData: r,
       objWork: r.objWork,
       objObject: r.objObject,
-      StartKm: r.StartKm,
-      StartPicket: r.StartPicket,
-      FinishKm: r.FinishKm,
-      FinishPicket: r.FinishPicket,
-      nameLocationClsSection: r.nameLocationClsSection,
-      objLocationClsSection: r.objLocationClsSection
+      status: {
+        showCheck: r.ActualDateEnd !== '0000-01-01',
+        showMinus: r.ActualDateEnd === '0000-01-01',
+        showHammer: r.nameFlagDefect === 'да',
+        showRuler: r.nameFlagParameter === 'да',
+      },
     }));
 
     return {
@@ -133,8 +133,7 @@ const columns = [
   { key: 'coordinates', label: 'Координаты' },
   { key: 'planDate', label: 'Плановая дата' },
   { key: 'factDate', label: 'Фактическая дата' },
-  // { key: 'deviation', label: 'Отклонение' },
-  // { key: 'reason', label: 'Причина отклонения' },
+  { key: 'status', label: 'Статус работы', component: WorkStatus,}
 ];
 
 const tableActions = [
@@ -149,6 +148,6 @@ const tableActions = [
     label: 'Экспорт',
     icon: 'Download',
     onClick: () => console.log('Экспортирование инспекций...'),
-  }
+  },
 ];
 </script>

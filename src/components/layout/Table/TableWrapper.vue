@@ -46,13 +46,15 @@
         />
       </template>
     </BaseTable>
-
-    <Pagination
-      :total="filteredRows.length"
-      :page="page"
-      :limit="limit"
-      @change-page="setPage"
-    />
+    <div class="table-footer">
+      <div class="record-summary">{{ recordSummary }}</div>
+      <Pagination
+        :total="filteredRows.length"
+        :page="page"
+        :limit="limit"
+        @change-page="setPage"
+      />
+    </div>
 
     <slot
       name="modals"
@@ -127,8 +129,18 @@ const filteredRows = computed(() => {
 
 const pagedRows = computed(() => {
   const start = (page.value - 1) * props.limit;
-  const end = page.value * props.limit;
+  const end = start + props.limit; // Correct calculation for slice end
   return filteredRows.value.slice(start, end);
+});
+
+const recordSummary = computed(() => {
+  const start = (page.value - 1) * props.limit + 1;
+  const end = Math.min(start + props.limit - 1, filteredRows.value.length);
+  const total = filteredRows.value.length;
+  if (total === 0) {
+    return 'Показано 0 записей';
+  }
+  return `Показано ${start}–${end} из ${total} записей`;
 });
 
 const updateFilter = (key, value) => {
@@ -189,7 +201,7 @@ const handleSave = async () => {
 };
 
 const refreshTable = () => {
-  console.log('🔄 Обновление таблицы');
+  console.log('Обновление таблицы');
   loadData();
 };
 
@@ -226,8 +238,6 @@ onUnmounted(() => {
 });
 </script>
 
-
-
 <style scoped>
 .table-wrapper {
   background: #fff;
@@ -260,5 +270,16 @@ onUnmounted(() => {
   display: flex;
   gap: 16px;
   margin-top: 16px;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.record-summary {
+  font-size: 14px;
+  color: #6b7280;
 }
 </style>

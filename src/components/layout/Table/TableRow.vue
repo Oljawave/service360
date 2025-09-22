@@ -1,7 +1,10 @@
 <template>
   <tr class="data-row" @dblclick="$emit('dblclick', row)">
     <td v-for="(col, i) in columns" :key="col.key" class="cell">
-      <template v-if="i === 0">
+      <template v-if="col.component">
+        <component :is="col.component" v-bind="row[col.key]" />
+      </template>
+      <template v-else-if="i === 0">
         <span class="index-icon-wrap">
           <span class="row-index">{{ fullIndex }}</span>
           <span
@@ -12,7 +15,6 @@
             <UiIcon :name="isExpanded ? 'ChevronDown' : 'ChevronRight'" />
           </span>
         </span>
-        <!-- Добавляем отображение содержимого первой колонки -->
         <span class="cell-content">{{ row[col.key] }}</span>
       </template>
       <template v-else>
@@ -65,12 +67,12 @@ const toggleExpand = () => {
 
 const fullIndex = computed(() => {
   if (props.parentIndex) return props.parentIndex;
-  // Для основных строк показываем порядковый номер вместо row.index
   return props.row._rowNumber?.toString() || '';
 });
 </script>
 
 <style scoped>
+/* Ваши стили, без изменений */
 .index-icon-wrap {
   display: flex;
   align-items: center;
@@ -80,10 +82,7 @@ const fullIndex = computed(() => {
 .cell-content {
   margin-left: 8px;
 }
-</style>
 
-
-<style scoped>
 .data-row {
   transition: background 0.2s;
   cursor: pointer;
