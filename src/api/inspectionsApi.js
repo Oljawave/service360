@@ -213,6 +213,44 @@ const loadComponentParametersForSelect = async (objComponent) => {
   }
 };
 
+const loadFaultEntriesForInspection = async (inspectionId) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/loadFaultEntriesForInspection",
+        params: [inspectionId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке записей о неисправностях:", error);
+    throw error;
+  }
+};
+
+const loadParameterEntriesForInspection = async (inspectionId) => {
+  try {
+    const response = await axios.post(
+      API_BASE_URL,
+      {
+        method: "data/loadParameterEntriesForInspection",
+        params: [inspectionId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке записей о параметрах:", error);
+    throw error;
+  }
+};
+
 export {
   loadSections,
   loadWorkPlanDates,
@@ -224,4 +262,6 @@ export {
   loadComponentsByTypObjectForSelect,
   loadDefectsByComponentForSelect,
   loadComponentParametersForSelect,
+  loadFaultEntriesForInspection,
+  loadParameterEntriesForInspection,
 };

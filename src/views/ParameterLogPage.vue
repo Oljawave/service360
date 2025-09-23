@@ -14,7 +14,7 @@
     @row-dblclick="onRowDoubleClick"
   >
     <template #modals="{ selectedRow, showEditModal, closeModals }">
-      </template>
+    </template>
   </TableWrapper>
 </template>
 
@@ -100,7 +100,9 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
       ParamsLimit: r.ParamsLimit,
       nameOutOfNorm: r.nameOutOfNorm,
       Description: r.Description,
-      CreationDateTime: r.CreationDateTime,
+      // Отделяем дату и время
+      CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+      CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
       rawData: r,
     }));
 
@@ -132,7 +134,8 @@ const columns = [
   { key: 'ParamsLimit', label: 'Значение' },
   { key: 'nameOutOfNorm', label: 'Отклонение' },
   { key: 'Description', label: 'Примечание', minWidth: 200 },
-  { key: 'CreationDateTime', label: 'Время создания', width: 180 },
+  { key: 'CreationDate', label: 'Дата записи', width: 120 },
+  { key: 'CreationTime', label: 'Время записи', width: 120 },
 ];
 
 const tableActions = [

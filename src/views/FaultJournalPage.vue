@@ -14,7 +14,7 @@
     @row-dblclick="onRowDoubleClick"
   >
     <template #modals="{ selectedRow, showEditModal, closeModals }">
-      </template>
+    </template>
   </TableWrapper>
 </template>
 
@@ -94,17 +94,18 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
 
     const sliced = records.slice(start, end).map((r, index) => ({
       index: start + index + 1,
-
       nameSection: r.nameSection,
       nameDefect: r.nameDefect,
       nameObject: r.nameObject,
       coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
-      CreationDateTime: r.CreationDateTime,
       FactDateEnd: r.FactDateEnd,
       Description: r.Description,
       nameDefectsComponent: r.nameDefectsComponent,
       nameDefectsCategory: r.nameDefectsCategory,
       nameLocationClsSection: r.nameLocationClsSection,
+      // Отделяем дату и время
+      CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+      CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
       rawData: r,
     }));
 
@@ -125,15 +126,16 @@ const onRowDoubleClick = (row) => {
 const columns = [
   { key: 'index', label: '№' },
   { key: 'FactDateEnd', label: 'Дата проверки' },
-  { key: 'nameSection', label: 'Участок' },
   { key: 'nameLocationClsSection', label: 'Место' },
-  { key: 'nameObject', label: 'Объект' },
-  { key: 'coordinates', label: 'Координаты' },
-  { key: 'nameDefectsComponent', label: 'Компонент' },
-  { key: 'nameDefect', label: 'Неисправность' },
-  { key: 'Description', label: 'Примечание' },
-  { key: 'nameDefectsCategory', label: 'Категория' },
-  { key: 'CreationDateTime', label: 'Время создания записи' },
+  { key: 'nameSection', label: 'Участок' },
+  { key: 'nameObject', label: 'Объект', minWidth: 200 },
+  { key: 'coordinates', label: 'Координаты', width: 220 },
+  { key: 'nameDefectsComponent', label: 'Компонент', minWidth: 200 },
+  { key: 'nameDefect', label: 'Неисправность', minWidth: 200 },
+  { key: 'nameDefectsCategory', label: 'Категория', width: 120 },
+  { key: 'Description', label: 'Примечание', minWidth: 200 },
+  { key: 'CreationDate', label: 'Дата записи', width: 120 },
+  { key: 'CreationTime', label: 'Время записи', width: 120 },
 ];
 
 const tableActions = [

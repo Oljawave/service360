@@ -1,22 +1,30 @@
 <template>
   <div class="existing-data-block">
     <p class="warning-text">
-      По данной работе в Журнал осмотров/проверок уже внесена следующая информация:
+      {{ getWarningText() }}
     </p>
     <div class="data-table-scroll">
       <div class="data-table">
-        <div class="data-row header-row">
+        <div class="data-row header-row" :class="getHeaderClass()">
           <span class="data-cell number-cell">№</span>
           <span class="data-cell date-cell">ДАТА</span>
           <span class="data-cell coords-cell">КООРДИНАТЫ</span>
+          <span v-if="dataType === 'defects'" class="data-cell defect-cell">ДЕФЕКТ</span>
+          <span v-if="dataType === 'parameters'" class="data-cell component-cell">КОМПОНЕНТ</span>
+          <span v-if="dataType === 'parameters'" class="data-cell parameter-cell">ПАРАМЕТР</span>
+          <span v-if="dataType === 'parameters'" class="data-cell value-cell">ЗНАЧЕНИЕ</span>
         </div>
         <div v-if="existingRecords.length === 0" class="data-row empty-row">
-          <span class="data-cell" colspan="3">Нет ранее внесенных записей</span>
+          <span class="data-cell" :colspan="getColspan()">Нет ранее внесенных записей</span>
         </div>
         <div v-else v-for="(item, index) in existingRecords" :key="index" class="data-row">
           <span class="data-cell number-cell">{{ index + 1 }}</span>
           <span class="data-cell date-cell">{{ item.date }}</span>
           <span class="data-cell coords-cell">{{ item.coordinates }}</span>
+          <span v-if="dataType === 'defects'" class="data-cell defect-cell">{{ item.defect }}</span>
+          <span v-if="dataType === 'parameters'" class="data-cell component-cell">{{ item.component }}</span>
+          <span v-if="dataType === 'parameters'" class="data-cell parameter-cell">{{ item.parameter }}</span>
+          <span v-if="dataType === 'parameters'" class="data-cell value-cell">{{ item.value }}</span>
         </div>
       </div>
     </div>
@@ -26,12 +34,50 @@
 <script setup>
 import { defineProps } from 'vue';
 
-defineProps({
+const props = defineProps({
   existingRecords: {
     type: Array,
     default: () => []
+  },
+  dataType: {
+    type: String,
+    default: 'info', // 'info', 'defects', 'parameters'
+    validator: (value) => ['info', 'defects', 'parameters'].includes(value)
   }
 });
+
+const getWarningText = () => {
+  switch (props.dataType) {
+    case 'defects':
+      return 'Внесенные дефекты';
+    case 'parameters':
+      return 'Внесенные параметры';
+    default:
+      return 'Внесенные осмотры/проверки';
+  }
+};
+
+const getHeaderClass = () => {
+  switch (props.dataType) {
+    case 'defects':
+      return 'defects-header';
+    case 'parameters':
+      return 'parameters-header';
+    default:
+      return '';
+  }
+};
+
+const getColspan = () => {
+  switch (props.dataType) {
+    case 'defects':
+      return 4; // №, ДАТА, КООРДИНАТЫ, ДЕФЕКТ
+    case 'parameters':
+      return 6; // №, ДАТА, КООРДИНАТЫ, КОМПОНЕНТ, ПАРАМЕТР, ЗНАЧЕНИЕ
+    default:
+      return 3; // №, ДАТА, КООРДИНАТЫ
+  }
+};
 </script>
 
 <style scoped>
@@ -62,11 +108,42 @@ defineProps({
 
 .data-row {
   display: grid;
-  grid-template-columns: 60px 140px 1fr;
   gap: 24px;
   padding: 8px 0;
   border-bottom: 1px solid #e8d5b7;
   align-items: center;
+}
+
+.data-row:not(.defects-header):not(.parameters-header) {
+  grid-template-columns: 60px 140px 1fr;
+}
+
+.data-row.defects-header {
+  grid-template-columns: 60px 140px 1fr 1fr;
+}
+
+.data-row.parameters-header {
+  grid-template-columns: 60px 140px 1fr 1fr 1fr 100px;
+}
+
+/* Для строк данных с дефектами */
+.data-row:not(.header-row):not(.empty-row) .defect-cell {
+  display: block;
+}
+
+.data-row:not(.header-row):not(.empty-row):has(.defect-cell) {
+  grid-template-columns: 60px 140px 1fr 1fr;
+}
+
+/* Для строк данных с параметрами */
+.data-row:not(.header-row):not(.empty-row) .component-cell,
+.data-row:not(.header-row):not(.empty-row) .parameter-cell,
+.data-row:not(.header-row):not(.empty-row) .value-cell {
+  display: block;
+}
+
+.data-row:not(.header-row):not(.empty-row):has(.component-cell) {
+  grid-template-columns: 60px 140px 1fr 1fr 1fr 100px;
 }
 
 .data-row.header-row {
