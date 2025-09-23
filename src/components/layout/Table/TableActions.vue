@@ -28,7 +28,6 @@ const props = defineProps({
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: -12px;
 }
 
 .action-btn {

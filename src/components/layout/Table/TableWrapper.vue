@@ -1,27 +1,27 @@
 <template>
   <div class="table-wrapper">
-    <div class="table-header">
-      <h2 class="title">{{ title }}</h2>
+    <h2 class="title">{{ title }}</h2>
+
+    <div class="controls-header">
+      <div class="filters" v-if="showFilters">
+        <AppDatePicker
+          v-if="datePickerConfig"
+          :modelValue="filters.date"
+          :label="datePickerConfig.label"
+          :placeholder="datePickerConfig.placeholder"
+          @update:modelValue="updateFilter('date', $event)"
+        />
+
+        <AppDropdown
+          v-if="dropdownConfig"
+          :modelValue="filters.periodType"
+          :label="dropdownConfig.label"
+          :options="dropdownConfig.options"
+          :placeholder="dropdownConfig.placeholder"
+          @update:modelValue="updateFilter('periodType', $event)"
+        />
+      </div>
       <TableActions :actions="actions" />
-    </div>
-
-    <div class="filters" v-if="showFilters">
-      <AppDatePicker
-        v-if="datePickerConfig"
-        :modelValue="filters.date"
-        :label="datePickerConfig.label"
-        :placeholder="datePickerConfig.placeholder"
-        @update:modelValue="updateFilter('date', $event)"
-      />
-
-      <AppDropdown
-        v-if="dropdownConfig"
-        :modelValue="filters.periodType"
-        :label="dropdownConfig.label"
-        :options="dropdownConfig.options"
-        :placeholder="dropdownConfig.placeholder"
-        @update:modelValue="updateFilter('periodType', $event)"
-      />
     </div>
 
     <BaseTable
@@ -253,11 +253,10 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.table-header {
+.controls-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: -8px;
 }
 
 .title {
@@ -269,7 +268,6 @@ onUnmounted(() => {
 .filters {
   display: flex;
   gap: 16px;
-  margin-top: 16px;
 }
 
 .table-footer {
