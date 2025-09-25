@@ -1,5 +1,5 @@
 <template>
-  <ModalWrapper title="Карточка осмотра/проверки" @close="closeModal">
+  <ModalWrapper title="Карточка осмотра/проверки" :showFooter="false" @close="closeModal">
     <div class="work-card-content">
       <WorkHeaderInfo :record="record" :section="section" :date="date" />
 
@@ -16,6 +16,7 @@
                   v-model="newRecord.coordinates"
                   label="Координаты начала"
                   class="coord-start"
+                  :isInspection="true"
                   :objectBounds="objectBounds"
                 />
               </div>
@@ -48,7 +49,7 @@
                   v-model="defectRecord.startCoordinates"
                   label="Координаты начала"
                   class="coord-start"
-                  :objectBounds="objectBounds"
+                  :objectBounds="inspectionBounds"
                 />
               </div>
               <div class="defect-info-group">
@@ -92,7 +93,7 @@
                   v-model="parameterRecord.startCoordinates"
                   label="Координаты начала"
                   class="coord-start"
-                  :objectBounds="objectBounds"
+                  :objectBounds="inspectionBounds"
                 />
               </div>
               <div class="parameter-info-group">
@@ -141,15 +142,12 @@
                 />
               </div>
 
-              <AppInput
+              <AppNumberInput
                 label="Значение"
                 id="parameter-value"
                 v-model="parameterRecord.value"
                 placeholder="Введите значение"
                 class="half-width value-input"
-                :status="shouldShowValueError && isValueOutOfRange ? 'error' : null"
-                @focus="handleValueFocus"
-                @blur="handleValueBlur"
               />
               <AppInput
                 label="Примечание / заметка"
@@ -166,9 +164,9 @@
 
       <div class="button-container">
         <div class="main-actions">
-          <MainButton :label="saveButtonLabel" :loading="isSaving" @click="saveWork" class="save-btn" />
+          <MainButton :label="getButtonLabel()" :loading="isSaving" @click="saveWork" class="save-btn" />
         </div>
-      </div>  
+      </div>
     </div>
   </ModalWrapper>
 </template>
@@ -186,7 +184,7 @@ import TabsHeader from '@/components/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/components/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, saveFaultInfo, fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, loadComponentParametersForSelect, loadFaultEntriesForInspection, loadParameterEntriesForInspection } from '@/api/inspectionsApi.js';
+import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, saveFaultInfo, saveParameterInfo, fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, loadComponentParametersForSelect, loadFaultEntriesForInspection, loadParameterEntriesForInspection, loadFactorValForSelect } from '@/api/inspectionsApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -282,6 +280,7 @@ const existingParameters = ref([]);
 const componentOptions = ref([]);
 const defectOptions = ref([]);
 const parameterOptions = ref([]);
+const outOfNormOptions = ref([]); // Добавлено
 const loadingComponents = ref(false);
 const loadingDefects = ref(false);
 const loadingParameters = ref(false);
@@ -293,17 +292,13 @@ const objectBounds = ref({
   FinishPicket: null,
 });
 
-const saveButtonLabel = computed(() => {
-  switch (activeTab.value) {
-    case 'info':
-      return 'Добавить запись в журнал';
-    case 'defects':
-      return 'Добавить неисправность';
-    case 'parameters':
-      return 'Добавить параметр';
-    default:
-      return 'Сохранить';
-  }
+const inspectionBounds = ref({
+  StartKm: null,
+  StartPicket: null,
+  StartLink: null,
+  FinishKm: null,
+  FinishPicket: null,
+  FinishLink: null,
 });
 
 // Computed свойства для валидации параметров
@@ -320,26 +315,8 @@ const isMinMaxInvalid = computed(() => {
 });
 
 const isValueOutOfRange = computed(() => {
-  const value = parseFloat(parameterRecord.value.value);
-  const minVal = parseFloat(parameterRecord.value.minValue);
-  const maxVal = parseFloat(parameterRecord.value.maxValue);
-  
-  // Если значение не является числом, то ошибки нет
-  if (isNaN(value)) return false;
-  
-  let isOutOfRange = false;
-  
-  // Проверяем минимальное значение только если оно задано
-  if (!isNaN(minVal) && value < minVal) {
-    isOutOfRange = true;
-  }
-  
-  // Проверяем максимальное значение только если оно задано
-  if (!isNaN(maxVal) && value > maxVal) {
-    isOutOfRange = true;
-  }
-  
-  return isOutOfRange;
+  // Убираем валидацию диапазона для значения параметра
+  return false;
 });
 
 // Функции для обработки фокуса и валидации параметров
@@ -385,11 +362,11 @@ const validateValue = () => {
     
     // Формируем сообщение об ошибке в зависимости от того, какие границы заданы
     if (!isNaN(minVal) && !isNaN(maxVal)) {
-      errorMessage = `Значение должно находиться в диапазоне от ${minVal} до ${maxVal}`;
+      errorMessage = `Значение должно находиться в диапазоне от ${minVal} до ${maxVal}!`;
     } else if (!isNaN(minVal) && isNaN(maxVal)) {
-      errorMessage = `Значение не может быть меньше ${minVal}`;
+      errorMessage = `Значение не может быть меньше ${minVal}!`;
     } else if (isNaN(minVal) && !isNaN(maxVal)) {
-      errorMessage = `Значение не может быть больше ${maxVal}`;
+      errorMessage = `Значение не может быть больше ${maxVal}!`;
     }
     
     if (errorMessage) {
@@ -400,6 +377,19 @@ const validateValue = () => {
 
 const closeModal = () => {
   emit('close');
+};
+
+const getButtonLabel = () => {
+  switch (activeTab.value) {
+    case 'info':
+      return 'Добавить запись в журнал';
+    case 'defects':
+      return 'Добавить неисправность';
+    case 'parameters':
+      return 'Добавить параметр';
+    default:
+      return 'Сохранить';
+  }
 };
 
 const handleTabChange = async (newTab) => {
@@ -415,6 +405,10 @@ const handleTabChange = async (newTab) => {
     await loadExistingDefects(savedInspectionId.value);
   } else if (newTab === 'parameters' && savedInspectionId.value) {
     await loadExistingParameters(savedInspectionId.value);
+    // Загружаем факторы OutOfNorm при переходе на вкладку параметров
+    if (outOfNormOptions.value.length === 0) {
+      await loadOutOfNormFactors();
+    }
   }
 };
 
@@ -489,6 +483,16 @@ const saveWork = async () => {
       
       defectRecord.value.startCoordinates = { ...savedCoordinates };
       
+      // Устанавливаем границы для вкладок дефектов и параметров
+      inspectionBounds.value = {
+        StartKm: newRecord.value.coordinates.coordStartKm,
+        StartPicket: newRecord.value.coordinates.coordStartPk,
+        StartLink: newRecord.value.coordinates.coordStartZv,
+        FinishKm: newRecord.value.coordinates.coordEndKm,
+        FinishPicket: newRecord.value.coordinates.coordEndPk,
+        FinishLink: newRecord.value.coordinates.coordEndZv,
+      };
+
       parameterRecord.value.startCoordinates = { ...savedCoordinates };
     } catch (error) {
       console.error('Ошибка сохранения:', error);
@@ -525,7 +529,7 @@ const saveWork = async () => {
     isSaving.value = true;
     try {
       // Получаем данные выбранного дефекта для извлечения pv
-      const selectedDefect = defectOptions.value.find(d => d.value === defectRecord.value.defectType.value || d.value === defectRecord.value.defectType);
+      const selectedDefect = defectOptions.value.find(d => d.value === (defectRecord.value.defectType.value || defectRecord.value.defectType));
       
       if (!selectedDefect) {
         throw new Error('Выбранный дефект не найден');
@@ -604,29 +608,11 @@ const saveWork = async () => {
       shouldShowMinMaxError.value = true;
       return;
     }
-
-    // Проверка того, что значение находится в допустимом диапазоне
-    if (isValueOutOfRange.value) {
-      const value = parseFloat(parameterRecord.value.value);
-      const minVal = parseFloat(parameterRecord.value.minValue);
-      const maxVal = parseFloat(parameterRecord.value.maxValue);
-      
-      let errorMessage = '';
-      
-      // Формируем сообщение об ошибке в зависимости от того, какие границы заданы
-      if (!isNaN(minVal) && !isNaN(maxVal)) {
-        errorMessage = `Значение должно находиться в диапазоне от ${minVal} до ${maxVal}!`;
-      } else if (!isNaN(minVal) && isNaN(maxVal)) {
-        errorMessage = `Значение не может быть меньше ${minVal}!`;
-      } else if (isNaN(minVal) && !isNaN(maxVal)) {
-        errorMessage = `Значение не может быть больше ${maxVal}!`;
-      }
-      
-      if (errorMessage) {
-        notificationStore.showNotification(errorMessage, 'error');
-        shouldShowValueError.value = true;
-      }
-      return;
+    
+    // Проверка, что поле "Значение" не пусто
+    if (parameterRecord.value.value === null || parameterRecord.value.value === '') {
+        notificationStore.showNotification('Необходимо ввести значение параметра!', 'error');
+        return;
     }
 
     if (!savedInspectionId.value) {
@@ -636,19 +622,86 @@ const saveWork = async () => {
 
     isSaving.value = true;
     try {
-      const dataToSave = parameterRecord.value;
-      console.log('Сохраняем данные параметра:', dataToSave);
+      // Получаем данные выбранного параметра
+      const selectedParameter = parameterOptions.value.find(p => p.value === (parameterRecord.value.parameterType.value || parameterRecord.value.parameterType));
       
-      // Здесь будет логика сохранения параметра через API
-      // Пример:
-      // await saveParameterInfo(dataToSave);
+      if (!selectedParameter) {
+        throw new Error('Выбранный параметр не найден');
+      }
+
+      // Загружаем факторы OutOfNorm если еще не загружены
+      if (outOfNormOptions.value.length === 0) {
+        await loadOutOfNormFactors();
+      }
+
+      // Определяем, находится ли значение в норме
+      const paramValue = parseFloat(parameterRecord.value.value);
+      const minValue = parseFloat(parameterRecord.value.minValue);
+      const maxValue = parseFloat(parameterRecord.value.maxValue);
+      
+      let isOutOfNorm = false;
+      // Логика: если есть оба лимита (min и max) и значение выходит за их пределы ИЛИ
+      // если есть только min и значение < min ИЛИ
+      // если есть только max и значение > max
+      // Тогда это OutOfNorm
+      if (!isNaN(paramValue)) {
+        if (!isNaN(minValue) && !isNaN(maxValue)) {
+          isOutOfNorm = paramValue < minValue || paramValue > maxValue;
+        } else if (!isNaN(minValue)) {
+          isOutOfNorm = paramValue < minValue;
+        } else if (!isNaN(maxValue)) {
+          isOutOfNorm = paramValue > maxValue;
+        }
+      }
+
+      // Находим соответствующий фактор OutOfNorm
+      const factorName = isOutOfNorm ? 'да' : 'нет';
+      const outOfNormFactor = outOfNormOptions.value.find(factor => 
+        factor.name.toLowerCase() === factorName
+      );
+
+      if (!outOfNormFactor) {
+        throw new Error(`Не найден фактор OutOfNorm с именем: ${factorName}`);
+      }
+
+      // Формируем данные для сохранения согласно требуемой структуре API
+      const now = new Date();
+      // Добавляем 5 часов для казахстанского времени (UTC+5)
+      const kazakhstanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+      const currentDateTime = kazakhstanTime.toISOString();
+      const currentDate = currentDateTime.split('T')[0]; // Получаем только дату в формате YYYY-MM-DD
+      
+      const dataToSave = {
+        name: `${currentDate}-${selectedParameter.value}`, // Формат: "2025-07-20-1700"
+        objInspection: savedInspectionId.value,
+        relobjComponentParams: selectedParameter.value,
+        pvComponentParams: selectedParameter.pv,
+        objLocationClsSection: props.sectionId,
+        pvLocationClsSection: parseInt(props.sectionPv),
+        fvOutOfNorm: outOfNormFactor.value,
+        pvOutOfNorm: outOfNormFactor.pv,
+        // Значение параметра
+        ParamsLimit: parseFloat(parameterRecord.value.value),
+        // Минимальный и максимальный лимиты из формы (они могли быть заполнены автоматически или изменены вручную)
+        ParamsLimitMax: parseFloat(parameterRecord.value.maxValue) || 0,
+        ParamsLimitMin: parseFloat(parameterRecord.value.minValue) || 0,
+        StartKm: parameterRecord.value.startCoordinates.coordStartKm,
+        FinishKm: parameterRecord.value.startCoordinates.coordEndKm || parameterRecord.value.startCoordinates.coordStartKm,
+        StartPicket: parameterRecord.value.startCoordinates.coordStartPk,
+        FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk,
+        StartLink: parameterRecord.value.startCoordinates.coordStartZv || 0,
+        FinishLink: parameterRecord.value.startCoordinates.coordEndZv || parameterRecord.value.startCoordinates.coordStartZv || 0,
+        Description: parameterRecord.value.note || '',
+        CreationDateTime: currentDateTime
+      };
+
+      console.log('Сохраняем данные параметра:', dataToSave);
+      await saveParameterInfo(dataToSave);
       
       notificationStore.showNotification('Параметр успешно сохранен!', 'success');
       
-      // Перезагружаем список существующих параметров
       await loadExistingParameters(savedInspectionId.value);
       
-      // Очищаем форму параметра после успешного сохранения
       parameterRecord.value = {
         startCoordinates: { ...parameterRecord.value.startCoordinates },
         component: null,
@@ -696,7 +749,7 @@ const loadExistingData = async (record) => {
       date: formatDate(item.FactDateEnd),
       coordinates: formatCoordinates(item.StartKm, item.StartPicket, item.StartLink, item.FinishKm, item.FinishPicket, item.FinishLink)
     }));
-    return data; // Возвращаем исходные данные для поиска ID
+    return data;
   } catch (error) {
     console.error("Не удалось загрузить существующие записи:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные записи.', 'error');
@@ -805,6 +858,7 @@ const loadParameters = async (objComponent) => {
     parameterOptions.value = parameters.map(parameter => ({
       label: parameter.name || parameter.label,
       value: parameter.id || parameter.value,
+      pv: parameter.pv || parameter.id || parameter.value,
       paramslimitmin: parameter.paramslimitmin,
       paramslimitmax: parameter.paramslimitmax
     }));
@@ -814,6 +868,22 @@ const loadParameters = async (objComponent) => {
     parameterOptions.value = [];
   } finally {
     loadingParameters.value = false;
+  }
+};
+
+const loadOutOfNormFactors = async () => {
+  try {
+    const factors = await loadFactorValForSelect('Prop_OutOfNorm');
+    outOfNormOptions.value = factors.map(factor => ({
+      label: factor.name,
+      value: factor.id,
+      pv: factor.pv,
+      name: factor.name.toLowerCase() // Приводим к нижнему регистру для надежного сравнения
+    }));
+  } catch (error) {
+    console.error('Ошибка загрузки факторов OutOfNorm:', error);
+    notificationStore.showNotification('Не удалось загрузить факторы OutOfNorm', 'error');
+    outOfNormOptions.value = [];
   }
 };
 
@@ -898,6 +968,16 @@ watch(
   (newRecordData) => {
     if (newRecordData) {
       objectBounds.value = {
+        StartKm: newRecordData.StartKm || null,
+        StartPicket: newRecordData.StartPicket || null,
+        StartLink: newRecordData.StartLink || null,
+        FinishKm: newRecordData.FinishKm || null,
+        FinishPicket: newRecordData.FinishPicket || null,
+        FinishLink: newRecordData.FinishLink || null,
+      };
+      
+      // Изначально границы инспекции равны границам объекта
+      inspectionBounds.value = {
         StartKm: newRecordData.StartKm || null,
         StartPicket: newRecordData.StartPicket || null,
         StartLink: newRecordData.StartLink || null,

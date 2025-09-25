@@ -9,6 +9,7 @@
           </div>
         </div>
         <ModalFooter
+          v-if="showFooter"
           :disabled="disabled"
           :showDelete="showDelete"
           @cancel="closeModal"
@@ -28,7 +29,8 @@ import ModalFooter from './ModalFooter.vue'
 const props = defineProps({
   title: { type: String, required: true },
   disabled: { type: Boolean, default: false },
-  showDelete: { type: Boolean, default: false }
+  showDelete: { type: Boolean, default: false },
+  showFooter: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close', 'save', 'delete'])

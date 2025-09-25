@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
 import { loadSections, loadWorkPlanDates, loadWorkPlanUnfinishedByDate } from '@/api/inspectionsApi.js';
 
@@ -88,6 +88,7 @@ import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
 import BaseTable from '@/components/layout/Table/BaseTable.vue';
 import BackButton from '@/components/ui/BackButton.vue';
 import MainButton from '@/components/ui/MainButton.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import WorkCardModal from '@/modals/WorkCardModal.vue';
 
 const selectedSection = ref(null);
@@ -137,12 +138,30 @@ const getSelectedSectionData = () => {
 
 const selectedSectionPv = computed(() => getSelectedSectionData().pv);
 
+const onRowDoubleClick = (row) => {
+  selectedRecord.value = row;
+  isWorkCardModalOpen.value = true;
+};
+
 const columns = [
   { key: 'name', label: 'НАИМЕНОВАНИЕ РАБОТЫ' },
   { key: 'place', label: 'МЕСТО' },
   { key: 'objectType', label: 'ТИП ОБЪЕКТА' },
   { key: 'object', label: 'ОБЪЕКТ' },
   { key: 'coordinates', label: 'КООРДИНАТЫ' },
+  {
+    key: 'actions',
+    label: 'ДЕЙСТВИЯ',
+    component: {
+      props: ['row'],
+      setup(props) {
+        return () => h(UiButton, {
+          text: 'Завершить работу',
+          onClick: () => {},
+        });
+      },
+    },
+  },
 ];
 
 const router = useRouter();
@@ -322,10 +341,6 @@ onMounted(async () => {
   await loadSectionsData();
 });
 
-const onRowDoubleClick = (row) => {
-  selectedRecord.value = row;
-  isWorkCardModalOpen.value = true;
-};
 </script>
 
 
