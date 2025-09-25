@@ -302,5 +302,5 @@ export {
   loadComponentParametersForSelect,
   loadFaultEntriesForInspection,
   loadParameterEntriesForInspection,
-  loadFactorValForSelect,
+  loadFactorValForSelect
 };

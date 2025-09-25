@@ -4,7 +4,7 @@
     :showDelete="true"
     @close="closeModal"
     @save="saveData"
-    @delete="deletePlan"
+    @delete="confirmDelete"
   >
     <div class="form-section">
       <AppDropdown
@@ -89,6 +89,14 @@
       </div>
     </div>
   </ModalWrapper>
+
+  <ConfirmationModal
+    v-if="showConfirmationModal"
+    title="Подтверждение удаления"
+    message="Вы уверены, что хотите удалить этот план? Это действие нельзя отменить."
+    @confirm="deletePlan"
+    @cancel="showConfirmationModal = false"
+  />
 </template>
 
 <script setup>
@@ -97,6 +105,7 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
+import ConfirmationModal from './ConfirmationModal.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { fetchWorks, fetchLocationByCoords, fetchObjectsForSelect } from '@/api/planWorkApi'
 import { updatePlan } from '@/api/updatePlanApi'
@@ -144,6 +153,8 @@ const fullRecordsForWork = ref([])
 const selectedWorkData = ref(null)
 const selectedObjectData = ref(null)
 const selectedSectionData = ref(null)
+
+const showConfirmationModal = ref(false) // State for the confirmation modal
 
 const closeModal = () => emit('close')
 
@@ -231,9 +242,13 @@ const saveData = async () => {
   }
 }
 
+// Function to show the confirmation modal
+const confirmDelete = () => {
+  showConfirmationModal.value = true
+}
+
 const deletePlan = async () => {
-  const confirmed = window.confirm('Вы уверены, что хотите удалить этот план? Это действие нельзя отменить.')
-  if (!confirmed) return
+  showConfirmationModal.value = false // Close the confirmation modal
 
   try {
     await deletePlanApi(props.rowData.rawData.id)

@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-
 const WORKS_API_URL = import.meta.env.VITE_OBJECT_URL;
 const DATA_API_URL = import.meta.env.VITE_PLAN_URL;
 
@@ -89,4 +88,30 @@ const fetchObjectsForSelect = async (objWork) => {
   }
 };
 
-export { fetchWorks, fetchPlacesForWork, fetchLocationByCoords, fetchObjectsForSelect };
+// Обновленная функция для завершения работы
+const completeThePlanWork = async (id, date) => {
+  try {
+    const response = await axios.post(DATA_API_URL, {
+      method: 'data/completeThePlanWork',
+      params: [
+        {
+          id: id,
+          date: date
+        }
+      ]
+    });
+
+    if (response.data && response.data.result) {
+      return response.data.result;
+    } else if (response.data && response.data.error) {
+      throw new Error(response.data.error);
+    } else {
+      return response.data;
+    }
+  } catch (error) {
+    console.error('Ошибка завершения работы:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Не удалось завершить работу');
+  }
+};
+
+export { fetchWorks, fetchPlacesForWork, fetchLocationByCoords, fetchObjectsForSelect, completeThePlanWork };
