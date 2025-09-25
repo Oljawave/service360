@@ -43,7 +43,7 @@
           <div v-else-if="activeTab === 'defects'">
             <ExistingDataBlock :existingRecords="existingDefects" dataType="defects" />
             <div class="defects-content">
-              <div class="section-heading spaced-heading defect-heading">Местоположение дефекта</div>
+              <div class="section-heading spaced-heading defect-heading">Местоположение неисправности</div>
               <div class="coordinates-input-group defect-coords">
                 <FullCoordinates
                   v-model="defectRecord.startCoordinates"

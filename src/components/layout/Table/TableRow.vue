@@ -2,7 +2,7 @@
   <tr class="data-row" @dblclick="$emit('dblclick', row)">
     <td v-for="(col, i) in columns" :key="col.key" class="cell">
       <template v-if="col.component">
-        <component :is="col.component" :row="row" /> 
+        <component :is="col.component" v-bind="row[col.key]" /> 
       </template>
       <template v-else-if="i === 0">
         <span class="index-icon-wrap">
