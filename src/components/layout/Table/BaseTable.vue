@@ -6,7 +6,6 @@
           <th v-for="col in columns" :key="col.key" class="header-cell-container">
             <div class="header-cell">
               <span>{{ col.label }}</span>
-              <!-- Показываем кнопку фильтра ТОЛЬКО если showFilters === true -->
               <button 
                 v-if="showFilters"
                 @click.stop="$emit('toggle-filter', col.key)" 
@@ -57,7 +56,7 @@ const props = defineProps({
   toggleRowExpand: Function,
   childrenMap: Object,
   activeFilters: Object,
-  showFilters: { // 👈 новый пропс
+  showFilters: { 
     type: Boolean,
     default: true
   }

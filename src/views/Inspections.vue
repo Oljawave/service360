@@ -13,6 +13,17 @@
     @update:filters="filters = $event"
     @row-dblclick="onRowDoubleClick"
   />
+
+  <WorkCardInfoModal
+    v-if="showWorkCardInfoModal"
+    :record="selectedRecord"
+    :inspectionId="selectedRecord?.rawData?.id"
+    :section="selectedRecord?.name"
+    :date="selectedRecord?.factDate"
+    :sectionId="selectedRecord?.rawData?.objLocationClsSection"
+    :sectionPv="selectedRecord?.rawData?.pvLocationClsSection"
+    @close="showWorkCardInfoModal = false"
+  />
 </template>
 
 <script setup>
@@ -21,12 +32,17 @@ import { useRouter } from 'vue-router';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadInspections } from '@/api/inspectionApi';
 import { loadPeriodTypes } from '@/api/periodApi';
-import WorkStatus from '../components/ui/WorkStatus.vue';
+import WorkStatus from '@/components/ui/WorkStatus.vue';
+import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
 
 const router = useRouter();
 
 const limit = 10;
 const tableWrapperRef = ref(null);
+
+// Новые реактивные переменные для модального окна
+const showWorkCardInfoModal = ref(false);
+const selectedRecord = ref(null);
 
 const filters = ref({
   date: new Date(),
@@ -90,16 +106,16 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
     const sliced = records.slice(start, end).map((r, index) => ({
       index: start + index + 1,
       work: r.fullNameWork,
-      name: r.nameLocationClsSection,
+      name: r.nameLocationClsSection, // Участок
       location: r.nameSection,
       object: r.fullNameObject,
       coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
       planDate: r.PlanDateEnd,
-      factDate: r.FactDateEnd,
+      factDate: r.FactDateEnd, // Фактическая дата
       inspector: r.fullNameUser,
       deviation: r.nameDeviationDefect,
       reason: r.ReasonDeviation,
-      rawData: r,
+      rawData: r, // Сырые данные содержат ID инспекции (r.id) и координаты
       objWork: r.objWork,
       objObject: r.objObject,
       status: {
@@ -122,6 +138,17 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
 
 const onRowDoubleClick = (row) => {
   console.log('Двойной клик по записи:', row);
+  
+  selectedRecord.value = row;
+  
+  // Проверяем, что ID инспекции существует
+  if (!row.rawData?.id) {
+    console.warn('Отсутствует ID инспекции. Открытие окна Defect/Parameters невозможно.');
+    return;
+  }
+  
+  // Открываем модальное окно WorkCardInfoModal.vue
+  showWorkCardInfoModal.value = true;
 };
 
 const columns = [

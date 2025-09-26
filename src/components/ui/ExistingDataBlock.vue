@@ -99,31 +99,35 @@ const getColspan = () => {
 .data-table-scroll {
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: auto;
 }
 
 .data-table {
   background-color: transparent;
   font-size: 14px;
+  min-width: fit-content;
 }
 
 .data-row {
   display: grid;
-  gap: 24px;
+  /* Расстояние между столбцами уменьшено до 4px */
+  gap: 4px;
   padding: 8px 0;
   border-bottom: 1px solid #e8d5b7;
   align-items: center;
+  min-width: fit-content;
 }
 
 .data-row:not(.defects-header):not(.parameters-header) {
-  grid-template-columns: 60px 140px 1fr;
+  grid-template-columns: 60px 140px 200px;
 }
 
 .data-row.defects-header {
-  grid-template-columns: 60px 140px 1fr 1fr;
+  grid-template-columns: 60px 140px 200px 200px;
 }
 
 .data-row.parameters-header {
-  grid-template-columns: 60px 140px 1fr 1fr 1fr 100px;
+  grid-template-columns: 60px 140px 200px 150px 150px 100px;
 }
 
 /* Для строк данных с дефектами */
@@ -132,7 +136,7 @@ const getColspan = () => {
 }
 
 .data-row:not(.header-row):not(.empty-row):has(.defect-cell) {
-  grid-template-columns: 60px 140px 1fr 1fr;
+  grid-template-columns: 60px 140px 200px 200px;
 }
 
 /* Для строк данных с параметрами */
@@ -143,7 +147,7 @@ const getColspan = () => {
 }
 
 .data-row:not(.header-row):not(.empty-row):has(.component-cell) {
-  grid-template-columns: 60px 140px 1fr 1fr 1fr 100px;
+  grid-template-columns: 60px 140px 200px 150px 150px 100px;
 }
 
 .data-row.header-row {
@@ -168,9 +172,10 @@ const getColspan = () => {
 
 .data-cell {
   padding: 0;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-wrap: break-word;
+  line-height: 1.3;
 }
 
 .number-cell {
