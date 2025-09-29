@@ -6,7 +6,15 @@
     :disabled="isSaveDisabled"
   >
     <div class="form-section">
-      <AppInput class="col-span-2" id="name" label="Наименование объекта" placeholder="Введите наименование" v-model="form.name" />
+      <AppInput 
+      class="col-span-2" 
+      id="name" 
+      label="Наименование объекта" 
+      placeholder="Введите наименование" 
+      v-model="form.name" 
+      :required="true"
+      />
+
       <AppDropdown
         class="col-span-2"
         id="type"
@@ -16,14 +24,40 @@
         :options="typeOptions"
         :loading="loadingTypes"
         @update:value="onTypeChange"
+        :required="true"
       />
+
       <CoordinateInputs
         v-model="coordinates"
         @update:modelValue="updateCoordinates"
+        :required="true" />
+
+      <AppInput 
+      class="col-span-2" 
+      id="place" 
+      label="Место" 
+      placeholder="Введите место"
+      v-model="form.place" 
+      :disabled="true" 
+      :required="true"
       />
-      <AppInput class="col-span-2" id="place" label="Место" placeholder="Введите место" v-model="form.place" :disabled="true" />
-      <AppInput class="col-span-2" id="additionalInfo" label="Дополнительные сведения о месте" placeholder="Введите дополнительные сведения" v-model="form.additionalInfo" />
-      <AppInput class="col-span-2" id="characteristic" label="Характеристика" placeholder="Введите характеристику" v-model="form.characteristic" />
+      
+      <AppInput 
+      class="col-span-2" 
+      id="additionalInfo" 
+      label="Дополнительные сведения о месте" 
+      placeholder="Введите дополнительные сведения" 
+      v-model="form.additionalInfo" 
+      :required="true" />
+      
+      <AppInput 
+      class="col-span-2" 
+      id="characteristic" 
+      label="Характеристика" 
+      placeholder="Введите характеристику" 
+      v-model="form.characteristic" 
+      :required="true" />
+      
       <AppDropdown
         id="side"
         label="Сторона (необязательно)"
@@ -31,11 +65,37 @@
         v-model="form.side"
         :options="sideOptions"
         :loading="loadingSides"
-      />
-      <AppInput id="deviceNumber" label="Номер" placeholder="Введите номер прибора" v-model="form.deviceNumber" />
-      <AppNumberInput id="replacementPeriod" label="Периодичность замены (год)" placeholder="Введите периодичность" v-model="form.replacementPeriod" />
-      <AppDatePicker id="installDate" label="Дата установки" placeholder="Выберите дату" v-model="form.installDate" />
-      <AppInput class="col-span-2" id="description" label="Описание объекта" placeholder="Введите примечание..." v-model="form.description" type="textarea" />
+        :required="true" />
+      
+      <AppInput 
+      id="deviceNumber" 
+      label="Номер" 
+      placeholder="Введите номер прибора" 
+      v-model="form.deviceNumber" 
+      :required="true" />
+      
+      <AppNumberInput 
+      id="replacementPeriod" 
+      label="Периодичность замены (год)" 
+      placeholder="Введите периодичность" 
+      v-model="form.replacementPeriod" 
+      :required="true" />
+      
+      <AppDatePicker 
+      id="installDate" 
+      label="Дата установки" 
+      placeholder="Выберите дату" 
+      v-model="form.installDate" 
+      :required="true" />
+      
+      <AppInput 
+      class="col-span-2" 
+      id="description" 
+      label="Описание объекта" 
+      placeholder="Введите примечание..." 
+      v-model="form.description" 
+      type="textarea" 
+      :required="true" />
     </div>
   </ModalWrapper>
 </template>

@@ -17,7 +17,7 @@
         :loading="loadingWorks"
         @update:value="onWorkChange"
         :disabled="true"
-      />
+        :required="true" />
 
       <div class="col-span-2">
         <div class="object-header">
@@ -34,7 +34,7 @@
             :options="placeOptions"
             :loading="loadingPlaces"
             @update:value="onPlaceChange"
-          />
+            :required="true" />
 
           <AppDropdown
             class="col-span-1"
@@ -45,7 +45,7 @@
             :options="objectTypeOptions"
             :loading="loadingObjectTypes"
             @update:value="onObjectTypeChange"
-          />
+            :required="true" />
 
           <AppDropdown
             class="col-span-2"
@@ -56,7 +56,7 @@
             :options="objectOptions"
             :loading="loadingObjects"
             @update:value="onObjectChange"
-          />
+            :required="true" />
 
           <CoordinateInputs
             class="col-span-2"
@@ -65,7 +65,7 @@
             @update:modelValue="updateCoordinates"
             @invalid-range="handleInvalidRange"
             @out-of-bounds="handleOutOfBounds"
-          />
+            :required="true" />
 
           <AppDropdown
             class="col-span-1"
@@ -76,7 +76,7 @@
             :options="sectionOptions"
             :loading="loadingSections"
             @update:value="onSectionChange"
-          />
+            :required="true" />
 
           <AppDatePicker
             class="col-span-1"
@@ -84,7 +84,7 @@
             label="Плановый срок завершения"
             placeholder="Выберите дату"
             v-model="form.plannedDate"
-          />
+            :required="true" />
         </div>
       </div>
     </div>

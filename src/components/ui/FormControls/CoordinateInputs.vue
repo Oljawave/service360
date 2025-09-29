@@ -1,11 +1,15 @@
 <template>
   <div class="coordinate-wrapper">
-    <label class="coordinate-label">Координаты</label>
+    <label class="coordinate-label">
+      Координаты
+      <span v-if="required" class="required-asterisk">*</span>
+    </label>
     <div class="coordinate-group">
       <AppNumberInput
         :modelValue="currentStartKm"
         label="Начало (км)"
         placeholder="км"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartKm"
         @focus="handleFocus"
@@ -16,6 +20,7 @@
         label="Начало (пк)"
         placeholder="пк"
         :max="10"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartPk"
         @focus="handleFocus"
@@ -25,6 +30,7 @@
         :modelValue="currentEndKm"
         label="Конец (км)"
         placeholder="км"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndKm"
         @focus="handleFocus"
@@ -35,6 +41,7 @@
         label="Конец (пк)"
         placeholder="пк"
         :max="10"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndPk"
         @focus="handleFocus"
@@ -47,7 +54,7 @@
 <script setup>
 import { defineProps, defineEmits, computed, ref, watch } from 'vue'
 import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue'
-import { useNotificationStore } from '@/stores/notificationStore'  // Импортируем store для уведомлений
+import { useNotificationStore } from '@/stores/notificationStore'
 
 const props = defineProps({
   modelValue: {
@@ -62,12 +69,17 @@ const props = defineProps({
   objectBounds: {
     type: Object,
     default: null
+  },
+  // ИЗМЕНЕНИЕ: Устанавливаем default: false, чтобы управлять атрибутом извне
+  required: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['update:modelValue', 'invalidRange', 'out-of-bounds'])
 
-const notificationStore = useNotificationStore()  // Получаем доступ к store уведомлений
+const notificationStore = useNotificationStore()
 
 const isUserTyping = ref(false)
 const shouldShowError = ref(false)
@@ -110,12 +122,12 @@ const handleEndPk = (value) => updateCoords('coordEndPk', clamp(value, 0, 10))
 const performValidation = () => {
   if (isInvalid.value) {
     emit('invalidRange', isInvalid.value)
-    notificationStore.showNotification('Диапазон координат неверен!', 'error')  // Уведомление об ошибке диапазона
+    notificationStore.showNotification('Диапазон координат неверен!', 'error')
   }
 
   if (isOutOfBounds.value) {
     emit('out-of-bounds')
-    notificationStore.showNotification('Координаты выходят за пределы допустимого диапазона!', 'error')  // Уведомление о выходе за пределы
+    notificationStore.showNotification('Координаты выходят за пределы допустимого диапазона!', 'error')
   }
 }
 
@@ -147,43 +159,32 @@ watch(() => props.objectBounds, () => {
 </script>
 
 <style scoped>
-.coordinate-wrapper {
-  margin-bottom: 16px;
-}
-
-.coordinate-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 8px;
-}
-
-.coordinate-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-@media (max-width: 600px) {
-  .coordinate-group {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
-
-<style scoped>
+/* Стили для внешнего контейнера */
 .coordinate-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
 }
 
+/* Стили для заголовка "Координаты" */
 .coordinate-label {
   font-size: 14px;
   font-weight: 500;
   color: #4a5568;
+  margin-bottom: 0px;
 }
 
+/* Стили для обязательной звездочки (скопированы для единообразия) */
+.required-asterisk {
+  color: #e53e3e; 
+  font-size: 14px; 
+  margin-left: 2px;
+  vertical-align: top; 
+  line-height: 1.2; 
+}
+
+/* Стили для группы инпутов */
 .coordinate-group {
   display: flex;
   flex-wrap: nowrap;
@@ -199,10 +200,12 @@ watch(() => props.objectBounds, () => {
 @media (max-width: 768px) {
   .coordinate-group {
     flex-direction: column;
+    gap: 12px;
   }
 
   .coordinate-group > * {
     width: 100%;
+    min-width: auto;
   }
 }
 </style>

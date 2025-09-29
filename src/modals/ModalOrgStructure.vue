@@ -8,7 +8,7 @@
         label="Наименование"
         placeholder="Введите наименование"
         v-model="form.name"
-      />
+        :required="true" />
 
       <AppDropdown
         class="col-span-2"
@@ -18,7 +18,7 @@
         v-model="form.parent"
         :options="parentOptions"
         :loading="loadingParents"
-      />
+        :required="true" />
 
       <AppDropdown
         id="activityType"
@@ -28,7 +28,7 @@
         :loading="loadingActivities"
         :value="form.activityType"
         @update:value="val => { form.activityType = val; handleActivityTypeChange(val) }"
-      />
+        :required="true" />
 
       <AppDropdown
         id="region"
@@ -37,7 +37,7 @@
         v-model="form.region"
         :options="regionOptions"
         :loading="loadingRegions"
-      />
+        :required="true" />
 
       <div class="col-span-2" v-if="form.activityType === 1069">
         <h4 class="section-title">Дополнительная информация</h4>
@@ -47,20 +47,22 @@
             label="Адрес"
             placeholder="Введите адрес"
             v-model="form.address"
-          />
+            :required="true" />
           <PhoneInput
             id="phone"
             label="Номер телефона"
             placeholder="Введите номер телефона"
             v-model="form.phone"
-          />
+            :required="true" />
         </div>
       </div>
 
       <div class="col-span-2" v-if="form.activityType === 1070">
         <h4 class="section-title">Дополнительная информация</h4>
         <div class="coordinate-grid">
-          <CoordinateInputs v-model="form.coordinates" />
+          <CoordinateInputs 
+            v-model="form.coordinates" 
+            :required="true" />
           <AppInput
             class="col-span-2"
             id="distance"
@@ -68,7 +70,7 @@
             placeholder="Введите координаты"
             v-model="form.distance"
             :disabled="true"
-          />
+            :required="true" />
           <MultipleSelect
             class="col-span-2"
             id="multi"
@@ -76,8 +78,7 @@
             v-model="form.multipleSelect"
             :options="multiOptions"
             placeholder="Выберите объекты"
-            :required="false"
-            :fallback-option="(val) => ({ label: val, value: val })"
+            :required="false" :fallback-option="(val) => ({ label: val, value: val })"
           />
         </div>
       </div>
@@ -89,7 +90,7 @@
         placeholder="Введите описание..."
         v-model="form.description"
         type="textarea"
-      />
+        :required="true" />
 
       <div class="active-row">
         <label for="active">Активно</label>
@@ -97,7 +98,7 @@
           id="active"
           :value="form.active?.id === trueOption?.id"
           @update:value="val => form.active = val ? trueOption : falseOption"
-      />
+        />
       </div>
     </div>
   </ModalWrapper>

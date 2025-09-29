@@ -18,7 +18,7 @@
                   class="coord-start"
                   :isInspection="true"
                   :objectBounds="objectBounds"
-                />
+                  :required="true" />
               </div>
               <div class="form-grid">
                 <AppDatePicker
@@ -27,7 +27,7 @@
                   id="date-picker"
                   v-model="newRecord.date"
                   class="col-span-1"
-                />
+                  :required="true" />
               </div>
               <AppInput
                 label="Причина отклонения от плана"
@@ -36,7 +36,7 @@
                 placeholder="Введите причину отклонения от плана..."
                 class="full-width-input text-area"
                 multiline
-              />
+                :required="true" />
             </div>
           </div>
 
@@ -50,7 +50,7 @@
                   label="Координаты начала"
                   class="coord-start"
                   :objectBounds="inspectionBounds"
-                />
+                  :required="true" />
               </div>
               <div class="defect-info-group">
                 <AppDropdown
@@ -62,7 +62,7 @@
                   class="half-width"
                   :loading="loadingComponents"
                   @update:modelValue="handleDefectComponentChange"
-                />
+                  :required="true" />
                 <AppDropdown
                   label="Дефект / неисправность"
                   id="defect-dropdown"
@@ -71,7 +71,7 @@
                   placeholder="Выберите дефект"
                   class="half-width"
                   :loading="loadingDefects"
-                />
+                  :required="true" />
               </div>
               <AppInput
                 label="Примечание / заметка"
@@ -80,7 +80,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-              />
+                :required="true" />
             </div>
           </div>
 
@@ -94,7 +94,7 @@
                   label="Координаты начала"
                   class="coord-start"
                   :objectBounds="inspectionBounds"
-                />
+                  :required="true" />
               </div>
               <div class="parameter-info-group">
                 <AppDropdown
@@ -106,7 +106,7 @@
                   class="half-width"
                   :loading="loadingComponents"
                   @update:modelValue="handleParameterComponentChange"
-                />
+                  :required="true" />
                 <AppDropdown
                   label="Параметр"
                   id="parameter-dropdown"
@@ -116,7 +116,7 @@
                   class="half-width"
                   :loading="loadingParameters"
                   @update:modelValue="handleParameterChange"
-                />
+                  :required="true" />
               </div>
               
               <div class="parameter-value-group">
@@ -129,7 +129,7 @@
                   :status="shouldShowMinMaxError && isMinMaxInvalid ? 'error' : null"
                   @focus="handleMinMaxFocus"
                   @blur="handleMinMaxBlur"
-                />
+                  :required="true" />
                 <AppNumberInput
                   label="Максимальное значение"
                   id="max-parameter-value"
@@ -139,7 +139,7 @@
                   :status="shouldShowMinMaxError && isMinMaxInvalid ? 'error' : null"
                   @focus="handleMinMaxFocus"
                   @blur="handleMinMaxBlur"
-                />
+                  :required="true" />
               </div>
 
               <AppNumberInput
@@ -148,7 +148,7 @@
                 v-model="parameterRecord.value"
                 placeholder="Введите значение"
                 class="half-width value-input"
-              />
+                :required="true" />
               <AppInput
                 label="Примечание / заметка"
                 id="parameter-note"
@@ -156,7 +156,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-              />
+                :required="true" />
             </div>
           </div>
         </div>
@@ -516,7 +516,7 @@ const saveWork = async () => {
       return;
     }
 
-    if (!defectRecord.value.startCoordinates.coordStartKm || !defectRecord.value.startCoordinates.coordStartPk) {
+    if (!defectRecord.value.startCoordinates.coordStartKm || defectRecord.value.startCoordinates.coordStartPk === null || defectRecord.value.startCoordinates.coordStartPk === '') {
       notificationStore.showNotification('Необходимо указать координаты дефекта!', 'error');
       return;
     }
@@ -551,8 +551,10 @@ const saveWork = async () => {
         objLocationClsSection: props.sectionId,
         StartKm: defectRecord.value.startCoordinates.coordStartKm,
         FinishKm: defectRecord.value.startCoordinates.coordEndKm || defectRecord.value.startCoordinates.coordStartKm,
-        StartPicket: defectRecord.value.startCoordinates.coordStartPk,
-        FinishPicket: defectRecord.value.startCoordinates.coordEndPk || defectRecord.value.startCoordinates.coordStartPk,
+        // ИСПРАВЛЕНИЕ: Добавлено || 0 для StartPicket
+        StartPicket: defectRecord.value.startCoordinates.coordStartPk || 0,
+        // ИСПРАВЛЕНИЕ: Добавлено || 0 для FinishPicket
+        FinishPicket: defectRecord.value.startCoordinates.coordEndPk || defectRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: defectRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: defectRecord.value.startCoordinates.coordEndZv || defectRecord.value.startCoordinates.coordStartZv || 0,
         Description: defectRecord.value.note || '',
@@ -597,7 +599,7 @@ const saveWork = async () => {
       return;
     }
 
-    if (!parameterRecord.value.startCoordinates.coordStartKm || !parameterRecord.value.startCoordinates.coordStartPk) {
+    if (!parameterRecord.value.startCoordinates.coordStartKm || parameterRecord.value.startCoordinates.coordStartPk === null || parameterRecord.value.startCoordinates.coordStartPk === '') {
       notificationStore.showNotification('Необходимо указать координаты параметра!', 'error');
       return;
     }
@@ -687,8 +689,10 @@ const saveWork = async () => {
         ParamsLimitMin: parseFloat(parameterRecord.value.minValue) || 0,
         StartKm: parameterRecord.value.startCoordinates.coordStartKm,
         FinishKm: parameterRecord.value.startCoordinates.coordEndKm || parameterRecord.value.startCoordinates.coordStartKm,
-        StartPicket: parameterRecord.value.startCoordinates.coordStartPk,
-        FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk,
+        // ИСПРАВЛЕНИЕ: Добавлено || 0 для StartPicket
+        StartPicket: parameterRecord.value.startCoordinates.coordStartPk || 0,
+        // ИСПРАВЛЕНИЕ: Добавлено || 0 для FinishPicket
+        FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: parameterRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: parameterRecord.value.startCoordinates.coordEndZv || parameterRecord.value.startCoordinates.coordStartZv || 0,
         Description: parameterRecord.value.note || '',
@@ -737,39 +741,46 @@ const saveWork = async () => {
 // ИЗМЕНЕННАЯ ФУНКЦИЯ formatCoordinates
 // =========================================================================
 const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
-  // Используем оператор объединения с nullish (??) для отображения пустой строки, если null/undefined,
-  // что позволит 0 отображаться.
-  const kmStart = startKm ?? '';
-  const pkStart = startPk ?? '';
-  const zvStart = startZv ?? null; // Оставляем null, чтобы можно было проверить его ниже
-
-  const kmFinish = finishKm ?? '';
-  const pkFinish = finishPk ?? '';
-  const zvFinish = finishZv ?? null;
+  // Функции для проверки на null/undefined/пустую строку
+  // Используем проверку на null/undefined/пустую строку, но также разрешаем '0'.
+  const isPresent = (val) => val !== null && val !== undefined && val !== '';
 
   // Функция для создания части координат
   const createCoordPart = (km, pk, zv) => {
-    // Если km или pk являются пустой строкой (т.е. были null/undefined), это значит,
-    // что координаты неполные, но мы все равно форматируем строку.
-    if (km === '' && pk === '') {
-        // Если нет ни км, ни пк (начало/конец), возвращаем пустую строку, чтобы
-        // не возвращать " км пк".
-        return '';
+    // Если нет ни км, ни пк (начало/конец) И оба не равны 0, возвращаем пустую строку.
+    // Если есть КМ или ПК = 0, они должны отображаться.
+    if (!isPresent(km) && !isPresent(pk) && km !== 0 && pk !== 0) {
+      return '';
     }
-    
-    // km и pk отображаются всегда
-    let part = `${km}км ${pk}пк`;
-    
-    // звенья отображаются, только если они не null
-    if (zv !== null) {
-        part += ` ${zv}зв`;
+
+    let part = '';
+
+    if (isPresent(km) || km === 0) {
+      part += `${km}км`;
     }
-    
+
+    if (isPresent(pk) || pk === 0) {
+      // Добавляем пробел только если уже есть КМ
+      if (part) {
+        part += ' ';
+      }
+      part += `${pk}пк`;
+    }
+
+    // Звенья отображаются, только если они присутствуют (не null/undefined/пустая строка) или равны 0
+    if (isPresent(zv) || zv === 0) {
+      // Добавляем пробел, если уже есть КМ или ПК
+      if (part) {
+        part += ' ';
+      }
+      part += `${zv}зв`;
+    }
+
     return part.trim();
   };
 
-  const startPart = createCoordPart(kmStart, pkStart, zvStart);
-  const finishPart = createCoordPart(kmFinish, pkFinish, zvFinish);
+  const startPart = createCoordPart(startKm, startPk, startZv);
+  const finishPart = createCoordPart(finishKm, finishPk, finishZv);
   
   // Возвращаем отформатированную строку
   if (startPart && finishPart) {
@@ -780,7 +791,7 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
     return finishPart;
   }
   
-  // Если все пусто, возвращаем пустую строку вместо "Координаты отсутствуют"
+  // Если все пусто, возвращаем пустую строку
   return '';
 };
 // =========================================================================

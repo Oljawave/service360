@@ -11,9 +11,8 @@
     :showFilters="true"
     :filters="filters"
     @update:filters="filters = $event"
-    @row-dblclick="onRowDoubleClick"
   />
-
+    <!-- @row-dblclick="onRowDoubleClick" -->
   <WorkCardInfoModal
     v-if="showWorkCardInfoModal"
     :record="selectedRecord"

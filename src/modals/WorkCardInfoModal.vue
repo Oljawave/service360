@@ -58,7 +58,7 @@
                   label="Координаты начала"
                   class="coord-start"
                   :objectBounds="inspectionBounds"
-                />
+                  :required="true" />
               </div>
               <div class="defect-info-group">
                 <AppDropdown
@@ -70,7 +70,7 @@
                   class="half-width"
                   :loading="loadingComponents"
                   @update:modelValue="handleDefectComponentChange"
-                />
+                  :required="true" />
                 <AppDropdown
                   label="Дефект / неисправность"
                   id="defect-dropdown"
@@ -79,7 +79,7 @@
                   placeholder="Выберите дефект"
                   class="half-width"
                   :loading="loadingDefects"
-                />
+                  :required="true" />
               </div>
               <AppInput
                 label="Примечание / заметка"
@@ -88,7 +88,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-              />
+                :required="true" />
             </div>
           </div>
 
@@ -102,7 +102,7 @@
                   label="Координаты начала"
                   class="coord-start"
                   :objectBounds="inspectionBounds"
-                />
+                  :required="true" />
               </div>
               <div class="parameter-info-group">
                 <AppDropdown
@@ -114,7 +114,7 @@
                   class="half-width"
                   :loading="loadingComponents"
                   @update:modelValue="handleParameterComponentChange"
-                />
+                  :required="true" />
                 <AppDropdown
                   label="Параметр"
                   id="parameter-dropdown"
@@ -124,7 +124,7 @@
                   class="half-width"
                   :loading="loadingParameters"
                   @update:modelValue="handleParameterChange"
-                />
+                  :required="true" />
               </div>
               
               <div class="parameter-value-group">
@@ -137,7 +137,7 @@
                   :status="shouldShowMinMaxError && isMinMaxInvalid ? 'error' : null"
                   @focus="handleMinMaxFocus"
                   @blur="handleMinMaxBlur"
-                />
+                  :required="true" />
                 <AppNumberInput
                   label="Максимальное значение"
                   id="max-parameter-value"
@@ -147,7 +147,7 @@
                   :status="shouldShowMinMaxError && isMinMaxInvalid ? 'error' : null"
                   @focus="handleMinMaxFocus"
                   @blur="handleMinMaxBlur"
-                />
+                  :required="true" />
               </div>
 
               <AppNumberInput
@@ -156,7 +156,7 @@
                 v-model="parameterRecord.value"
                 placeholder="Введите значение"
                 class="half-width value-input"
-              />
+                :required="true" />
               <AppInput
                 label="Примечание / заметка"
                 id="parameter-note"
@@ -164,7 +164,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-              />
+                :required="true" />
             </div>
           </div>
         </div>

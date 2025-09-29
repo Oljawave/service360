@@ -57,7 +57,6 @@
             :required="true"
           />
 
-          <!-- CoordinateInputs с привязкой к границам объекта -->
           <CoordinateInputs
             class="col-span-2"
             v-model="object.coordinates"
@@ -65,6 +64,7 @@
             @update:modelValue="(coords) => updateCoordinates(index, coords)"
             @invalid-range="(isInvalid) => handleInvalidRange(index, isInvalid)"
             @out-of-bounds="() => handleOutOfBounds(index)"
+            :required="true"
           />
 
           <AppDropdown
@@ -163,16 +163,89 @@ const closeModal = () => {
 
 const isSaving = ref(false)
 
+/**
+ * Функция валидации формы
+ * @returns {boolean} true, если форма валидна, false в противном случае.
+ */
+const validateForm = () => {
+  if (!form.value.work) {
+    notificationStore.showNotification('Не выбрана работа', 'error')
+    return false
+  }
+
+  for (let i = 0; i < form.value.objects.length; i++) {
+    const obj = form.value.objects[i]
+    const objectNum = i + 1
+
+    if (!obj.place) {
+      notificationStore.showNotification(`Объект #${objectNum}: не выбрано Место`, 'error')
+      return false
+    }
+    if (!obj.objectType) {
+      notificationStore.showNotification(`Объект #${objectNum}: не выбран Тип объекта`, 'error')
+      return false
+    }
+    if (!obj.object) {
+      notificationStore.showNotification(`Объект #${objectNum}: не выбран Объект`, 'error')
+      return false
+    }
+    if (!obj.section) {
+      notificationStore.showNotification(`Объект #${objectNum}: не выбран Участок`, 'error')
+      return false
+    }
+    if (!obj.plannedDate) {
+      notificationStore.showNotification(`Объект #${objectNum}: не указан Плановый срок завершения`, 'error')
+      return false
+    }
+
+    // Проверка координат
+    const coords = obj.coordinates
+    if (
+      coords.coordStartKm === null ||
+      coords.coordStartPk === null ||
+      coords.coordEndKm === null ||
+      coords.coordEndPk === null
+    ) {
+      notificationStore.showNotification(`Объект #${objectNum}: не заполнены все Координаты`, 'error')
+      return false
+    }
+
+    // Проверка логики "Начало не может быть больше конца"
+    const startAbs = (coords.coordStartKm || 0) * 1000 + (coords.coordStartPk || 0) * 100
+    const endAbs = (coords.coordEndKm || 0) * 1000 + (coords.coordEndPk || 0) * 100
+
+    if (startAbs > endAbs) {
+      notificationStore.showNotification(`Объект #${objectNum}: Начало не может быть больше конца`, 'error')
+      return false
+    }
+
+    // Проверка границ объекта (если установлены)
+    if (obj.objectBounds) {
+      const objStartAbs = obj.objectBounds.startAbs
+      const objEndAbs = obj.objectBounds.endAbs
+      if (startAbs < objStartAbs || endAbs > objEndAbs) {
+        notificationStore.showNotification(`Объект #${objectNum}: Координаты выходят за границы объекта`, 'error')
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
 const saveData = async () => {
   if (isSaving.value) return; // Предотвращаем повторные вызовы
   
+  // !!! Добавлена проверка валидности перед сохранением !!!
+  if (!validateForm()) {
+    // Вся логика нотификации уже внутри validateForm, но можно добавить общую
+    // notificationStore.showNotification('Пожалуйста, заполните все обязательные поля и исправьте ошибки', 'error')
+    return
+  }
+  // !!! Конец проверки валидности !!!
+
   isSaving.value = true
   try {
-    if (!form.value.work) {
-      notificationStore.showNotification('Не выбрана работа', 'error')
-      return
-    }
-
     const workData = {
       value: form.value.work.value,
       cls: form.value.work.cls,
@@ -193,7 +266,10 @@ const saveData = async () => {
       obj.coordEndKm = obj.coordinates.coordEndKm
       obj.coordEndPk = obj.coordinates.coordEndPk
 
-      // Проверка валидности перед сохранением (дублируем логику из CoordinateInputs)
+      // При успешной валидации (validateForm) эти проверки должны проходить
+      // Тем не менее, оставляем их здесь как дополнительную защиту или для API-логики
+
+      /*
       const startAbs = (obj.coordStartKm || 0) * 1000 + (obj.coordStartPk || 0) * 100
       const endAbs = (obj.coordEndKm || 0) * 1000 + (obj.coordEndPk || 0) * 100
 
@@ -208,6 +284,7 @@ const saveData = async () => {
           throw new Error(`Объект #${form.value.objects.indexOf(obj) + 1}: Координаты выходят за границы объекта`)
         }
       }
+      */
 
       return {
         ...obj,
@@ -396,10 +473,10 @@ const onObjectChange = async (selectedObjectId, index) => {
 
   // Заполняем координаты
   objectForm.coordinates = {
-    coordStartKm: full.StartKm ?? 0,
-    coordStartPk: full.StartPicket ?? 0,
-    coordEndKm: full.FinishKm ?? 0,
-    coordEndPk: full.FinishPicket ?? 0
+    coordStartKm: full.StartKm ?? null, // Изменено с 0 на null, чтобы `validateForm` корректно проверяла заполненность
+    coordStartPk: full.StartPicket ?? null,
+    coordEndKm: full.FinishKm ?? null,
+    coordEndPk: full.FinishPicket ?? null
   }
 
   // Устанавливаем границы объекта для валидации
@@ -470,12 +547,14 @@ const updateCoordinates = async (index, newCoords) => {
 
 const handleInvalidRange = (index, isInvalid) => {
   if (isInvalid) {
-    notificationStore.showNotification(`Объект #${index + 1}: Начало не может быть больше конца`, 'error')
+    // Нотификация уже выводится, можно оставить для обратной связи в реальном времени
+    // notificationStore.showNotification(`Объект #${index + 1}: Начало не может быть больше конца`, 'error')
   }
 }
 
 const handleOutOfBounds = (index) => {
-  notificationStore.showNotification(`Объект #${index + 1}: Координаты выходят за границы объекта`, 'error')
+  // Нотификация уже выводится
+  // notificationStore.showNotification(`Объект #${index + 1}: Координаты выходят за границы объекта`, 'error')
 }
 
 onMounted(async () => {

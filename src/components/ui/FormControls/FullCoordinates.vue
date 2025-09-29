@@ -1,11 +1,15 @@
 <template>
   <div class="coordinate-wrapper">
-    <label class="coordinate-label">Координаты</label>
+    <label class="coordinate-label">
+      Координаты
+      <span v-if="required" class="required-asterisk">*</span>
+    </label>
     <div class="coordinate-group">
       <AppNumberInput
         :modelValue="currentStartKm"
         label="Начало (км)"
         placeholder="км"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartKm"
         @focus="handleFocus"
@@ -16,6 +20,7 @@
         label="Начало (пк)"
         placeholder="пк"
         :max="10"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartPk"
         @focus="handleFocus"
@@ -26,6 +31,7 @@
         label="Начало (зв)"
         placeholder="зв"
         :max="99"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartZv"
         @focus="handleFocus"
@@ -35,6 +41,7 @@
         :modelValue="currentEndKm"
         label="Конец (км)"
         placeholder="км"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndKm"
         @focus="handleFocus"
@@ -45,6 +52,7 @@
         label="Конец (пк)"
         placeholder="пк"
         :max="10"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndPk"
         @focus="handleFocus"
@@ -55,6 +63,7 @@
         label="Конец (зв)"
         placeholder="зв"
         :max="99"
+        :required="required"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndZv"
         @focus="handleFocus"
@@ -84,6 +93,11 @@ const props = defineProps({
   objectBounds: {
     type: Object,
     default: null
+  },
+  // Добавляем пропс required с default: false
+  required: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -101,6 +115,7 @@ const currentEndKm = computed(() => props.modelValue.coordEndKm ?? 0)
 const currentEndPk = computed(() => props.modelValue.coordEndPk ?? 0)
 const currentEndZv = computed(() => props.modelValue.coordEndZv ?? 0)
 
+// Расчет абсолютной координаты
 const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100 + currentStartZv.value * 25)
 const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100 + currentEndZv.value * 25)
 
@@ -138,10 +153,10 @@ const updateCoords = (field, value) => {
 
 const handleStartKm = (value) => updateCoords('coordStartKm', clamp(value, 0, 9999))
 const handleStartPk = (value) => updateCoords('coordStartPk', clamp(value, 0, 10))
-const handleStartZv = (value) => updateCoords('coordStartZv', clamp(value, 0, 99)) // Assuming a max value for zv
+const handleStartZv = (value) => updateCoords('coordStartZv', clamp(value, 0, 99))
 const handleEndKm = (value) => updateCoords('coordEndKm', clamp(value, 0, 9999))
 const handleEndPk = (value) => updateCoords('coordEndPk', clamp(value, 0, 10))
-const handleEndZv = (value) => updateCoords('coordEndZv', clamp(value, 0, 99)) // Assuming a max value for zv
+const handleEndZv = (value) => updateCoords('coordEndZv', clamp(value, 0, 99))
 
 const performValidation = () => {
   if (isInvalid.value) {
@@ -183,18 +198,30 @@ watch(() => props.objectBounds, () => {
 </script>
 
 <style scoped>
+/* Стили для внешнего контейнера */
 .coordinate-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* Стили для заголовка "Координаты" */
 .coordinate-label {
   font-size: 14px;
   font-weight: 500;
   color: #4a5568;
 }
 
+/* Стили для обязательной звездочки */
+.required-asterisk {
+  color: #e53e3e; 
+  font-size: 14px; 
+  margin-left: 2px;
+  vertical-align: top; 
+  line-height: 1.2; 
+}
+
+/* Стили для группы инпутов */
 .coordinate-group {
   display: flex;
   flex-wrap: nowrap;
@@ -203,17 +230,22 @@ watch(() => props.objectBounds, () => {
 }
 
 .coordinate-group > * {
+  /* Уменьшаем min-width для размещения 6 полей */
   flex: 1;
   min-width: 90px;
 }
 
 @media (max-width: 768px) {
   .coordinate-group {
-    flex-direction: column;
+    /* На мобильных устройствах делаем сетку 2x3 */
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
   .coordinate-group > * {
     width: 100%;
+    min-width: auto;
   }
 }
 </style>
