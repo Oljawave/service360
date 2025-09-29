@@ -3,17 +3,30 @@
     <table class="styled-table">
       <thead>
         <tr>
-          <th v-for="col in columns" :key="col.key" class="header-cell-container">
-            <div class="header-cell">
+          <th 
+            v-for="col in columns" 
+            :key="col.key" 
+            class="header-cell-container"
+            @click="$emit('sort', col.key)" 
+          >
+            <div class="header-cell sortable">
               <span>{{ col.label }}</span>
-              <button 
-                v-if="showFilters"
-                @click.stop="$emit('toggle-filter', col.key)" 
-                :class="['filter-button', { active: activeFilters[col.key] }]"
-                title="Фильтр"
-              >
-                <UiIcon name="Funnel" class="icon-muted" />
-              </button>
+              <div class="sort-filter-controls">
+                <UiIcon 
+                  v-if="sortKey === col.key" 
+                  :name="sortDirection === 'asc' ? 'ChevronUp' : 'ChevronDown'" 
+                  class="sort-icon" 
+                />
+                
+                <button 
+                  v-if="showFilters"
+                  @click.stop="$emit('toggle-filter', col.key)" 
+                  :class="['filter-button', { active: activeFilters[col.key] }]"
+                  title="Фильтр"
+                >
+                  <UiIcon name="Funnel" class="icon-muted" />
+                </button>
+              </div>
             </div>
             <slot
               name="filter"
@@ -59,10 +72,13 @@ const props = defineProps({
   showFilters: { 
     type: Boolean,
     default: true
-  }
+  },
+  // New sorting props
+  sortKey: String,
+  sortDirection: String
 })
 
-const emit = defineEmits(['row-dblclick', 'toggle-filter'])
+const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])
 </script>
 
 
@@ -101,12 +117,25 @@ th, td {
   border-bottom: 1px solid #e2e8f0;
   text-transform: uppercase;
   z-index: 20;
+  cursor: pointer; /* Add cursor pointer to indicate sortability */
 }
 
 .header-cell {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.sort-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Space between sort icon and filter button */
+}
+
+.sort-icon {
+  width: 12px;
+  height: 12px;
+  color: #718096;
 }
 
 .filter-button {

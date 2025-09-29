@@ -32,8 +32,11 @@
       :toggle-row-expand="toggleRowExpand"
       :children-map="childrenMap"
       :activeFilters="activeFilters"
+      :sortKey="sortKey"
+      :sortDirection="sortDirection"
       @row-dblclick="handleRowDoubleClick"
       @toggle-filter="toggleFilter"
+      @sort="handleSort"
     >
       <template #filter="{ column }">
         <ColumnFilter
@@ -104,6 +107,9 @@ const showEditModal = ref(false);
 const columnFilters = ref({});
 const openFilter = ref(null);
 
+const sortKey = ref(null);
+const sortDirection = ref('asc'); // 'asc', 'desc', or null
+
 const activeFilters = computed(() => {
   const active = {};
   Object.keys(columnFilters.value).forEach(key => {
@@ -112,20 +118,43 @@ const activeFilters = computed(() => {
   return active;
 });
 
-const filteredRows = computed(() => {
-  let filtered = [...rows.value];
+// New computed property: Sorts the rows and then applies column filters
+const sortedAndFilteredRows = computed(() => {
+  let processedRows = [...rows.value];
+
+  // 1. Apply Sorting
+  if (sortKey.value) {
+    processedRows.sort((a, b) => {
+      const aValue = a[sortKey.value];
+      const bValue = b[sortKey.value];
+      let comparison = 0;
+
+      if (aValue > bValue) {
+        comparison = 1;
+      } else if (aValue < bValue) {
+        comparison = -1;
+      }
+      
+      return sortDirection.value === 'desc' ? comparison * -1 : comparison;
+    });
+  }
+
+  // 2. Apply Column Filters
   Object.keys(columnFilters.value).forEach(columnKey => {
     const filterValue = columnFilters.value[columnKey];
     if (filterValue && filterValue.trim()) {
-      filtered = filtered.filter(row => {
+      processedRows = processedRows.filter(row => {
         const cellValue = row[columnKey];
         if (cellValue == null) return false;
         return String(cellValue).toLowerCase().includes(filterValue.toLowerCase().trim());
       });
     }
   });
-  return filtered;
+
+  return processedRows;
 });
+
+const filteredRows = computed(() => sortedAndFilteredRows.value);
 
 const pagedRows = computed(() => {
   const start = (page.value - 1) * props.limit;
@@ -179,7 +208,7 @@ const loadData = async () => {
   try {
     const { data } = await props.loadFn({
       page: 1,
-      limit: 999999,
+      limit: 999999, // Load all data for local filtering/sorting
       filters: props.filters,
     });
 
@@ -203,6 +232,24 @@ const handleSave = async () => {
 const refreshTable = () => {
   console.log('Обновление таблицы');
   loadData();
+};
+
+const handleSort = (key) => {
+  if (sortKey.value === key) {
+    // If the same column is clicked
+    if (sortDirection.value === 'asc') {
+      sortDirection.value = 'desc';
+    } else {
+      // Third click resets sorting
+      sortKey.value = null;
+      sortDirection.value = null;
+    }
+  } else {
+    // New column clicked
+    sortKey.value = key;
+    sortDirection.value = 'asc';
+  }
+  page.value = 1; // Reset to first page after sorting
 };
 
 defineExpose({
