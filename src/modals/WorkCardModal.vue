@@ -36,7 +36,7 @@
                 placeholder="Введите причину отклонения от плана..."
                 class="full-width-input text-area"
                 multiline
-                :required="true" />
+              />
             </div>
           </div>
 
@@ -80,7 +80,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-                :required="true" />
+                />
             </div>
           </div>
 
@@ -156,7 +156,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-                :required="true" />
+              />
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ import TabsHeader from '@/components/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/components/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, saveFaultInfo, saveParameterInfo, fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, loadComponentParametersForSelect, loadFaultEntriesForInspection, loadParameterEntriesForInspection, loadFactorValForSelect } from '@/api/inspectionsApi.js';
+import { loadInspectionEntriesForWorkPlan, saveInspectionInfo, saveFaultInfo, saveParameterInfo, fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, loadComponentParametersForSelect, loadFaultEntriesForInspection, loadParameterEntriesForInspection } from '@/api/inspectionsApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -219,9 +219,7 @@ const savedInspectionId = ref(null);
 
 // Новые реактивные переменные для валидации параметров
 const shouldShowMinMaxError = ref(false);
-const shouldShowValueError = ref(false);
 const isUserTypingMinMax = ref(false);
-const isUserTypingValue = ref(false);
 
 const tabs = ref([
   { name: 'info', label: 'Новая информация по работе', icon: 'Info' },
@@ -280,7 +278,6 @@ const existingParameters = ref([]);
 const componentOptions = ref([]);
 const defectOptions = ref([]);
 const parameterOptions = ref([]);
-const outOfNormOptions = ref([]); // Добавлено
 const loadingComponents = ref(false);
 const loadingDefects = ref(false);
 const loadingParameters = ref(false);
@@ -314,11 +311,6 @@ const isMinMaxInvalid = computed(() => {
   return false;
 });
 
-const isValueOutOfRange = computed(() => {
-  // Убираем валидацию диапазона для значения параметра
-  return false;
-});
-
 // Функции для обработки фокуса и валидации параметров
 const handleMinMaxFocus = () => {
   isUserTypingMinMax.value = true;
@@ -333,45 +325,9 @@ const handleMinMaxBlur = () => {
   }, 100);
 };
 
-const handleValueFocus = () => {
-  isUserTypingValue.value = true;
-  shouldShowValueError.value = false;
-};
-
-const handleValueBlur = () => {
-  isUserTypingValue.value = false;
-  setTimeout(() => {
-    shouldShowValueError.value = true;
-    validateValue();
-  }, 100);
-};
-
 const validateMinMax = () => {
   if (isMinMaxInvalid.value) {
     notificationStore.showNotification('Минимальное значение не может быть больше максимального значения!', 'error');
-  }
-};
-
-const validateValue = () => {
-  if (isValueOutOfRange.value) {
-    const value = parseFloat(parameterRecord.value.value);
-    const minVal = parseFloat(parameterRecord.value.minValue);
-    const maxVal = parseFloat(parameterRecord.value.maxValue);
-    
-    let errorMessage = '';
-    
-    // Формируем сообщение об ошибке в зависимости от того, какие границы заданы
-    if (!isNaN(minVal) && !isNaN(maxVal)) {
-      errorMessage = `Значение должно находиться в диапазоне от ${minVal} до ${maxVal}!`;
-    } else if (!isNaN(minVal) && isNaN(maxVal)) {
-      errorMessage = `Значение не может быть меньше ${minVal}!`;
-    } else if (isNaN(minVal) && !isNaN(maxVal)) {
-      errorMessage = `Значение не может быть больше ${maxVal}!`;
-    }
-    
-    if (errorMessage) {
-      notificationStore.showNotification(errorMessage, 'error');
-    }
   }
 };
 
@@ -405,10 +361,6 @@ const handleTabChange = async (newTab) => {
     await loadExistingDefects(savedInspectionId.value);
   } else if (newTab === 'parameters' && savedInspectionId.value) {
     await loadExistingParameters(savedInspectionId.value);
-    // Загружаем факторы OutOfNorm при переходе на вкладку параметров
-    if (outOfNormOptions.value.length === 0) {
-      await loadOutOfNormFactors();
-    }
   }
 };
 
@@ -442,11 +394,9 @@ const saveWork = async () => {
         ReasonDeviation: newRecord.value.deviationReason,
       };
 
-      console.log('Payload for API call:', dataToSave);
       const response = await saveInspectionInfo(dataToSave);
       
       // Сохраняем ID созданной записи инспекции
-      console.log('Response from saveInspectionInfo:', response);
       if (response?.result?.id) {
         savedInspectionId.value = response.result.id;
       } else if (response?.id) {
@@ -455,8 +405,6 @@ const saveWork = async () => {
         savedInspectionId.value = response.result.records[0].id;
       }
       
-      console.log('Saved inspection ID:', savedInspectionId.value);
-
       notificationStore.showNotification('Информация по работе успешно сохранена!', 'success');
       isInfoSaved.value = true;
       
@@ -468,7 +416,6 @@ const saveWork = async () => {
         const lastRecord = existingData[existingData.length - 1];
         if (lastRecord.id) {
           savedInspectionId.value = lastRecord.id;
-          console.log('Inspection ID found in existing data:', savedInspectionId.value);
         }
       }
       
@@ -495,7 +442,7 @@ const saveWork = async () => {
 
       parameterRecord.value.startCoordinates = { ...savedCoordinates };
     } catch (error) {
-      console.error('Ошибка сохранения:', error);
+      // console.error('Ошибка сохранения:', error);
       
       let errorMessage = 'Не удалось сохранить информацию по работе.';
       
@@ -578,7 +525,7 @@ const saveWork = async () => {
       defectOptions.value = [];
       
     } catch (error) {
-      console.error('Ошибка сохранения дефекта:', error);
+      // console.error('Ошибка сохранения дефекта:', error);
       
       let errorMessage = 'Не удалось сохранить дефект.';
       
@@ -631,41 +578,6 @@ const saveWork = async () => {
         throw new Error('Выбранный параметр не найден');
       }
 
-      // Загружаем факторы OutOfNorm если еще не загружены
-      if (outOfNormOptions.value.length === 0) {
-        await loadOutOfNormFactors();
-      }
-
-      // Определяем, находится ли значение в норме
-      const paramValue = parseFloat(parameterRecord.value.value);
-      const minValue = parseFloat(parameterRecord.value.minValue);
-      const maxValue = parseFloat(parameterRecord.value.maxValue);
-      
-      let isOutOfNorm = false;
-      // Логика: если есть оба лимита (min и max) и значение выходит за их пределы ИЛИ
-      // если есть только min и значение < min ИЛИ
-      // если есть только max и значение > max
-      // Тогда это OutOfNorm
-      if (!isNaN(paramValue)) {
-        if (!isNaN(minValue) && !isNaN(maxValue)) {
-          isOutOfNorm = paramValue < minValue || paramValue > maxValue;
-        } else if (!isNaN(minValue)) {
-          isOutOfNorm = paramValue < minValue;
-        } else if (!isNaN(maxValue)) {
-          isOutOfNorm = paramValue > maxValue;
-        }
-      }
-
-      // Находим соответствующий фактор OutOfNorm
-      const factorName = isOutOfNorm ? 'да' : 'нет';
-      const outOfNormFactor = outOfNormOptions.value.find(factor => 
-        factor.name.toLowerCase() === factorName
-      );
-
-      if (!outOfNormFactor) {
-        throw new Error(`Не найден фактор OutOfNorm с именем: ${factorName}`);
-      }
-
       // Формируем данные для сохранения согласно требуемой структуре API
       const now = new Date();
       // Добавляем 5 часов для казахстанского времени (UTC+5)
@@ -680,8 +592,6 @@ const saveWork = async () => {
         pvComponentParams: selectedParameter.pv,
         objLocationClsSection: props.sectionId,
         pvLocationClsSection: parseInt(props.sectionPv),
-        fvOutOfNorm: outOfNormFactor.value,
-        pvOutOfNorm: outOfNormFactor.pv,
         // Значение параметра
         ParamsLimit: parseFloat(parameterRecord.value.value),
         // Минимальный и максимальный лимиты из формы (они могли быть заполнены автоматически или изменены вручную)
@@ -699,7 +609,6 @@ const saveWork = async () => {
         CreationDateTime: currentDateTime
       };
 
-      console.log('Сохраняем данные параметра:', dataToSave);
       await saveParameterInfo(dataToSave);
       
       notificationStore.showNotification('Параметр успешно сохранен!', 'success');
@@ -717,10 +626,9 @@ const saveWork = async () => {
       };
       parameterOptions.value = [];
       shouldShowMinMaxError.value = false;
-      shouldShowValueError.value = false;
       
     } catch (error) {
-      console.error('Ошибка сохранения параметра:', error);
+      // console.error('Ошибка сохранения параметра:', error);
       
       let errorMessage = 'Не удалось сохранить параметр.';
       
@@ -809,7 +717,7 @@ const loadExistingData = async (record) => {
     }));
     return data;
   } catch (error) {
-    console.error("Не удалось загрузить существующие записи:", error);
+    // console.error("Не удалось загрузить существующие записи:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные записи.', 'error');
     existingRecords.value = [];
     return [];
@@ -830,7 +738,7 @@ const loadExistingDefects = async (inspectionId) => {
       defect: item.nameDefect || 'Неизвестный дефект'
     }));
   } catch (error) {
-    console.error("Не удалось загрузить существующие дефекты:", error);
+    // console.error("Не удалось загрузить существующие дефекты:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные дефекты.', 'error');
     existingDefects.value = [];
   }
@@ -852,7 +760,7 @@ const loadExistingParameters = async (inspectionId) => {
       value: item.ParamsLimit || 'Не указано'
     }));
   } catch (error) {
-    console.error("Не удалось загрузить существующие параметры:", error);
+    // console.error("Не удалось загрузить существующие параметры:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные параметры.', 'error');
     existingParameters.value = [];
   }
@@ -860,7 +768,7 @@ const loadExistingParameters = async (inspectionId) => {
 
 const loadComponents = async () => {
   if (!props.record?.objObject) {
-    console.warn('objObject не найден в записи:', props.record);
+    // console.warn('objObject не найден в записи:', props.record);
     return;
   }
 
@@ -873,7 +781,7 @@ const loadComponents = async () => {
       objComponent: component.id || component.value
     }));
   } catch (error) {
-    console.error('Ошибка загрузки компонентов:', error);
+    // console.error('Ошибка загрузки компонентов:', error);
     notificationStore.showNotification('Не удалось загрузить компоненты', 'error');
     componentOptions.value = [];
   } finally {
@@ -896,7 +804,7 @@ const loadDefects = async (objComponent) => {
       pv: defect.pv || defect.id || defect.value // Сохраняем pv для использования в API
     }));
   } catch (error) {
-    console.error('Ошибка загрузки дефектов:', error);
+    // console.error('Ошибка загрузки дефектов:', error);
     notificationStore.showNotification('Не удалось загрузить дефекты', 'error');
     defectOptions.value = [];
   } finally {
@@ -921,27 +829,11 @@ const loadParameters = async (objComponent) => {
       paramslimitmax: parameter.paramslimitmax
     }));
   } catch (error) {
-    console.error('Ошибка загрузки параметров:', error);
+    // console.error('Ошибка загрузки параметров:', error);
     notificationStore.showNotification('Не удалось загрузить параметры', 'error');
     parameterOptions.value = [];
   } finally {
     loadingParameters.value = false;
-  }
-};
-
-const loadOutOfNormFactors = async () => {
-  try {
-    const factors = await loadFactorValForSelect('Prop_OutOfNorm');
-    outOfNormOptions.value = factors.map(factor => ({
-      label: factor.name,
-      value: factor.id,
-      pv: factor.pv,
-      name: factor.name.toLowerCase() // Приводим к нижнему регистру для надежного сравнения
-    }));
-  } catch (error) {
-    console.error('Ошибка загрузки факторов OutOfNorm:', error);
-    notificationStore.showNotification('Не удалось загрузить факторы OutOfNorm', 'error');
-    outOfNormOptions.value = [];
   }
 };
 
@@ -965,7 +857,6 @@ const handleParameterComponentChange = async (selectedComponent) => {
   
   // Сброс ошибок при смене компонента
   shouldShowMinMaxError.value = false;
-  shouldShowValueError.value = false;
   
   if (selectedComponent) {
     const componentId = selectedComponent.value || selectedComponent;
@@ -981,7 +872,6 @@ const handleParameterComponentChange = async (selectedComponent) => {
 const handleParameterChange = (selectedParameter) => {
   // Сброс ошибок при выборе нового параметра
   shouldShowMinMaxError.value = false;
-  shouldShowValueError.value = false;
   
   if (selectedParameter) {
     const parameterId = selectedParameter.value || selectedParameter;
@@ -1008,15 +898,6 @@ watch(
   () => {
     if (!isUserTypingMinMax.value && shouldShowMinMaxError.value) {
       validateMinMax();
-    }
-  }
-);
-
-watch(
-  () => parameterRecord.value.value,
-  () => {
-    if (!isUserTypingValue.value && shouldShowValueError.value) {
-      validateValue();
     }
   }
 );

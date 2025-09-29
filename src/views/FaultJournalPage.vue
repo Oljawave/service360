@@ -126,16 +126,16 @@ const onRowDoubleClick = (row) => {
 const columns = [
   { key: 'index', label: '№' },
   { key: 'FactDateEnd', label: 'Дата проверки' },
-  { key: 'nameLocationClsSection', label: 'Место' },
+  // { key: 'nameLocationClsSection', label: 'Место' },
   { key: 'nameSection', label: 'Участок' },
   { key: 'nameObject', label: 'Объект', minWidth: 200 },
   { key: 'coordinates', label: 'Координаты', width: 220 },
   { key: 'nameDefectsComponent', label: 'Компонент', minWidth: 200 },
   { key: 'nameDefect', label: 'Неисправность', minWidth: 200 },
   { key: 'nameDefectsCategory', label: 'Категория', width: 120 },
-  { key: 'Description', label: 'Примечание', minWidth: 200 },
-  { key: 'CreationDate', label: 'Дата записи', width: 120 },
-  { key: 'CreationTime', label: 'Время записи', width: 120 },
+  // { key: 'Description', label: 'Примечание', minWidth: 200 },
+  // { key: 'CreationDate', label: 'Дата записи', width: 120 },
+  // { key: 'CreationTime', label: 'Время записи', width: 120 },
 ];
 
 const tableActions = [

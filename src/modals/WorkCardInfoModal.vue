@@ -196,7 +196,7 @@ import {
   loadInspectionEntriesForWorkPlan, saveFaultInfo, saveParameterInfo, 
   loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, 
   loadComponentParametersForSelect, loadFaultEntriesForInspection, 
-  loadParameterEntriesForInspection, loadFactorValForSelect 
+  loadParameterEntriesForInspection 
 } from '@/api/inspectionsApi.js';
 import { formatDate } from '@/stores/date.js';
 

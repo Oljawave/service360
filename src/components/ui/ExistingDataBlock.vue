@@ -15,9 +15,8 @@
           <span v-if="dataType === 'parameters'" class="data-cell value-cell">ЗНАЧЕНИЕ</span>
         </div>
         <div v-if="existingRecords.length === 0" class="data-row empty-row">
-          <span class="data-cell" :colspan="getColspan()">Нет ранее внесенных записей</span>
         </div>
-        <div v-else v-for="(item, index) in existingRecords" :key="index" class="data-row">
+        <div v-else v-for="(item, index) in sortedRecords" :key="item.id || index" class="data-row">
           <span class="data-cell number-cell">{{ index + 1 }}</span>
           <span class="data-cell date-cell">{{ item.date }}</span>
           <span class="data-cell coords-cell">{{ item.coordinates }}</span>
@@ -32,7 +31,7 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
+import { defineProps, computed } from 'vue';
 
 const props = defineProps({
   existingRecords: {
@@ -44,6 +43,17 @@ const props = defineProps({
     default: 'info', // 'info', 'defects', 'parameters'
     validator: (value) => ['info', 'defects', 'parameters'].includes(value)
   }
+});
+
+// Вычисляемое свойство для сортировки данных по id
+const sortedRecords = computed(() => {
+  // Создаем копию массива перед сортировкой, чтобы не мутировать проп
+  return [...props.existingRecords].sort((a, b) => {
+    // Сортировка по возрастанию (a.id - b.id)
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+    return idA - idB;
+  });
 });
 
 const getWarningText = () => {

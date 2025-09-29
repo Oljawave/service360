@@ -269,25 +269,6 @@ const saveParameterInfo = async (payload) => {
   }
 };
 
-const loadFactorValForSelect = async (propName) => {
-  try {
-    const response = await axios.post(
-      AUTH_API_URL,
-      {
-        method: "data/loadFactorValForSelect",
-        params: [propName],
-      },
-      {
-        withCredentials: true,
-      }
-    );
-    return response.data.result?.records || [];
-  } catch (error) {
-    console.error("Ошибка при загрузке факторов:", error);
-    throw error;
-  }
-};
-
 export {
   loadSections,
   loadWorkPlanDates,
@@ -302,5 +283,4 @@ export {
   loadComponentParametersForSelect,
   loadFaultEntriesForInspection,
   loadParameterEntriesForInspection,
-  loadFactorValForSelect
 };
