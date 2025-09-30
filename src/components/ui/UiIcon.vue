@@ -1,20 +1,13 @@
 <template>
-  <component :is="iconComponent" class="icon" :style="{ color: props.color }" />
+  <component :is="iconComponent" class="icon" />
 </template>
 
 <script setup>
 import * as icons from 'lucide-vue-next'
 import { computed } from 'vue'
 
-const props = defineProps({
-  name: String,
-  color: {
-    type: String,
-    default: '#4a5568' // Цвет по умолчанию
-  }
-})
+const props = defineProps({ name: String })
 
-// Пробуем найти иконку по имени, если не находим, используем AlertCircle (как запасной вариант)
 const iconComponent = computed(() => icons[props.name] || icons['AlertCircle'])
 </script>
 
@@ -23,8 +16,7 @@ const iconComponent = computed(() => icons[props.name] || icons['AlertCircle'])
   width: 20px;
   height: 20px;
   margin-right: 0.5rem;
-  /* Цвет теперь устанавливается через props (inline style) для динамичности */
-  /* Но можно задать основные стили тут */
-  flex-shrink: 0; /* Важно, чтобы иконка не сжималась */
+  flex-shrink: 0;
+  color: #4a5568; /* Цвет по умолчанию теперь в CSS */
 }
 </style>

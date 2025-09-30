@@ -112,6 +112,7 @@ import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { loadTypes, loadSides, fetchStationOfCoord } from '@/api/objectApi'
 import { saveObjectServed } from '@/api/saveObjectApi'
+import { fetchUserData } from '@/api/inspectionsApi' // <-- ДОБАВЛЕНО
 
 const notificationStore = useNotificationStore()
 const emit = defineEmits(['close', 'update-table'])
@@ -167,6 +168,10 @@ const saveData = async () => {
       return
     }
 
+    // --- ДОБАВЛЕНО: Получение данных пользователя ---
+    const user = await fetchUserData();
+    // ------------------------------------------------
+
     let installDate = null
     const rawDate = form.value.installDate
 
@@ -194,6 +199,10 @@ const saveData = async () => {
       ...coordinates.value,
       installDate,
       createdAt,
+      // --- ДОБАВЛЕНО: Поля пользователя ---
+      objUser: user.id, 
+      pvUser: user.pv,  
+      // ------------------------------------
     }
 
     const linkCls = selectedType.value.cls

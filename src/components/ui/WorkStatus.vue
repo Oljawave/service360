@@ -6,23 +6,19 @@
       :class="{ 'circle-green': showCheck, 'circle-red': showMinus }"
       :title="showCheck ? 'Работа выполнена' : 'Работа не выполнена'"
     >
-      <UiIcon :name="showCheck ? 'Check' : 'Minus'" class="status-icon" />
+      <UiIcon
+        :class="showCheck ? 'icon-green' : 'icon-red'"
+        :name="showCheck ? 'Check' : 'Minus'"
+        class="status-icon"
+      />
     </div>
 
-    <div
-      v-if="showHammer"
-      class="icon-circle circle-blue"
-      title="Зарегистрированы неисправности"
-    >
-      <UiIcon name="Hammer" class="status-icon" />
+    <div v-if="showHammer" class="icon-circle circle-blue" title="Зарегистрированы неисправности">
+      <UiIcon name="Hammer" class="status-icon icon-blue" />
     </div>
 
-    <div
-      v-if="showRuler"
-      class="icon-circle circle-blue"
-      title="Зарегистрированы параметры"
-    >
-      <UiIcon name="Ruler" class="status-icon" />
+    <div v-if="showRuler" class="icon-circle circle-blue" title="Зарегистрированы параметры">
+      <UiIcon name="Ruler" class="status-icon icon-blue" />
     </div>
   </div>
 </template>
@@ -66,15 +62,15 @@ const props = defineProps({
 }
 
 .circle-green {
-  background-color: #E9FFE4; 
+  background-color: #e9ffe4;
 }
 
 .circle-red {
-  background-color: #FEF2F2;
+  background-color: #fef2f2;
 }
 
 .circle-blue {
-  background-color: #EFF6FF; 
+  background-color: #eff6ff;
 }
 
 .icon-circle :deep(.icon) {
@@ -83,13 +79,15 @@ const props = defineProps({
   height: 18px;
 }
 
-.circle-green :deep(.icon) {
-  color: #005F00;
+.icon-green {
+  color: #005f00;
 }
-.circle-red :deep(.icon) {
-  color: #D70C0C;
+
+.icon-red {
+  color: #d70c0c;
 }
-.circle-blue :deep(.icon) {
-  color: #2286C8;
+
+.icon-blue {
+  color: #2286c8;
 }
 </style>

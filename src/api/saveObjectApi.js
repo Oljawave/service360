@@ -40,14 +40,15 @@ export const saveObjectServed = async (formData, selectedType, stationData) => {
         UpdatedAt: formData.createdAt,
         Description: formData.description,
         objSection: stationData.id,
-        pvSection: stationData.pv
+        pvSection: stationData.pv,
+        objUser: formData.objUser, 
+        pvUser: formData.pvUser   
       }]
     });
 
-    console.log("Ответ от сервера:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Ошибка при отправке данных:", error);
+    console.error('Ошибка при сохранении объекта:', error);
     throw error;
   }
 };

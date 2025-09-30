@@ -7,9 +7,8 @@
             v-for="col in columns" 
             :key="col.key" 
             class="header-cell-container"
-            @click="$emit('sort', col.key)" 
-          >
-            <div class="header-cell sortable">
+            >
+            <div class="header-cell">
               <span>{{ col.label }}</span>
               <div class="sort-filter-controls">
                 <UiIcon 
@@ -73,14 +72,12 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  // New sorting props
   sortKey: String,
   sortDirection: String
 })
 
 const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])
 </script>
-
 
 <style scoped>
 .table-container {
@@ -117,19 +114,20 @@ th, td {
   border-bottom: 1px solid #e2e8f0;
   text-transform: uppercase;
   z-index: 20;
-  cursor: pointer; /* Add cursor pointer to indicate sortability */
+  cursor: default; 
 }
 
 .header-cell {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px; 
 }
 
 .sort-filter-controls {
   display: flex;
   align-items: center;
-  gap: 8px; /* Space between sort icon and filter button */
+  gap: 8px; 
 }
 
 .sort-icon {
@@ -159,7 +157,7 @@ th, td {
 }
 
 .filter-button.active .icon-muted {
-  color: white;
+  color: #fff;
 }
 
 .icon-muted {
@@ -167,6 +165,10 @@ th, td {
   width: 16px;
   height: 16px;
   transition: color 0.2s;
+}
+
+.filter-button :deep(.icon) {
+  margin-right: 0;
 }
 
 .empty, .loading {

@@ -20,12 +20,14 @@
             </p>
           </div>
 
-          <div class="form-fields">
-            <AppInput v-model="username" placeholder="Логин" />
-            <AppInput v-model="password" type="password" placeholder="Пароль" />
-          </div>
+          <form @submit.prevent="handleLogin">
+            <div class="form-fields">
+              <AppInput v-model="username" placeholder="Логин" />
+              <AppInput v-model="password" type="password" placeholder="Пароль" />
+            </div>
 
-          <MainButton :label="'ВОЙТИ'" :loading="loading" @click="handleLogin" />
+            <MainButton :label="'ВОЙТИ'" :loading="loading" type="submit" />
+          </form>
         </div>
       </div>
     </div>
@@ -62,7 +64,7 @@ export default {
   methods: {
     async handleLogin() {
       if (this.loading) return; // Предотвращаем повторные вызовы
-      
+
       const notify = useNotificationStore()
       this.loading = true
 
@@ -234,7 +236,11 @@ export default {
   height: 100%;
 }
 
-
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 @media (max-width: 480px) {
   .logo-fixed,
   .language-fixed {
