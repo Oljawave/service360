@@ -107,8 +107,8 @@ const showEditModal = ref(false);
 const columnFilters = ref({});
 const openFilter = ref(null);
 
-const sortKey = ref(null);
-const sortDirection = ref('asc'); // 'asc', 'desc', or null
+const sortKey = ref('id'); // Установка сортировки по умолчанию по 'id'
+const sortDirection = ref('asc'); // Установка направления сортировки по умолчанию 'asc'
 
 const activeFilters = computed(() => {
   const active = {};
@@ -159,7 +159,12 @@ const filteredRows = computed(() => sortedAndFilteredRows.value);
 const pagedRows = computed(() => {
   const start = (page.value - 1) * props.limit;
   const end = start + props.limit; // Correct calculation for slice end
-  return filteredRows.value.slice(start, end);
+  
+  // ДОБАВЛЕНО: Рассчитываем и присваиваем правильный порядковый номер `index`
+  return filteredRows.value.slice(start, end).map((row, i) => ({
+    ...row,
+    index: start + i + 1,
+  }));
 });
 
 const recordSummary = computed(() => {
@@ -240,9 +245,9 @@ const handleSort = (key) => {
     if (sortDirection.value === 'asc') {
       sortDirection.value = 'desc';
     } else {
-      // Third click resets sorting
-      sortKey.value = null;
-      sortDirection.value = null;
+      // Third click resets sorting to default (id, asc)
+      sortKey.value = 'id'; 
+      sortDirection.value = 'asc';
     }
   } else {
     // New column clicked

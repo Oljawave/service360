@@ -1,5 +1,6 @@
 <template>
   <TableWrapper
+    ref="tableWrapperRef"
     title="Обслуживаемые объекты"
     :columns="columns"
     :actions="tableActions"
@@ -20,7 +21,7 @@
   <ModalAddObject
     v-if="isAddObjectModalOpen"
     @close="closeModal"
-    @update-table="fetchData"
+    @update-table="handleTableUpdate"
   />
 </template>
 
@@ -31,10 +32,15 @@ import ModalAddObject from '@/modals/ModalAddObject.vue'
 import ModalUpdateObject from '@/modals/ModalUpdateObject.vue'
 import { loadObjectServed } from '@/api/objectService'
 
+const tableWrapperRef = ref(null)
 const isAddObjectModalOpen = ref(false)
 
 const closeModal = () => {
   isAddObjectModalOpen.value = false
+}
+
+const handleTableUpdate = () => {
+  tableWrapperRef.value?.refreshTable()
 }
 
 const tableActions = [

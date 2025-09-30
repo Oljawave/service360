@@ -92,7 +92,14 @@ const currentEndPk = computed(() => props.modelValue.coordEndPk ?? 0)
 const startAbs = computed(() => currentStartKm.value * 1000 + currentStartPk.value * 100)
 const endAbs = computed(() => currentEndKm.value * 1000 + currentEndPk.value * 100)
 
-const isInvalid = computed(() => startAbs.value > endAbs.value)
+const isInvalid = computed(() => {
+  // Проверяем, что оба километра введены (не null и не undefined).
+  // Это предотвращает ошибку, когда заполнено только одно поле.
+  const bothKmFilled = props.modelValue.coordStartKm != null && props.modelValue.coordEndKm != null
+
+  // Запускаем проверку только если оба километра заполнены.
+  return bothKmFilled ? startAbs.value > endAbs.value : false
+})
 
 const isOutOfBounds = computed(() => {
   if (!props.objectBounds) return false

@@ -27,12 +27,9 @@ export async function loadObjectServed({ page = 1, limit = 10 }) {
 
   const records = response.data.result?.records || []
 
-  const start = (page - 1) * limit
-  const paginated = records.slice(start, start + limit)
-
   return {
-    data: paginated.map((item, i) => ({
-      index: start + i + 1,
+
+    data: records.map((item, i) => ({
       id: item.id,
       type: typeMap[item.objObjectType] || 'Неизвестно',
       name: item.name || '',
@@ -47,6 +44,7 @@ export async function loadObjectServed({ page = 1, limit = 10 }) {
       description: item.Description || '',
       fvSide: item.fvSide,
       objObjectType: item.objObjectType,
+      _originalIndex: i + 1, 
     })),
     total: records.length
   }

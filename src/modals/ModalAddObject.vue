@@ -48,7 +48,7 @@
       label="Дополнительные сведения о месте" 
       placeholder="Введите дополнительные сведения" 
       v-model="form.additionalInfo" 
-      :required="true" />
+      />
       
       <AppInput 
       class="col-span-2" 
@@ -56,37 +56,37 @@
       label="Характеристика" 
       placeholder="Введите характеристику" 
       v-model="form.characteristic" 
-      :required="true" />
+      />
       
       <AppDropdown
         id="side"
-        label="Сторона (необязательно)"
+        label="Сторона"
         placeholder="Выберите сторону"
         v-model="form.side"
         :options="sideOptions"
         :loading="loadingSides"
-        :required="true" />
+        />
       
       <AppInput 
       id="deviceNumber" 
       label="Номер" 
       placeholder="Введите номер прибора" 
       v-model="form.deviceNumber" 
-      :required="true" />
+      />
       
       <AppNumberInput 
       id="replacementPeriod" 
       label="Периодичность замены (год)" 
       placeholder="Введите периодичность" 
       v-model="form.replacementPeriod" 
-      :required="true" />
+      />
       
       <AppDatePicker 
       id="installDate" 
       label="Дата установки" 
       placeholder="Выберите дату" 
       v-model="form.installDate" 
-      :required="true" />
+      />
       
       <AppInput 
       class="col-span-2" 
@@ -95,7 +95,7 @@
       placeholder="Введите примечание..." 
       v-model="form.description" 
       type="textarea" 
-      :required="true" />
+      />
     </div>
   </ModalWrapper>
 </template>
@@ -112,7 +112,7 @@ import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { loadTypes, loadSides, fetchStationOfCoord } from '@/api/objectApi'
 import { saveObjectServed } from '@/api/saveObjectApi'
-import { fetchUserData } from '@/api/inspectionsApi' // <-- ДОБАВЛЕНО
+import { fetchUserData } from '@/api/inspectionsApi'
 
 const notificationStore = useNotificationStore()
 const emit = defineEmits(['close', 'update-table'])
@@ -194,15 +194,21 @@ const saveData = async () => {
 
     const createdAt = new Date().toISOString().slice(0, 10)
 
+    // Преобразуем null в 0 для координат перед отправкой
+    const coordsWithDefaults = {
+      coordStartKm: coordinates.value.coordStartKm ?? 0,
+      coordStartPk: coordinates.value.coordStartPk ?? 0,
+      coordEndKm: coordinates.value.coordEndKm ?? 0,
+      coordEndPk: coordinates.value.coordEndPk ?? 0,
+    };
+
     const payload = {
       ...form.value,
-      ...coordinates.value,
+      ...coordsWithDefaults,
       installDate,
       createdAt,
-      // --- ДОБАВЛЕНО: Поля пользователя ---
       objUser: user.id, 
       pvUser: user.pv,  
-      // ------------------------------------
     }
 
     const linkCls = selectedType.value.cls
@@ -239,21 +245,26 @@ const saveData = async () => {
 }
 
 const checkPlace = async () => {
-  const { coordStartKm, coordStartPk, coordEndKm, coordEndPk } = coordinates.value
-  if (coordStartKm && coordStartPk && coordEndKm && coordEndPk) {
+  const { coordStartKm, coordStartPk, coordEndKm, coordEndPk } = coordinates.value;
+
+  if (coordStartKm != null && coordEndKm != null) {
     try {
+
+      const startPicket = coordStartPk ?? 0;
+      const finishPicket = coordEndPk ?? 0;
+
       const response = await fetchStationOfCoord({
         StartKm: coordStartKm,
         FinishKm: coordEndKm,
-        StartPicket: coordStartPk,
-        FinishPicket: coordEndPk
-      })
+        StartPicket: startPicket,
+        FinishPicket: finishPicket,
+      });
       if (response.result && response.result.records.length > 0) {
-        form.value.place = response.result.records[0].name || 'Место не найдено'
-        stationData.value = response.result.records[0]
+        form.value.place = response.result.records[0].name || 'Место не найдено';
+        stationData.value = response.result.records[0];
       } else {
-        form.value.place = 'Место не найдено'
-        stationData.value = null
+        form.value.place = 'Место не найдено';
+        stationData.value = null;
       }
     } catch (error) {
       form.value.place = 'Место не найдено'
@@ -263,14 +274,14 @@ const checkPlace = async () => {
 }
 
 const updateCoordinates = async (newCoordinates) => {
-  coordinates.value = newCoordinates
-  const filled = Object.values(coordinates.value).every(v => v !== null && v !== undefined)
+  coordinates.value = newCoordinates;
 
-  if (!firstCheckDone.value && filled) {
-    firstCheckDone.value = true
-    await checkPlace()
-  } else if (firstCheckDone.value) {
-    await checkPlace()
+  const kmFilled = newCoordinates.coordStartKm != null && newCoordinates.coordEndKm != null;
+
+  if (kmFilled) {
+    await checkPlace();
+  } else {
+    form.value.place = ''; 
   }
 }
 
