@@ -3,7 +3,7 @@
     <div class="info-row main-info">
       <div class="info-item work-name">
         <span class="label">Наименование работы</span>
-        <span class="value">{{ record?.name || 'Нет данных' }}</span>
+        <span class="value">{{ record?.work || record?.name || 'Нет данных' }}</span>
       </div>
     </div>
     <div class="info-row secondary-info">
@@ -13,11 +13,11 @@
       </div>
       <div class="info-item">
         <span class="label">Место</span>
-        <span class="value">{{ record?.place || 'Нет данных' }}</span>
+        <span class="value">{{ record?.location || record?.place || 'Нет данных' }}</span>
       </div>
       <div class="info-item">
         <span class="label">Дата</span>
-        <span class="value">{{ formattedDate(date || record?.date) || 'Нет данных' }}</span>
+        <span class="value">{{ formattedDate(date || record?.factDate) || 'Нет данных' }}</span>
       </div>
     </div>
     <div class="info-row tertiary-info">

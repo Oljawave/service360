@@ -11,8 +11,8 @@
     :showFilters="true"
     :filters="filters"
     @update:filters="filters = $event"
+    @row-dblclick="onRowDoubleClick"
   />
-    <!-- @row-dblclick="onRowDoubleClick" -->
   <WorkCardInfoModal
     v-if="showWorkCardInfoModal"
     :record="selectedRecord"
@@ -87,6 +87,28 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
+  const isPresent = (val) => val !== null && val !== undefined && val !== '';
+
+  const createCoordPart = (km, pk, zv) => {
+    const parts = [];
+    if (isPresent(km)) parts.push(`${km}км`);
+    if (isPresent(pk)) parts.push(`${pk}пк`);
+    if (isPresent(zv)) parts.push(`${zv}зв`);
+    return parts.join(' ');
+  };
+
+  const startPart = createCoordPart(startKm, startPk, startZv);
+  const finishPart = createCoordPart(finishKm, finishPk, finishZv);
+
+  if (startPart && finishPart) {
+    return `${startPart} - ${finishPart}`;
+  } else if (startPart) {
+    return startPart;
+  }
+  return 'Координаты отсутствуют';
+};
+
 const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) => {
   try {
     const objLocation = localStorage.getItem('objLocation');
@@ -105,16 +127,16 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
     const sliced = records.slice(start, end).map((r, index) => ({
       index: start + index + 1,
       work: r.fullNameWork,
-      name: r.nameLocationClsSection, // Участок
+      name: r.nameLocationClsSection,
       location: r.nameSection,
       object: r.fullNameObject,
-      coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
+      coordinates: formatCoordinates(r.StartKm, r.StartPicket, r.StartLink, r.FinishKm, r.FinishPicket, r.FinishLink),
       planDate: r.PlanDateEnd,
-      factDate: r.FactDateEnd, // Фактическая дата
+      factDate: r.FactDateEnd,
       inspector: r.fullNameUser,
       deviation: r.nameDeviationDefect,
       reason: r.ReasonDeviation,
-      rawData: r, // Сырые данные содержат ID инспекции (r.id) и координаты
+      rawData: r,
       objWork: r.objWork,
       objObject: r.objObject,
       status: {
@@ -140,13 +162,11 @@ const onRowDoubleClick = (row) => {
   
   selectedRecord.value = row;
   
-  // Проверяем, что ID инспекции существует
   if (!row.rawData?.id) {
     console.warn('Отсутствует ID инспекции. Открытие окна Defect/Parameters невозможно.');
     return;
   }
-  
-  // Открываем модальное окно WorkCardInfoModal.vue
+
   showWorkCardInfoModal.value = true;
 };
 

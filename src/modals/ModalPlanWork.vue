@@ -133,7 +133,7 @@ const createNewObjectForm = () => ({
     coordEndKm: null,
     coordEndPk: null
   },
-  objectBounds: null, // <-- Добавлено: границы объекта для валидации
+  objectBounds: null,
 
   placeOptions: [],
   objectTypeOptions: [],
@@ -163,10 +163,6 @@ const closeModal = () => {
 
 const isSaving = ref(false)
 
-/**
- * Функция валидации формы
- * @returns {boolean} true, если форма валидна, false в противном случае.
- */
 const validateForm = () => {
   if (!form.value.work) {
     notificationStore.showNotification('Не выбрана работа', 'error')
@@ -194,7 +190,7 @@ const validateForm = () => {
       return false
     }
     if (!obj.plannedDate) {
-      notificationStore.showNotification(`Объект #${objectNum}: не указан Плановый срок завершения`, 'error')
+      notificationStore.showNotification(`Объект #${objectNum}: не указан Плановый срок завершения работы`, 'error')
       return false
     }
 
@@ -210,7 +206,6 @@ const validateForm = () => {
       return false
     }
 
-    // Проверка логики "Начало не может быть больше конца"
     const startAbs = (coords.coordStartKm || 0) * 1000 + (coords.coordStartPk || 0) * 100
     const endAbs = (coords.coordEndKm || 0) * 1000 + (coords.coordEndPk || 0) * 100
 
@@ -219,7 +214,6 @@ const validateForm = () => {
       return false
     }
 
-    // Проверка границ объекта (если установлены)
     if (obj.objectBounds) {
       const objStartAbs = obj.objectBounds.startAbs
       const objEndAbs = obj.objectBounds.endAbs
@@ -234,15 +228,12 @@ const validateForm = () => {
 }
 
 const saveData = async () => {
-  if (isSaving.value) return; // Предотвращаем повторные вызовы
-  
-  // !!! Добавлена проверка валидности перед сохранением !!!
+  if (isSaving.value) return; 
+
   if (!validateForm()) {
-    // Вся логика нотификации уже внутри validateForm, но можно добавить общую
-    // notificationStore.showNotification('Пожалуйста, заполните все обязательные поля и исправьте ошибки', 'error')
+   
     return
   }
-  // !!! Конец проверки валидности !!!
 
   isSaving.value = true
   try {
@@ -260,31 +251,10 @@ const saveData = async () => {
         fullRecord: obj.section.fullRecord
       } : null
 
-      // Синхронизируем координаты из v-model
       obj.coordStartKm = obj.coordinates.coordStartKm
       obj.coordStartPk = obj.coordinates.coordStartPk
       obj.coordEndKm = obj.coordinates.coordEndKm
       obj.coordEndPk = obj.coordinates.coordEndPk
-
-      // При успешной валидации (validateForm) эти проверки должны проходить
-      // Тем не менее, оставляем их здесь как дополнительную защиту или для API-логики
-
-      /*
-      const startAbs = (obj.coordStartKm || 0) * 1000 + (obj.coordStartPk || 0) * 100
-      const endAbs = (obj.coordEndKm || 0) * 1000 + (obj.coordEndPk || 0) * 100
-
-      if (startAbs > endAbs) {
-        throw new Error(`Объект #${form.value.objects.indexOf(obj) + 1}: Начало не может быть больше конца`)
-      }
-
-      if (obj.objectBounds) {
-        const objStartAbs = obj.objectBounds.startAbs
-        const objEndAbs = obj.objectBounds.endAbs
-        if (startAbs < objStartAbs || endAbs > objEndAbs) {
-          throw new Error(`Объект #${form.value.objects.indexOf(obj) + 1}: Координаты выходят за границы объекта`)
-        }
-      }
-      */
 
       return {
         ...obj,
@@ -375,7 +345,7 @@ const onWorkChange = async (selectedWorkId) => {
     objectForm.object = null
     objectForm.section = null
     objectForm.coordinates = { coordStartKm: null, coordStartPk: null, coordEndKm: null, coordEndPk: null }
-    objectForm.objectBounds = null // <-- Сброс границ
+    objectForm.objectBounds = null
     objectForm.objectTypeOptions = []
     objectForm.objectOptions = []
     objectForm.sectionOptions = []
@@ -471,15 +441,13 @@ const onObjectChange = async (selectedObjectId, index) => {
 
   const full = record.fullRecord
 
-  // Заполняем координаты
   objectForm.coordinates = {
-    coordStartKm: full.StartKm ?? null, // Изменено с 0 на null, чтобы `validateForm` корректно проверяла заполненность
+    coordStartKm: full.StartKm ?? null, 
     coordStartPk: full.StartPicket ?? null,
     coordEndKm: full.FinishKm ?? null,
     coordEndPk: full.FinishPicket ?? null
   }
 
-  // Устанавливаем границы объекта для валидации
   objectForm.objectBounds = {
     startAbs: (full.StartKm || 0) * 1000 + (full.StartPicket || 0) * 100,
     endAbs: (full.FinishKm || 0) * 1000 + (full.FinishPicket || 0) * 100,

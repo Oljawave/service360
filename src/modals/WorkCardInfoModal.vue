@@ -88,7 +88,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-                :required="true" />
+              />
             </div>
           </div>
 
@@ -164,7 +164,7 @@
                 placeholder="Введите примечание..."
                 class="full-width-input text-area"
                 multiline
-                :required="true" />
+              />
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ import {
   loadInspectionEntriesForWorkPlan, saveFaultInfo, saveParameterInfo, 
   loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, 
   loadComponentParametersForSelect, loadFaultEntriesForInspection, 
-  loadParameterEntriesForInspection 
+  loadParameterEntriesForInspection
 } from '@/api/inspectionsApi.js';
 import { formatDate } from '@/stores/date.js';
 
@@ -212,7 +212,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const isSaving = ref(false);
-// Устанавливаем вкладку "defects" по умолчанию
+
 const activeTab = ref('defects');
 const savedInspectionId = ref(props.inspectionId);
 
@@ -220,12 +220,10 @@ const shouldShowMinMaxError = ref(false);
 const isUserTypingMinMax = ref(false);
 
 const tabs = ref([
-  { name: 'info', label: 'Новая информация по работе', icon: 'Info' }, 
   { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle' },
   { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal' },
 ]);
 
-// Computed свойство для отключения вкладки 'info'
 const disabledTabs = computed(() => ['info']);
 
 const notificationStore = useNotificationStore();
@@ -253,7 +251,6 @@ const existingParameters = ref([]);
 const componentOptions = ref([]);
 const defectOptions = ref([]);
 const parameterOptions = ref([]);
-const outOfNormOptions = ref([]);
 const loadingComponents = ref(false);
 const loadingDefects = ref(false);
 const loadingParameters = ref(false);
@@ -287,7 +284,6 @@ const getButtonLabel = () => {
 
 const handleTabChange = async (newTab) => {
   if (disabledTabs.value.includes(newTab)) {
-    // Запрещаем переход на вкладку 'info'
     return;
   }
   
@@ -297,14 +293,31 @@ const handleTabChange = async (newTab) => {
     await loadExistingDefects(savedInspectionId.value);
   } else if (newTab === 'parameters' && savedInspectionId.value) {
     await loadExistingParameters(savedInspectionId.value);
-    if (outOfNormOptions.value.length === 0) { await loadOutOfNormFactors(); }
   }
 };
 
 const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
-  const startPart = startKm != null && startPk != null ? `${startKm}км ${startPk}пк${startZv != null ? ` ${startZv}зв` : ''}` : '';
-  const finishPart = finishKm != null && finishPk != null ? `${finishKm}км ${finishPk}пк${finishZv != null ? ` ${finishZv}зв` : ''}` : '';
-  return startPart && finishPart ? `${startPart} — ${finishPart}` : 'Координаты отсутствуют';
+  const isPresent = (val) => val !== null && val !== undefined && val !== '';
+
+  const createCoordPart = (km, pk, zv) => {
+    const parts = [];
+    if (isPresent(km)) parts.push(`${km}км`);
+    if (isPresent(pk)) parts.push(`${pk}пк`);
+    if (isPresent(zv)) parts.push(`${zv}зв`);
+    return parts.join(' ');
+  };
+
+  const startPart = createCoordPart(startKm, startPk, startZv);
+  const finishPart = createCoordPart(finishKm, finishPk, finishZv);
+
+  if (startPart && finishPart) {
+    return `${startPart} - ${finishPart}`;
+  } else if (startPart) {
+    return startPart;
+  } else if (finishPart) {
+    return finishPart;
+  }
+  return 'Координаты отсутствуют';
 };
 
 const loadExistingDefects = async (inspectionId) => {
@@ -389,17 +402,6 @@ const loadParameters = async (objComponent) => {
   }
 };
 
-const loadOutOfNormFactors = async () => {
-  try {
-    const factors = await loadFactorValForSelect();
-    outOfNormOptions.value = factors.map(f => ({ label: f.name || f.label, value: f.id || f.value, pv: f.pv || f.id || f.value }));
-  } catch (error) {
-    console.error('Ошибка загрузки факторов OutOfNorm:', error);
-    notificationStore.showNotification('Не удалось загрузить факторы "вне нормы"', 'error');
-    outOfNormOptions.value = [];
-  }
-};
-
 const handleDefectComponentChange = async (newComponent) => {
   defectRecord.value.defectType = null;
   defectOptions.value = [];
@@ -454,7 +456,6 @@ const saveWork = async () => {
       }
       
       const now = new Date();
-      // Добавляем 5 часов для казахстанского времени (UTC+5)
       const kazakhstanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
       const currentDateTime = kazakhstanTime.toISOString();
       const currentDate = currentDateTime.split('T')[0];
@@ -479,8 +480,7 @@ const saveWork = async () => {
       await saveFaultInfo(dataToSave);
       notificationStore.showNotification('Дефект успешно сохранен!', 'success');
       await loadExistingDefects(savedInspectionId.value);
-      
-      // Очищаем форму дефекта после успешного сохранения
+
       defectRecord.value.defectType = null;
       defectRecord.value.note = '';
       defectRecord.value.component = null;
@@ -495,7 +495,7 @@ const saveWork = async () => {
       isSaving.value = false;
     }
   } else if (activeTab.value === 'parameters') {
-    // Валидация данных параметра
+
     if (!parameterRecord.value.component || !parameterRecord.value.parameterType) {
       notificationStore.showNotification('Необходимо выбрать компонент и параметр!', 'error');
       return;
@@ -519,24 +519,6 @@ const saveWork = async () => {
       const selectedParameter = parameterOptions.value.find(p => p.value === (parameterRecord.value.parameterType.value || parameterRecord.value.parameterType));
       if (!selectedParameter) { throw new Error('Выбранный параметр не найден'); }
 
-      if (outOfNormOptions.value.length === 0) { await loadOutOfNormFactors(); }
-
-      const paramValue = parseFloat(parameterRecord.value.value);
-      const minValue = parseFloat(parameterRecord.value.minValue);
-      const maxValue = parseFloat(parameterRecord.value.maxValue);
-      let isOutOfNorm = false;
-      if (!isNaN(paramValue)) {
-        if (!isNaN(minValue) && !isNaN(maxValue)) {
-          isOutOfNorm = paramValue < minValue || paramValue > maxValue;
-        } else if (!isNaN(minValue)) {
-          isOutOfNorm = paramValue < minValue;
-        } else if (!isNaN(maxValue)) {
-          isOutOfNorm = paramValue > maxValue;
-        }
-      }
-      
-      const outOfNormFactor = isOutOfNorm ? (outOfNormOptions.value.find(f => f.label === 'Да') || {}).value : (outOfNormOptions.value.find(f => f.label === 'Нет') || {}).value;
-
       const now = new Date();
       const kazakhstanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
       const currentDateTime = kazakhstanTime.toISOString();
@@ -559,16 +541,13 @@ const saveWork = async () => {
         ParamsLimitMin: parameterRecord.value.minValue,
         ParamsLimitMax: parameterRecord.value.maxValue,
         Description: parameterRecord.value.note || '',
-        CreationDateTime: currentDateTime,
-        ObjFactorVal: outOfNormFactor,
-        PvFactorVal: outOfNormFactor, // Assuming pv is the same as obj for this type of object
+        CreationDateTime: currentDateTime
       };
 
       await saveParameterInfo(dataToSave);
       notificationStore.showNotification('Параметр успешно сохранен!', 'success');
       await loadExistingParameters(savedInspectionId.value);
-      
-      // Очищаем форму параметра после успешного сохранения
+
       parameterRecord.value.parameterType = null;
       parameterRecord.value.minValue = null;
       parameterRecord.value.maxValue = null;
@@ -589,19 +568,36 @@ const saveWork = async () => {
 };
 
 onMounted(async () => {
-  // При открытии WorkCardInfoModal, сразу загружаем существующие данные
+
   if (savedInspectionId.value) {
     await loadExistingDefects(savedInspectionId.value);
     await loadExistingParameters(savedInspectionId.value);
   }
-  
-  // Всегда загружаем компоненты, так как они нужны для вкладок Defects и Parameters
+
   await loadComponents();
-  
-  if (activeTab.value === 'parameters' && outOfNormOptions.value.length === 0) {
-    await loadOutOfNormFactors();
-  }
 });
+
+watch(() => props.record, (newRecordData) => {
+  if (newRecordData?.rawData) {
+    const raw = newRecordData.rawData;
+    const coords = {
+      coordStartKm: raw.StartKm,
+      coordStartPk: raw.StartPicket,
+      coordStartZv: raw.StartLink,
+      coordEndKm: raw.FinishKm,
+      coordEndPk: raw.FinishPicket,
+      coordEndZv: raw.FinishLink,
+    };
+    newRecord.value.coordinates = coords;
+    defectRecord.value.startCoordinates = { ...coords };
+    parameterRecord.value.startCoordinates = { ...coords };
+
+    inspectionBounds.value = {
+      StartKm: raw.StartKm, StartPicket: raw.StartPicket, StartLink: raw.StartLink,
+      FinishKm: raw.FinishKm, FinishPicket: raw.FinishPicket, FinishLink: raw.FinishLink,
+    };
+  }
+}, { immediate: true, deep: true });
 
 watch(() => props.inspectionId, (newId) => {
   savedInspectionId.value = newId;

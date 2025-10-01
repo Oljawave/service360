@@ -18,7 +18,7 @@ const fetchWorks = async () => {
     const records = response.data.result.records;
 
     const processedRecords = records.map(item => ({
-      label: item.fullname || item.name || 'Неизвестно',
+      label: item.fullName,
       value: item.id,
       cls: item.cls,
       pv: item.pv,

@@ -103,6 +103,8 @@ import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
 
 import { useNotificationStore } from '@/stores/notificationStore'
 import { loadTypes, loadSides, fetchStationOfCoord } from '@/api/objectApi'
+import { updateObject } from '@/api/updateObjectApi'
+import { fetchUserData } from '@/api/inspectionsApi'
 
 import { parseDate, formatDateToISO } from '@/stores/date'
 
@@ -156,9 +158,6 @@ const closeModal = () => {
 const saveData = async () => {
   console.group('ModalUpdateObject: Сохранение данных')
   console.log('form.value.installDate (до форматирования):', form.value.installDate)
-  console.log('typeof form.value.installDate:', typeof form.value.installDate)
-  console.log('form.value.installDate является Date:', form.value.installDate instanceof Date)
-  console.log('isNaN(form.value.installDate):', form.value.installDate ? isNaN(form.value.installDate) : 'null')
 
   try {
     if (!selectedType.value || !selectedType.value.cls) {
@@ -175,44 +174,70 @@ const saveData = async () => {
       return
     }
 
-    const installDate = formatDateToISO(form.value.installDate)
-    console.log('form.value.installDate:', form.value.installDate)
-    console.log('Результат formatDateToISO(installDate):', installDate)
+    // Получаем данные пользователя
+    const user = await fetchUserData()
 
-    const updatedAt = formatDateToISO(new Date())
-    console.log('updatedAt:', updatedAt)
+    // Форматируем дату установки
+    let installDate = null
+    const rawDate = form.value.installDate
 
-    const payload = {
-      id: props.rowData.id,
-      ...form.value,
-      ...coordinates.value,
-      installDate,
-      updatedAt,
+    const formatDateToString = (date) => {
+      if (!date) return null
+      const d = new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
 
-    console.log('Базовый payload:', payload)
+    if (typeof rawDate === 'number' && !isNaN(rawDate)) {
+      installDate = formatDateToString(rawDate)
+    } else if (rawDate instanceof Date && !isNaN(rawDate)) {
+      installDate = formatDateToString(rawDate)
+    } else if (typeof rawDate === 'string' && rawDate.length >= 10) {
+      installDate = rawDate.slice(0, 10)
+    }
 
-    const linkCls = selectedType.value.cls
-    const objSection = stationData.value.id
-    const pvSection = stationData.value.pv
+    console.log('Форматированная дата установки:', installDate)
+
+    const updatedAt = new Date().toISOString().slice(0, 10)
+    console.log('updatedAt:', updatedAt)
 
     const sideLabel = sideOptions.value.find(s => s.value === form.value.side)?.label || ''
     const typeLabel = typeOptions.value.find(t => t.value === form.value.type)?.label || ''
 
-    const extendedPayload = {
-      ...payload,
-      linkCls,
-      objSection,
-      pvSection,
+    const payload = {
+      id: props.rowData.id,
+      name: form.value.name,
+      type: form.value.type,
+      additionalInfo: form.value.additionalInfo,
+      characteristic: form.value.characteristic,
+      side: form.value.side,
+      sidePv: form.value.sidePv,
+      deviceNumber: form.value.deviceNumber,
+      replacementPeriod: form.value.replacementPeriod,
+      installDate,
+      updatedAt,
+      description: form.value.description,
+      place: form.value.place,
+      coordStartKm: coordinates.value.coordStartKm,
+      coordStartPk: coordinates.value.coordStartPk,
+      coordEndKm: coordinates.value.coordEndKm,
+      coordEndPk: coordinates.value.coordEndPk,
+      linkCls: selectedType.value.cls,
+      objSection: stationData.value.id,
+      pvSection: stationData.value.pv,
       fvSide: form.value.side,
       pvSide: form.value.sidePv,
       sideLabel,
       typeLabel,
+      objUser: user.id,
+      pvUser: user.pv,
     }
 
-    console.log("Payload для обновления:", extendedPayload)
+    console.log("Payload для обновления:", payload)
 
-    await updateObjectServed(extendedPayload, selectedType.value, stationData.value)
+    await updateObject(payload, selectedType.value, stationData.value)
 
     notificationStore.showNotification('Объект успешно обновлён!', 'success')
     closeModal()
@@ -302,8 +327,6 @@ const fillFormWithData = () => {
   console.group('ModalUpdateObject: Загрузка данных')
   console.log('rowData:', data)
   console.log('data.installDate (raw):', data.installDate)
-  console.log('typeof data.installDate:', typeof data.installDate)
-  console.log('data.coords:', data.coords)
 
   form.value.name = data.name || ''
   form.value.type = data.objObjectType || null
@@ -315,11 +338,7 @@ const fillFormWithData = () => {
 
   const parsedDate = parseDate(data.installDate)
   console.log('Результат parseDate(data.installDate):', parsedDate)
-  console.log('isNaN(parsedDate):', parsedDate ? isNaN(parsedDate) : 'null')
-
   form.value.installDate = parsedDate
-
-  console.log('form.value.installDate после присвоения:', form.value.installDate)
 
   const match = data.coords?.match(/(\d+) км (\d+) пк - (\d+) км (\d+) пк/)
   if (match) {
@@ -336,7 +355,6 @@ const fillFormWithData = () => {
 
   form.value.side = data.fvSide || null
   console.log('fvSide из данных:', data.fvSide)
-  console.log('form.value.side установлено:', form.value.side)
 
   const selectedSide = sideOptions.value.find(s => s.value === data.fvSide)
   if (selectedSide) {
