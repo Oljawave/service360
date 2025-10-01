@@ -1,25 +1,9 @@
 <template>
   <div class="status-wrapper">
-    <div
-      v-if="showCheck || showMinus"
-      class="icon-circle"
-      :class="{ 'circle-green': showCheck, 'circle-red': showMinus }"
-      :title="showCheck ? 'Работа выполнена' : 'Работа не выполнена'"
-    >
-      <UiIcon
-        :class="showCheck ? 'icon-green' : 'icon-red'"
-        :name="showCheck ? 'Check' : 'Minus'"
-        class="status-icon"
-      />
-    </div>
-
-    <div v-if="showHammer" class="icon-circle circle-blue" title="Зарегистрированы неисправности">
-      <UiIcon name="Hammer" class="status-icon icon-blue" />
-    </div>
-
-    <div v-if="showRuler" class="icon-circle circle-blue" title="Зарегистрированы параметры">
-      <UiIcon name="Ruler" class="status-icon icon-blue" />
-    </div>
+    <UiIcon v-if="showCheck" name="Check" class="icon-check" title="Работа выполнена" />
+    <UiIcon v-if="showMinus" name="Minus" class="icon-minus" title="Работа не выполнена" />
+    <UiIcon v-if="showHammer" name="Hammer" class="icon-hammer" title="Зарегистрированы неисправности" />
+    <UiIcon v-if="showRuler" name="Ruler" class="icon-ruler" title="Зарегистрированы параметры" />
   </div>
 </template>
 
@@ -53,41 +37,25 @@ const props = defineProps({
   gap: 8px;
 }
 
-.icon-circle {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-}
-
-.circle-green {
-  background-color: #e9ffe4;
-}
-
-.circle-red {
-  background-color: #fef2f2;
-}
-
-.circle-blue {
-  background-color: #eff6ff;
-}
-
-.icon-circle :deep(.icon) {
+.status-wrapper :deep(.icon) {
   margin-right: 0;
   width: 18px;
   height: 18px;
 }
 
-.icon-green {
-  color: #005f00;
+.icon-check {
+  color: #22c55e; /* Зеленый */
 }
 
-.icon-red {
-  color: #d70c0c;
+.icon-minus {
+  color: #f97316; /* Оранжевый */
 }
 
-.icon-blue {
-  color: #2286c8;
+.icon-hammer {
+  color: #ef4444; /* Красный */
+}
+
+.icon-ruler {
+  color: #3b82f6; /* Синий */
 }
 </style>

@@ -34,6 +34,7 @@
       :activeFilters="activeFilters"
       :sortKey="sortKey"
       :sortDirection="sortDirection"
+      :getRowClassFn="getRowClassFn"
       @row-dblclick="handleRowDoubleClick"
       @toggle-filter="toggleFilter"
       @sort="handleSort"
@@ -91,6 +92,11 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  // НОВЫЙ ПРОПС
+  getRowClassFn: {
+    type: Function,
+    default: () => ({}),
+  }
 });
 
 const emit = defineEmits(['update:filters', 'row-dblclick']);
@@ -160,10 +166,12 @@ const pagedRows = computed(() => {
   const start = (page.value - 1) * props.limit;
   const end = start + props.limit; // Correct calculation for slice end
   
-  // ДОБАВЛЕНО: Рассчитываем и присваиваем правильный порядковый номер `index`
   return filteredRows.value.slice(start, end).map((row, i) => ({
     ...row,
-    index: start + i + 1,
+    // Присваиваем индекс, только если его нет в исходных данных.
+    // Это предотвращает добавление ненужных индексов в таблицы,
+    // где первая колонка - это данные, а не номер.
+    index: row.index === undefined ? start + i + 1 : row.index,
   }));
 });
 

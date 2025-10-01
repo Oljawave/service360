@@ -43,6 +43,7 @@
           :expandedRows="expandedRows"
           :toggleRowExpand="toggleRowExpand"
           :childrenMap="childrenMap"
+          :getRowClassFn="getRowClassFn"
           @dblclick="$emit('row-dblclick', $event)"
         />
         <tr v-if="!rows.length && !loading">
@@ -73,7 +74,12 @@ const props = defineProps({
     default: true
   },
   sortKey: String,
-  sortDirection: String
+  sortDirection: String,
+  // НОВЫЙ ПРОПС
+  getRowClassFn: {
+    type: Function,
+    default: () => ({}),
+  }
 })
 
 const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])

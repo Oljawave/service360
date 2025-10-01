@@ -10,6 +10,7 @@
     :dropdownConfig="dropdownConfig"
     :showFilters="true"
     :filters="filters"
+    :getRowClassFn="getRowClassFn"
     @update:filters="filters = $event"
     @row-dblclick="onRowDoubleClick"
   />
@@ -145,6 +146,8 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
         showHammer: r.nameFlagDefect === 'да',
         showRuler: r.nameFlagParameter === 'да',
       },
+      // Добавляем флаг для стилизации строки
+      hasDefects: r.nameFlagDefect === 'да',
     }));
 
     return {
@@ -168,6 +171,13 @@ const onRowDoubleClick = (row) => {
   }
 
   showWorkCardInfoModal.value = true;
+};
+
+// Функция для условного форматирования строки
+const getRowClassFn = (row) => {
+  return {
+    'row-has-defects': row.hasDefects,
+  };
 };
 
 const columns = [

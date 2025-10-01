@@ -10,6 +10,7 @@
     :dropdownConfig="dropdownConfig"
     :showFilters="true"
     :filters="filters"
+    :getRowClassFn="getRowClassFn"
     @update:filters="filters = $event"
     @row-dblclick="onRowDoubleClick"
   >
@@ -104,6 +105,7 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
       CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
       CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
       rawData: r,
+      hasDeviation: r.pvOutOfNorm !== 1300,
     }));
 
     return {
@@ -118,6 +120,13 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
 
 const onRowDoubleClick = (row) => {
   console.log('Двойной клик по строке:', row);
+};
+
+// Функция для условного форматирования строки
+const getRowClassFn = (row) => {
+  return {
+    'row-has-deviation': row.hasDeviation,
+  };
 };
 
 const columns = [

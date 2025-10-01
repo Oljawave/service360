@@ -586,22 +586,18 @@ const saveWork = async () => {
       const currentDate = currentDateTime.split('T')[0]; // Получаем только дату в формате YYYY-MM-DD
       
       const dataToSave = {
-        name: `${currentDate}-${selectedParameter.value}`, // Формат: "2025-07-20-1700"
+        name: `${currentDate}-${selectedParameter.value}`,
         objInspection: savedInspectionId.value,
         relobjComponentParams: selectedParameter.value,
         pvComponentParams: selectedParameter.pv,
         objLocationClsSection: props.sectionId,
         pvLocationClsSection: parseInt(props.sectionPv),
-        // Значение параметра
         ParamsLimit: parseFloat(parameterRecord.value.value),
-        // Минимальный и максимальный лимиты из формы (они могли быть заполнены автоматически или изменены вручную)
         ParamsLimitMax: parseFloat(parameterRecord.value.maxValue) || 0,
         ParamsLimitMin: parseFloat(parameterRecord.value.minValue) || 0,
         StartKm: parameterRecord.value.startCoordinates.coordStartKm,
         FinishKm: parameterRecord.value.startCoordinates.coordEndKm || parameterRecord.value.startCoordinates.coordStartKm,
-        // ИСПРАВЛЕНИЕ: Добавлено || 0 для StartPicket
         StartPicket: parameterRecord.value.startCoordinates.coordStartPk || 0,
-        // ИСПРАВЛЕНИЕ: Добавлено || 0 для FinishPicket
         FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: parameterRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: parameterRecord.value.startCoordinates.coordEndZv || parameterRecord.value.startCoordinates.coordStartZv || 0,

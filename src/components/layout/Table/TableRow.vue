@@ -1,6 +1,18 @@
 <template>
-  <tr class="data-row" @dblclick="$emit('dblclick', row)">
-    <td v-for="(col, i) in columns" :key="col.key" class="cell">
+  <tr 
+    class="data-row" 
+    :class="getRowClassFn(row)"
+    @dblclick="$emit('dblclick', row)"
+  >
+    <td
+      v-for="(col, i) in columns"
+      :key="col.key"
+      class="cell"
+      :class="{
+        'date-overdue': isFactDateOverdue(col.key),
+        'date-ontime': isFactDateOnTime(col.key),
+      }"
+    >
       <template v-if="col.component">
         <component :is="col.component" v-bind="row[col.key]" :row="row" />
       </template>
@@ -15,10 +27,13 @@
             <UiIcon :name="isExpanded ? 'ChevronDown' : 'ChevronRight'" />
           </span>
         </span>
-        <span class="cell-content">{{ row[col.key] }}</span>
+        <!-- Отображаем значение, только если оно не совпадает с индексом, чтобы избежать дублирования -->
+        <span class="cell-content" v-if="row[col.key] != fullIndex">
+          {{ row[col.key] }}
+        </span>
       </template>
       <template v-else>
-        {{ row[col.key] }}
+        <span class="cell-content">{{ row[col.key] }}</span>
       </template>
     </td>
   </tr>
@@ -33,6 +48,7 @@
       :expandedRows="expandedRows"
       :toggleRowExpand="toggleRowExpand"
       :parentIndex="`${fullIndex}.${i + 1}`"
+      :getRowClassFn="getRowClassFn"
       @dblclick="$emit('dblclick', $event)"
     />
   </template>
@@ -53,6 +69,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  getRowClassFn: {
+    type: Function,
+    default: () => ({}),
+  }
 });
 
 const children = computed(() => props.childrenMap?.[props.row.id] || []);
@@ -67,12 +87,42 @@ const toggleExpand = () => {
 
 const fullIndex = computed(() => {
   if (props.parentIndex) return props.parentIndex;
-  return props.row._rowNumber?.toString() || '';
+  return props.row.index?.toString() || '';
 });
+
+// Добавленная логика для проверки дат
+const isFactDateOverdue = (key) => {
+  if (key !== 'factDate') return false;
+  
+  const factDateStr = props.row.factDate;
+  const planDateStr = props.row.planDate;
+  
+  if (!factDateStr || !planDateStr) return false;
+
+  const factDate = new Date(factDateStr + 'T00:00:00Z');
+  const planDate = new Date(planDateStr + 'T00:00:00Z');
+
+  return factDate > planDate;
+};
+
+const isFactDateOnTime = (key) => {
+  if (key !== 'factDate') return false;
+  
+  const factDateStr = props.row.factDate;
+  const planDateStr = props.row.planDate;
+  
+  if (!factDateStr) return false;
+  if (!planDateStr) return true;
+
+  const factDate = new Date(factDateStr + 'T00:00:00Z');
+  const planDate = new Date(planDateStr + 'T00:00:00Z');
+  
+  return factDate <= planDate;
+};
 </script>
 
 <style scoped>
-/* Ваши стили, без изменений */
+
 .index-icon-wrap {
   display: flex;
   align-items: center;
@@ -80,7 +130,7 @@ const fullIndex = computed(() => {
 }
 
 .cell-content {
-  margin-left: 8px;
+  /* margin-left: 8px; */ /* Отступ убран для консистентности */
 }
 
 .data-row {
@@ -108,5 +158,27 @@ const fullIndex = computed(() => {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+}
+
+.cell.date-overdue {
+  color: #e53e3e;
+}
+
+.cell.date-ontime {
+  color: #38a169;
+}
+
+.data-row.row-has-defects {
+  background-color: #FFF5F5;
+}
+.data-row.row-has-defects:hover {
+  background-color: #ffe6e6;
+}
+
+.data-row.row-has-deviation {
+  background-color: #FFF5F5; /* Светло-красный фон */
+}
+.data-row.row-has-deviation:hover {
+  background-color: #ffe6e6; /* Более темный красный при наведении */
 }
 </style>
