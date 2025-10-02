@@ -140,7 +140,8 @@ const loadWorkPlanWrapper = async ({ page, limit, filters: filterValues }) => {
     const end = page * limit;
 
     const sliced = records.slice(start, end).map((r, index) => ({
-      index: start + index + 1,
+      index: null,
+      id: r.id,
       name: r.nameLocationClsSection,
       work: r.nameClsWork,
       fullNameWork: r.fullNameWork,
@@ -173,7 +174,7 @@ const onRowDoubleClick = (row) => {
 };
 
 const columns = [
-  { key: 'index', label: '№' },
+  { key: 'id', label: '№', hide: true },
   { key: 'name', label: 'Участок' },
   { key: 'work', label: 'Вид работы' },
   { key: 'fullNameWork', label: 'Работы' },

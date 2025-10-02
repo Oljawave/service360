@@ -94,6 +94,7 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
 
     const sliced = records.slice(start, end).map((r, index) => ({
       index: start + index + 1,
+      objInspection: r.objInspection,
       nameSection: r.nameSection,
       nameDefect: r.nameDefect,
       nameObject: r.nameObject,
@@ -103,7 +104,6 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
       nameDefectsComponent: r.nameDefectsComponent,
       nameDefectsCategory: r.nameDefectsCategory,
       nameLocationClsSection: r.nameLocationClsSection,
-      // Отделяем дату и время
       CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
       CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
       rawData: r,
@@ -125,6 +125,7 @@ const onRowDoubleClick = (row) => {
 
 const columns = [
   { key: 'index', label: '№' },
+  { key: 'objInspection', label: 'ссылка на работу' },
   { key: 'FactDateEnd', label: 'Дата проверки' },
   // { key: 'nameLocationClsSection', label: 'Место' },
   { key: 'nameSection', label: 'Участок' },

@@ -129,10 +129,6 @@ const isFactDateOnTime = (key) => {
   gap: 8px;
 }
 
-.cell-content {
-  /* margin-left: 8px; */ /* Отступ убран для консистентности */
-}
-
 .data-row {
   transition: background 0.2s;
   cursor: pointer;

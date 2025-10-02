@@ -126,7 +126,9 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
     const end = page * limit;
 
     const sliced = records.slice(start, end).map((r, index) => ({
-      index: start + index + 1,
+      index: null,
+      id: r.id,
+      objWorkPlan: r.objWorkPlan,
       work: r.fullNameWork,
       name: r.nameLocationClsSection,
       location: r.nameSection,
@@ -181,7 +183,8 @@ const getRowClassFn = (row) => {
 };
 
 const columns = [
-  { key: 'index', label: '№' },
+  { key: 'id', label: '№' },
+  { key: 'objWorkPlan', label: 'ссылка на план' },
   { key: 'work', label: 'Наименование работы' },
   { key: 'name', label: 'Участок' },
   { key: 'location', label: 'Место' },
