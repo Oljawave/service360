@@ -10,6 +10,7 @@
         label="Начало (км)"
         placeholder="км"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartKm"
         @focus="handleFocus"
@@ -21,6 +22,7 @@
         placeholder="пк"
         :max="10"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartPk"
         @focus="handleFocus"
@@ -32,6 +34,7 @@
         placeholder="зв"
         :max="99"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartZv"
         @focus="handleFocus"
@@ -42,6 +45,7 @@
         label="Конец (км)"
         placeholder="км"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndKm"
         @focus="handleFocus"
@@ -53,6 +57,7 @@
         placeholder="пк"
         :max="10"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndPk"
         @focus="handleFocus"
@@ -64,6 +69,7 @@
         placeholder="зв"
         :max="99"
         :required="required"
+        :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndZv"
         @focus="handleFocus"
@@ -96,6 +102,11 @@ const props = defineProps({
   },
   // Добавляем пропс required с default: false
   required: {
+    type: Boolean,
+    default: false
+  },
+  // Добавляем пропс disabled с default: false
+  disabled: {
     type: Boolean,
     default: false
   }

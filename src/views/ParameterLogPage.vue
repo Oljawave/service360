@@ -17,16 +17,25 @@
     <template #modals="{ selectedRow, showEditModal, closeModals }">
     </template>
   </TableWrapper>
+
+  <ModalParameterLogInfo
+    v-if="isModalOpen"
+    :rowData="selectedRowData"
+    @close="closeModal"
+  />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
+import ModalParameterLogInfo from '@/modals/ModalParameterLogInfo.vue';
 import { loadParameterLog } from '@/api/parameterLogApi';
 import { loadPeriodTypes } from '@/api/periodApi';
 
 const limit = 10;
 const tableWrapperRef = ref(null);
+const isModalOpen = ref(false);
+const selectedRowData = ref(null);
 
 const filters = ref({
   date: new Date(),
@@ -120,6 +129,13 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
 
 const onRowDoubleClick = (row) => {
   console.log('Двойной клик по строке:', row);
+  selectedRowData.value = row;
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+  selectedRowData.value = null;
 };
 
 const getRowClassFn = (row) => {

@@ -14,6 +14,11 @@
     @row-dblclick="onRowDoubleClick"
   >
     <template #modals="{ selectedRow, showEditModal, closeModals }">
+      <ModalFaultInfo
+        v-if="showInfoModal && selectedFaultRow"
+        :rowData="selectedFaultRow"
+        @close="showInfoModal = false; selectedFaultRow = null"
+      />
     </template>
   </TableWrapper>
 </template>
@@ -23,6 +28,7 @@ import { ref, onMounted } from 'vue';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadFaults } from '@/api/faultApi';
 import { loadPeriodTypes } from '@/api/periodApi';
+import ModalFaultInfo from '@/modals/ModalFaultInfo.vue';
 
 const limit = 10;
 const tableWrapperRef = ref(null);
@@ -31,6 +37,9 @@ const filters = ref({
   date: new Date(),
   periodType: null,
 });
+
+const showInfoModal = ref(false);
+const selectedFaultRow = ref(null);
 
 const datePickerConfig = {
   label: 'Дата',
@@ -48,7 +57,7 @@ onMounted(async () => {
     const types = await loadPeriodTypes();
     
     dropdownConfig.value.options = types;
-    
+
     const defaultType = types.find(t => t.value === 41);
     if (defaultType) {
       filters.value.periodType = defaultType;
@@ -77,11 +86,18 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatCoordPart = (value, unit) => {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  return `${unit === 'км' ? '' : ' '}${value} ${unit}`;
+};
+
 const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
   try {
+
     const objLocation = localStorage.getItem('objLocation');
     if (!objLocation) {
-      return { total: 0, data: [] };
     }
 
     const selectedDate = filterValues.date ? formatDateToString(filterValues.date) : formatDateToString(new Date());
@@ -92,22 +108,46 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    const sliced = records.slice(start, end).map((r, index) => ({
-      index: start + index + 1,
-      objInspection: r.objInspection,
-      nameSection: r.nameSection,
-      nameDefect: r.nameDefect,
-      nameObject: r.nameObject,
-      coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
-      FactDateEnd: r.FactDateEnd,
-      Description: r.Description,
-      nameDefectsComponent: r.nameDefectsComponent,
-      nameDefectsCategory: r.nameDefectsCategory,
-      nameLocationClsSection: r.nameLocationClsSection,
-      CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
-      CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
-      rawData: r,
-    }));
+    const sliced = records.slice(start, end).map((r, index) => {
+
+      const startCoord = 
+        formatCoordPart(r.StartKm, 'км') + 
+        formatCoordPart(r.StartPicket, 'пк') + 
+        formatCoordPart(r.StartLink, 'зв');
+      
+      const finishCoord = 
+        formatCoordPart(r.FinishKm, 'км') + 
+        formatCoordPart(r.FinishPicket, 'пк') + 
+        formatCoordPart(r.FinishLink, 'зв');
+      
+      let coordinatesString = '';
+      if (startCoord) {
+        coordinatesString += startCoord;
+      }
+      if (startCoord && finishCoord) {
+        coordinatesString += ' - ';
+      }
+      if (finishCoord) {
+        coordinatesString += finishCoord;
+      }
+
+      return {
+        index: start + index + 1,
+        objInspection: r.objInspection,
+        nameSection: r.nameSection,
+        nameDefect: r.nameDefect,
+        nameObject: r.nameObject,
+        coordinates: coordinatesString,
+        FactDateEnd: r.FactDateEnd,
+        Description: r.Description,
+        nameDefectsComponent: r.nameDefectsComponent,
+        nameDefectsCategory: r.nameDefectsCategory,
+        nameLocationClsSection: r.nameLocationClsSection,
+        CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+        CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
+        rawData: r, 
+      };
+    });
 
     return {
       total: totalRecords,
@@ -121,6 +161,8 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
 
 const onRowDoubleClick = (row) => {
   console.log('Двойной клик по строке:', row);
+  selectedFaultRow.value = row;
+  showInfoModal.value = true;
 };
 
 const columns = [

@@ -9,9 +9,11 @@
           </div>
         </div>
         <ModalFooter
-          v-if="showFooter"
+          v-if="showFooter || showDelete || showSaveButton"
           :disabled="disabled"
           :showDelete="showDelete"
+          :showSave="showSaveButton"
+          :showCancel="showCancelButton"
           @cancel="closeModal"
           @save="onSave"
           @delete="onDelete"
@@ -30,10 +32,14 @@ const props = defineProps({
   title: { type: String, required: true },
   disabled: { type: Boolean, default: false },
   showDelete: { type: Boolean, default: false },
-  showFooter: { type: Boolean, default: true }
+  showSaveButton: { type: Boolean, default: true },
+  showCancelButton: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close', 'save', 'delete'])
+
+const showFooter = props.showSaveButton || props.showDelete || props.showCancelButton;
+
 
 const closeModal = () => emit('close')
 const onSave = () => emit('save')
