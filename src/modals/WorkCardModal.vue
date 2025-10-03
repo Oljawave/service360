@@ -1,5 +1,11 @@
 <template>
-  <ModalWrapper title="Карточка осмотра/проверки" :showFooter="false" @close="closeModal">
+  <ModalWrapper
+    title="Карточка осмотра/проверки"
+    :showSaveButton="false"
+    :showCancelButton="false"
+    :showDelete="false"
+    @close="closeModal"
+  >
     <div class="work-card-content">
       <WorkHeaderInfo :record="record" :section="section" :date="date" />
 
@@ -982,7 +988,7 @@ watch(
 
 .button-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-end;
   margin-top: 24px;
 }

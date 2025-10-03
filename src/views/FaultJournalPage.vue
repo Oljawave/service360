@@ -17,6 +17,7 @@
       <ModalFaultInfo
         v-if="showInfoModal && selectedFaultRow"
         :rowData="selectedFaultRow"
+        @deleted="handleFaultDeleted"
         @close="showInfoModal = false; selectedFaultRow = null"
       />
     </template>
@@ -75,6 +76,12 @@ const handleTableUpdate = () => {
   if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
     tableWrapperRef.value.refreshTable();
   }
+};
+
+const handleFaultDeleted = () => {
+  showInfoModal.value = false;
+  selectedFaultRow.value = null;
+  handleTableUpdate();
 };
 
 const formatDateToString = (date) => {

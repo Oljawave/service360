@@ -22,6 +22,7 @@
     v-if="isModalOpen"
     :rowData="selectedRowData"
     @close="closeModal"
+    @deleted="handleParameterDeleted"
   />
 </template>
 
@@ -72,6 +73,12 @@ onMounted(async () => {
   }
 });
 
+const handleTableUpdate = () => {
+  if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
+    tableWrapperRef.value.refreshTable();
+  }
+};
+
 const formatDateToString = (date) => {
   if (!date) return null;
   const d = new Date(date);
@@ -79,6 +86,13 @@ const formatDateToString = (date) => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const formatCoordPart = (value, unit) => {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  return `${unit === 'км' ? '' : ' '}${value} ${unit}`;
 };
 
 const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) => {
@@ -96,26 +110,50 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    const sliced = records.slice(start, end).map((r, index) => ({
-      index: start + index + 1,
-      objInspection: r.objInspection,
-      FactDateEnd: r.FactDateEnd,
-      nameLocationClsSection: r.nameLocationClsSection,
-      nameSection: r.nameSection,
-      nameObject: r.nameObject,
-      coordinates: `${r.StartKm} км ${r.StartPicket} пк - ${r.FinishKm} км ${r.FinishPicket} пк`,
-      nameComponent: r.nameComponent,
-      nameComponentParams: r.nameComponentParams,
-      ParamsLimitMin: r.ParamsLimitMin,
-      ParamsLimitMax: r.ParamsLimitMax,
-      ParamsLimit: r.ParamsLimit,
-      nameOutOfNorm: r.nameOutOfNorm,
-      Description: r.Description,
-      CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
-      CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
-      rawData: r,
-      hasDeviation: r.pvOutOfNorm !== 1300,
-    }));
+    const sliced = records.slice(start, end).map((r, index) => {
+
+      const startCoord = 
+        formatCoordPart(r.StartKm, 'км') + 
+        formatCoordPart(r.StartPicket, 'пк') + 
+        formatCoordPart(r.StartLink, 'зв');
+      
+      const finishCoord = 
+        formatCoordPart(r.FinishKm, 'км') + 
+        formatCoordPart(r.FinishPicket, 'пк') + 
+        formatCoordPart(r.FinishLink, 'зв');
+      
+      let coordinatesString = '';
+      if (startCoord) {
+        coordinatesString += startCoord;
+      }
+      if (startCoord && finishCoord) {
+        coordinatesString += ' - ';
+      }
+      if (finishCoord) {
+        coordinatesString += finishCoord;
+      }
+
+      return {
+        index: start + index + 1,
+        objInspection: r.objInspection,
+        FactDateEnd: r.FactDateEnd,
+        nameLocationClsSection: r.nameLocationClsSection,
+        nameSection: r.nameSection,
+        nameObject: r.nameObject,
+        coordinates: coordinatesString,
+        nameComponent: r.nameComponent,
+        nameComponentParams: r.nameComponentParams,
+        ParamsLimitMin: r.ParamsLimitMin,
+        ParamsLimitMax: r.ParamsLimitMax,
+        ParamsLimit: r.ParamsLimit,
+        nameOutOfNorm: r.nameOutOfNorm,
+        Description: r.Description,
+        CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+        CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
+        rawData: r,
+        hasDeviation: r.pvOutOfNorm !== 1300,
+      };
+    });
 
     return {
       total: totalRecords,
@@ -136,6 +174,11 @@ const onRowDoubleClick = (row) => {
 const closeModal = () => {
   isModalOpen.value = false;
   selectedRowData.value = null;
+};
+
+const handleParameterDeleted = () => {
+  closeModal();
+  handleTableUpdate();
 };
 
 const getRowClassFn = (row) => {

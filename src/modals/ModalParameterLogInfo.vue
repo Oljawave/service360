@@ -5,6 +5,7 @@
     :showSaveButton="false"
     :showCancelButton="false"
     :showDelete="true"
+    @delete="onDeleteClicked"
   >
     <div class="form-section">
       <AppInput
@@ -82,6 +83,14 @@
       
     </div>
   </ModalWrapper>
+
+  <ConfirmationModal
+    v-if="showConfirmModal"
+    title="Удаление параметра"
+    :message="`Вы действительно хотите удалить запись о параметре?`"
+    @confirm="onConfirmDelete"
+    @cancel="onCancelDelete"
+  />
 </template>
 
 <script setup>
@@ -90,14 +99,20 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
+import ConfirmationModal from './ConfirmationModal.vue' // Предполагается, что ConfirmationModal.vue находится в той же папке
+import { deleteFaultOrParameter } from '@/api/faultApi'
+import { useNotificationStore } from '@/stores/notificationStore'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'deleted'])
 const props = defineProps({
   rowData: {
     type: Object,
     required: true
   }
 })
+
+const showConfirmModal = ref(false)
+const notificationStore = useNotificationStore()
 
 const initialCoordinates = { 
   coordStartKm: null, 
@@ -122,6 +137,7 @@ const form = ref({
   paramsLimit: '',
   
   rawData: null, 
+  id: null, // Добавлено поле для хранения ID записи для удаления
 })
 
 const minLimitDisplay = computed(() => {
@@ -179,11 +195,50 @@ const fillFormWithData = () => {
   form.value.paramsLimitMin = data.ParamsLimitMin
   form.value.paramsLimitMax = data.ParamsLimitMax || ''
   form.value.paramsLimit = data.ParamsLimit || ''
+  // Получаем ID из rawData для удаления
+  form.value.id = data.rawData?.id || null
 }
 
 onMounted(() => {
   fillFormWithData()
 })
+
+// --- Логика удаления ---
+
+const onDeleteClicked = () => {
+  showConfirmModal.value = true
+}
+
+const onCancelDelete = () => {
+  showConfirmModal.value = false
+}
+
+const onConfirmDelete = async () => {
+  showConfirmModal.value = false
+  
+  const recordId = form.value.id
+
+  if (!recordId) {
+    console.error('Не удалось получить ID записи для удаления.')
+    notificationStore.showNotification('Не удалось получить ID записи для удаления.', 'error')
+    return
+  }
+
+  try {
+    console.log(`Попытка удаления записи параметра с ID: ${recordId}`)
+    await deleteFaultOrParameter(recordId)
+    
+    console.log('Удаление успешно.')
+    notificationStore.showNotification('Параметр успешно удален!', 'success')
+
+    emit('deleted') 
+
+  } catch (error) {
+    console.error('Ошибка при удалении записи параметра:', error)
+
+    notificationStore.showNotification('Ошибка при удалении параметра.', 'error')
+  }
+}
 </script>
 
 <style scoped>

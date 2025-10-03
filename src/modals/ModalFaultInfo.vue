@@ -5,6 +5,7 @@
     :showSaveButton="false"
     :showCancelButton="false"
     :showDelete="true"
+    @delete="onDeleteClicked" 
   >
     <div class="form-section">
 
@@ -63,6 +64,14 @@
 
     </div>
   </ModalWrapper>
+
+  <ConfirmationModal
+    v-if="showConfirmModal"
+    title="Удаление неисправности"
+    :message="`Вы действительно хотите удалить неисправность?`"
+    @confirm="onConfirmDelete"
+    @cancel="onCancelDelete"
+  />
 </template>
 
 <script setup>
@@ -71,14 +80,20 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
+import ConfirmationModal from './ConfirmationModal.vue' 
+import { deleteFaultOrParameter } from '@/api/faultApi'
+import { useNotificationStore } from '@/stores/notificationStore'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'deleted'])
 const props = defineProps({
   rowData: {
     type: Object,
     required: true
   }
 })
+
+const showConfirmModal = ref(false)
+const notificationStore = useNotificationStore()
 
 const initialCoordinates = { coordStartKm: null, coordStartPk: null, coordStartZv: null, coordEndKm: null, coordEndPk: null, coordEndZv: null }
 
@@ -90,6 +105,8 @@ const form = ref({
   nameDefect: '',
   factDateEnd: null,
   parsedCoordinates: { ...initialCoordinates },
+
+  id: null, 
 })
 
 const closeModal = () => {
@@ -126,7 +143,6 @@ const parseCoordinatesString = (coordsString, rawData) => {
     return result;
 }
 
-
 const fillFormWithData = () => {
   const data = props.rowData
 
@@ -139,11 +155,51 @@ const fillFormWithData = () => {
   form.value.nameDefect = data.nameDefect || ''
   form.value.factDateEnd = parseDateForPicker(data.FactDateEnd)
   form.value.parsedCoordinates = parseCoordinatesString(data.coordinates, data.rawData)
+  // Получаем ID из rawData для удаления
+  form.value.id = data.rawData?.id || null 
 }
 
 onMounted(() => {
   fillFormWithData()
 })
+
+// --- Логика удаления ---
+
+const onDeleteClicked = () => {
+  showConfirmModal.value = true
+}
+
+const onCancelDelete = () => {
+  showConfirmModal.value = false
+}
+
+const onConfirmDelete = async () => {
+  showConfirmModal.value = false
+  
+  const recordId = form.value.id
+
+  if (!recordId) {
+    console.error('Не удалось получить ID записи для удаления.')
+    notificationStore.showNotification('Не удалось получить ID записи для удаления.', 'error')
+    return
+  }
+
+  try {
+    console.log(`Попытка удаления записи с ID: ${recordId}`)
+    await deleteFaultOrParameter(recordId)
+    
+    console.log('Удаление успешно.')
+    notificationStore.showNotification('Неисправность успешно удалена!', 'success')
+    // Эмитим событие, чтобы родительский компонент мог обновить список и закрыть модальное окно
+    emit('deleted') 
+
+  } catch (error) {
+    console.error('Ошибка при удалении записи:', error)
+    // Можно добавить уведомление пользователю об ошибке
+    notificationStore.showNotification('Ошибка при удалении неисправности.', 'error')
+  }
+}
+
 </script>
 
 <style scoped>

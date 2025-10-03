@@ -22,6 +22,7 @@
     :date="selectedRecord?.factDate"
     :sectionId="selectedRecord?.rawData?.objLocationClsSection"
     :sectionPv="selectedRecord?.rawData?.pvLocationClsSection"
+    @delete-work="handleInspectionDeleted"
     @close="showWorkCardInfoModal = false"
   />
 </template>
@@ -78,6 +79,12 @@ onMounted(async () => {
     dropdownConfig.value.options = [];
   }
 });
+
+const handleTableUpdate = () => {
+  if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
+    tableWrapperRef.value.refreshTable();
+  }
+};
 
 const formatDateToString = (date) => {
   if (!date) return null;
@@ -173,6 +180,12 @@ const onRowDoubleClick = (row) => {
   }
 
   showWorkCardInfoModal.value = true;
+};
+
+const handleInspectionDeleted = () => {
+  showWorkCardInfoModal.value = false;
+  selectedRecord.value = null;
+  handleTableUpdate();
 };
 
 // Функция для условного форматирования строки
