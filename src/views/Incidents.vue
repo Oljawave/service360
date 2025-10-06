@@ -12,18 +12,17 @@
     :filters="filters"
     :getRowClassFn="getRowClassFn"
     @update:filters="filters = $event"
-  />
-  <WorkCardInfoModal
-    v-if="showIncidentInfoModal"
-    :record="selectedRecord"
-    :inspectionId="selectedRecord?.rawData?.id"
-    :section="selectedRecord?.name"
-    :date="selectedRecord?.factDate"
-    :sectionId="selectedRecord?.rawData?.objLocationClsSection"
-    :sectionPv="selectedRecord?.rawData?.pvLocationClsSection"
-    @delete-work="handleIncidentDeleted"
-    @close="showIncidentInfoModal = false"
-  />
+    @row-dblclick="onRowDoubleClick"
+  >
+  <template #modals>
+      <ModalIncidentInfo
+        v-if="showIncidentInfoModal && selectedRecord"
+        :rowData="selectedRecord"
+        @deleted="handleIncidentDeleted"
+        @close="showIncidentInfoModal = false; selectedRecord = null"
+      />
+    </template>
+  </TableWrapper>
 
   <ModalAddIncident
     v-if="showAddIncidentModal"
@@ -39,9 +38,8 @@ import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadIncidents } from '@/api/incidentApi'; 
 import { loadPeriodTypes } from '@/api/periodApi';
 
-import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
-// НОВАЯ: Импорт модалки добавления инцидента
 import ModalAddIncident from '@/modals/ModalAddIncident.vue'; 
+import ModalIncidentInfo from '@/modals/ModalIncidentInfo.vue'; 
 
 const router = useRouter();
 
@@ -49,7 +47,7 @@ const limit = 10;
 const tableWrapperRef = ref(null);
 
 const showIncidentInfoModal = ref(false);
-const showAddIncidentModal = ref(false); // НОВАЯ: Состояние для модалки добавления
+const showAddIncidentModal = ref(false);
 const selectedRecord = ref(null);
 
 const filters = ref({
@@ -92,7 +90,6 @@ const handleTableUpdate = () => {
   }
 };
 
-// НОВАЯ: Функция для закрытия модалки добавления
 const closeAddIncidentModal = () => {
   showAddIncidentModal.value = false;
   handleTableUpdate(); 
@@ -180,7 +177,6 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
 
 const onRowDoubleClick = (row) => {
   console.log('Двойной клик по записи инцидента:', row);
-  
   selectedRecord.value = row;
   
   if (!row.rawData?.id) {
@@ -219,8 +215,6 @@ const tableActions = [
     label: 'Добавить запись',
     icon: 'Plus',
     onClick: () => {
-      // ИЗМЕНЕНО: Открываем модалку вместо перехода на маршрут
-      // router.push({ name: 'IncidentRecord' }); 
       showAddIncidentModal.value = true;
     },
   },

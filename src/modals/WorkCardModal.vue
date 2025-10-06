@@ -223,7 +223,6 @@ const activeTab = ref('info');
 const isInfoSaved = ref(false);
 const savedInspectionId = ref(null);
 
-// Новые реактивные переменные для валидации параметров
 const shouldShowMinMaxError = ref(false);
 const isUserTypingMinMax = ref(false);
 
@@ -304,12 +303,10 @@ const inspectionBounds = ref({
   FinishLink: null,
 });
 
-// Computed свойства для валидации параметров
 const isMinMaxInvalid = computed(() => {
   const minVal = parseFloat(parameterRecord.value.minValue);
   const maxVal = parseFloat(parameterRecord.value.maxValue);
   
-  // Проверяем только если оба значения есть и являются числами
   if (!isNaN(minVal) && !isNaN(maxVal)) {
     return minVal > maxVal;
   }
@@ -317,7 +314,6 @@ const isMinMaxInvalid = computed(() => {
   return false;
 });
 
-// Функции для обработки фокуса и валидации параметров
 const handleMinMaxFocus = () => {
   isUserTypingMinMax.value = true;
   shouldShowMinMaxError.value = false;
@@ -362,7 +358,6 @@ const handleTabChange = async (newTab) => {
   
   activeTab.value = newTab;
   
-  // Загружаем данные для соответствующей вкладки
   if (newTab === 'defects' && savedInspectionId.value) {
     await loadExistingDefects(savedInspectionId.value);
   } else if (newTab === 'parameters' && savedInspectionId.value) {
@@ -402,7 +397,6 @@ const saveWork = async () => {
 
       const response = await saveInspectionInfo(dataToSave);
       
-      // Сохраняем ID созданной записи инспекции
       if (response?.result?.id) {
         savedInspectionId.value = response.result.id;
       } else if (response?.id) {
@@ -416,9 +410,7 @@ const saveWork = async () => {
       
       const existingData = await loadExistingData(props.record);
       
-      // Если ID не был получен из ответа API, попробуем найти его в загруженных данных
       if (!savedInspectionId.value && existingData && existingData.length > 0) {
-        // Берем ID последней созданной записи
         const lastRecord = existingData[existingData.length - 1];
         if (lastRecord.id) {
           savedInspectionId.value = lastRecord.id;
@@ -436,7 +428,6 @@ const saveWork = async () => {
       
       defectRecord.value.startCoordinates = { ...savedCoordinates };
       
-      // Устанавливаем границы для вкладок дефектов и параметров
       inspectionBounds.value = {
         StartKm: newRecord.value.coordinates.coordStartKm,
         StartPicket: newRecord.value.coordinates.coordStartPk,
@@ -448,7 +439,6 @@ const saveWork = async () => {
 
       parameterRecord.value.startCoordinates = { ...savedCoordinates };
     } catch (error) {
-      // console.error('Ошибка сохранения:', error);
       
       let errorMessage = 'Не удалось сохранить информацию по работе.';
       
@@ -463,7 +453,6 @@ const saveWork = async () => {
       isSaving.value = false;
     }
   } else if (activeTab.value === 'defects') {
-    // Валидация данных дефекта
     if (!defectRecord.value.component || !defectRecord.value.defectType) {
       notificationStore.showNotification('Необходимо выбрать компонент и дефект!', 'error');
       return;
@@ -481,22 +470,21 @@ const saveWork = async () => {
 
     isSaving.value = true;
     try {
-      // Получаем данные выбранного дефекта для извлечения pv
+      const user = await fetchUserData();
+
       const selectedDefect = defectOptions.value.find(d => d.value === (defectRecord.value.defectType.value || defectRecord.value.defectType));
       
       if (!selectedDefect) {
         throw new Error('Выбранный дефект не найден');
       }
 
-      // Формируем данные для сохранения согласно требуемой структуре API
       const now = new Date();
-      // Добавляем 5 часов для казахстанского времени (UTC+5)
       const kazakhstanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
       const currentDateTime = kazakhstanTime.toISOString();
-      const currentDate = currentDateTime.split('T')[0]; // Получаем только дату в формате YYYY-MM-DD
+      const currentDate = currentDateTime.split('T')[0];
       
       const dataToSave = {
-        name: `${currentDate}-${selectedDefect.value}`, // Формат: "2025-07-20-2213"
+        name: `${currentDate}-${selectedDefect.value}`,
         objInspection: savedInspectionId.value,
         objDefect: selectedDefect.value,
         pvDefect: selectedDefect.pv || selectedDefect.value,
@@ -504,12 +492,13 @@ const saveWork = async () => {
         objLocationClsSection: props.sectionId,
         StartKm: defectRecord.value.startCoordinates.coordStartKm,
         FinishKm: defectRecord.value.startCoordinates.coordEndKm || defectRecord.value.startCoordinates.coordStartKm,
-        // ИСПРАВЛЕНИЕ: Добавлено || 0 для StartPicket
         StartPicket: defectRecord.value.startCoordinates.coordStartPk || 0,
-        // ИСПРАВЛЕНИЕ: Добавлено || 0 для FinishPicket
         FinishPicket: defectRecord.value.startCoordinates.coordEndPk || defectRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: defectRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: defectRecord.value.startCoordinates.coordEndZv || defectRecord.value.startCoordinates.coordStartZv || 0,
+        objUser: user.id,
+        pvUser: user.pv,
+        fullNameUser: user.fullName,
         Description: defectRecord.value.note || '',
         CreationDateTime: currentDateTime
       };
@@ -518,10 +507,8 @@ const saveWork = async () => {
 
       notificationStore.showNotification('Дефект успешно сохранен!', 'success');
       
-      // Перезагружаем список существующих дефектов
       await loadExistingDefects(savedInspectionId.value);
       
-      // Очищаем форму дефекта после успешного сохранения
       defectRecord.value = {
         startCoordinates: { ...defectRecord.value.startCoordinates },
         defectType: null,
@@ -531,7 +518,6 @@ const saveWork = async () => {
       defectOptions.value = [];
       
     } catch (error) {
-      // console.error('Ошибка сохранения дефекта:', error);
       
       let errorMessage = 'Не удалось сохранить дефект.';
       
@@ -546,7 +532,6 @@ const saveWork = async () => {
       isSaving.value = false;
     }
   } else if (activeTab.value === 'parameters') {
-    // Валидация данных параметра
     if (!parameterRecord.value.component || !parameterRecord.value.parameterType) {
       notificationStore.showNotification('Необходимо выбрать компонент и параметр!', 'error');
       return;
@@ -557,14 +542,12 @@ const saveWork = async () => {
       return;
     }
 
-    // Проверка валидности минимальных и максимальных значений
     if (isMinMaxInvalid.value) {
       notificationStore.showNotification('Минимальное значение не может быть больше максимального значения!', 'error');
       shouldShowMinMaxError.value = true;
       return;
     }
     
-    // Проверка, что поле "Значение" не пусто
     if (parameterRecord.value.value === null || parameterRecord.value.value === '') {
         notificationStore.showNotification('Необходимо ввести значение параметра!', 'error');
         return;
@@ -577,19 +560,18 @@ const saveWork = async () => {
 
     isSaving.value = true;
     try {
-      // Получаем данные выбранного параметра
+      const user = await fetchUserData();
+
       const selectedParameter = parameterOptions.value.find(p => p.value === (parameterRecord.value.parameterType.value || parameterRecord.value.parameterType));
       
       if (!selectedParameter) {
         throw new Error('Выбранный параметр не найден');
       }
 
-      // Формируем данные для сохранения согласно требуемой структуре API
       const now = new Date();
-      // Добавляем 5 часов для казахстанского времени (UTC+5)
       const kazakhstanTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
       const currentDateTime = kazakhstanTime.toISOString();
-      const currentDate = currentDateTime.split('T')[0]; // Получаем только дату в формате YYYY-MM-DD
+      const currentDate = currentDateTime.split('T')[0];
       
       const dataToSave = {
         name: `${currentDate}-${selectedParameter.value}`,
@@ -607,6 +589,9 @@ const saveWork = async () => {
         FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: parameterRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: parameterRecord.value.startCoordinates.coordEndZv || parameterRecord.value.startCoordinates.coordStartZv || 0,
+        objUser: user.id,
+        pvUser: user.pv,
+        fullNameUser: user.fullName,
         Description: parameterRecord.value.note || '',
         CreationDateTime: currentDateTime
       };
@@ -630,7 +615,6 @@ const saveWork = async () => {
       shouldShowMinMaxError.value = false;
       
     } catch (error) {
-      // console.error('Ошибка сохранения параметра:', error);
       
       let errorMessage = 'Не удалось сохранить параметр.';
       
@@ -647,18 +631,10 @@ const saveWork = async () => {
   }
 };
 
-// =========================================================================
-// ИЗМЕНЕННАЯ ФУНКЦИЯ formatCoordinates
-// =========================================================================
 const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
-  // Функции для проверки на null/undefined/пустую строку
-  // Используем проверку на null/undefined/пустую строку, но также разрешаем '0'.
   const isPresent = (val) => val !== null && val !== undefined && val !== '';
 
-  // Функция для создания части координат
   const createCoordPart = (km, pk, zv) => {
-    // Если нет ни км, ни пк (начало/конец) И оба не равны 0, возвращаем пустую строку.
-    // Если есть КМ или ПК = 0, они должны отображаться.
     if (!isPresent(km) && !isPresent(pk) && km !== 0 && pk !== 0) {
       return '';
     }
@@ -670,16 +646,13 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
     }
 
     if (isPresent(pk) || pk === 0) {
-      // Добавляем пробел только если уже есть КМ
       if (part) {
         part += ' ';
       }
       part += `${pk}пк`;
     }
 
-    // Звенья отображаются, только если они присутствуют (не null/undefined/пустая строка) или равны 0
     if (isPresent(zv) || zv === 0) {
-      // Добавляем пробел, если уже есть КМ или ПК
       if (part) {
         part += ' ';
       }
@@ -692,7 +665,6 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
   const startPart = createCoordPart(startKm, startPk, startZv);
   const finishPart = createCoordPart(finishKm, finishPk, finishZv);
   
-  // Возвращаем отформатированную строку
   if (startPart && finishPart) {
     return `${startPart} — ${finishPart}`;
   } else if (startPart) {
@@ -701,10 +673,8 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
     return finishPart;
   }
   
-  // Если все пусто, возвращаем пустую строку
   return '';
 };
-// =========================================================================
 
 
 const loadExistingData = async (record) => {
@@ -719,7 +689,6 @@ const loadExistingData = async (record) => {
     }));
     return data;
   } catch (error) {
-    // console.error("Не удалось загрузить существующие записи:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные записи.', 'error');
     existingRecords.value = [];
     return [];
@@ -740,7 +709,6 @@ const loadExistingDefects = async (inspectionId) => {
       defect: item.nameDefect || 'Неизвестный дефект'
     }));
   } catch (error) {
-    // console.error("Не удалось загрузить существующие дефекты:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные дефекты.', 'error');
     existingDefects.value = [];
   }
@@ -762,7 +730,6 @@ const loadExistingParameters = async (inspectionId) => {
       value: item.ParamsLimit || 'Не указано'
     }));
   } catch (error) {
-    // console.error("Не удалось загрузить существующие параметры:", error);
     notificationStore.showNotification('Не удалось загрузить ранее внесенные параметры.', 'error');
     existingParameters.value = [];
   }
@@ -770,7 +737,6 @@ const loadExistingParameters = async (inspectionId) => {
 
 const loadComponents = async () => {
   if (!props.record?.objObject) {
-    // console.warn('objObject не найден в записи:', props.record);
     return;
   }
 
@@ -783,7 +749,6 @@ const loadComponents = async () => {
       objComponent: component.id || component.value
     }));
   } catch (error) {
-    // console.error('Ошибка загрузки компонентов:', error);
     notificationStore.showNotification('Не удалось загрузить компоненты', 'error');
     componentOptions.value = [];
   } finally {
@@ -803,10 +768,9 @@ const loadDefects = async (objComponent) => {
     defectOptions.value = defects.map(defect => ({
       label: defect.name || defect.label,
       value: defect.id || defect.value,
-      pv: defect.pv || defect.id || defect.value // Сохраняем pv для использования в API
+      pv: defect.pv || defect.id || defect.value
     }));
   } catch (error) {
-    // console.error('Ошибка загрузки дефектов:', error);
     notificationStore.showNotification('Не удалось загрузить дефекты', 'error');
     defectOptions.value = [];
   } finally {
@@ -831,7 +795,6 @@ const loadParameters = async (objComponent) => {
       paramslimitmax: parameter.paramslimitmax
     }));
   } catch (error) {
-    // console.error('Ошибка загрузки параметров:', error);
     notificationStore.showNotification('Не удалось загрузить параметры', 'error');
     parameterOptions.value = [];
   } finally {
@@ -857,7 +820,6 @@ const handleParameterComponentChange = async (selectedComponent) => {
   parameterRecord.value.minValue = null;
   parameterRecord.value.maxValue = null;
   
-  // Сброс ошибок при смене компонента
   shouldShowMinMaxError.value = false;
   
   if (selectedComponent) {
@@ -872,7 +834,6 @@ const handleParameterComponentChange = async (selectedComponent) => {
 };
 
 const handleParameterChange = (selectedParameter) => {
-  // Сброс ошибок при выборе нового параметра
   shouldShowMinMaxError.value = false;
   
   if (selectedParameter) {
@@ -880,21 +841,17 @@ const handleParameterChange = (selectedParameter) => {
     const parameter = parameterOptions.value.find(p => p.value === parameterId);
     
     if (parameter) {
-      // Автоматически заполняем минимальные и максимальные значения
       parameterRecord.value.minValue = parameter.paramslimitmin || null;
       parameterRecord.value.maxValue = parameter.paramslimitmax || null;
     }
   } else {
-    // Очищаем значения при сбросе выбора параметра
     parameterRecord.value.minValue = null;
     parameterRecord.value.maxValue = null;
   }
   
-  // Очистить значение параметра при смене типа параметра
   parameterRecord.value.value = '';
 };
 
-// Watchers для валидации параметров
 watch(
   () => [parameterRecord.value.minValue, parameterRecord.value.maxValue],
   () => {
@@ -917,7 +874,6 @@ watch(
         FinishLink: newRecordData.FinishLink || null,
       };
       
-      // Изначально границы инспекции равны границам объекта
       inspectionBounds.value = {
         StartKm: newRecordData.StartKm || null,
         StartPicket: newRecordData.StartPicket || null,

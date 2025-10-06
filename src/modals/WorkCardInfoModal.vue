@@ -207,11 +207,11 @@ import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue';
 import TabsHeader from '@/components/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/components/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
-import ConfirmationModal from './ConfirmationModal.vue'; // Импорт модального окна подтверждения
+import ConfirmationModal from './ConfirmationModal.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { 
   loadInspectionEntriesForWorkPlan, saveFaultInfo, saveParameterInfo, 
-  loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, 
+  fetchUserData, loadComponentsByTypObjectForSelect, loadDefectsByComponentForSelect, 
   loadComponentParametersForSelect, loadFaultEntriesForInspection, 
   loadParameterEntriesForInspection
 } from '@/api/inspectionsApi.js';
@@ -237,7 +237,7 @@ const savedInspectionId = ref(props.inspectionId);
 const shouldShowMinMaxError = ref(false);
 const isUserTypingMinMax = ref(false);
 
-const showConfirmModal = ref(false); // Состояние для модального окна подтверждения
+const showConfirmModal = ref(false);
 
 const tabs = ref([
   { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle' },
@@ -294,8 +294,6 @@ const validateMinMax = () => {
 
 const closeModal = () => { emit('close'); };
 
-// --- Логика удаления (аналогично ModalFaultInfo.vue) ---
-
 const handleDelete = () => {
     console.log('Кнопка "Удалить" в модале WorkCardInfoModal нажата. Показ модала подтверждения.');
     showConfirmModal.value = true;
@@ -318,12 +316,10 @@ const onConfirmDelete = async () => {
 
   try {
     console.log(`Попытка удаления записи осмотра с ID: ${recordId}`);
-    // Используем тот же API метод, что и в ModalFaultInfo.vue
     await deleteFaultOrParameter(recordId); 
     
     console.log('Удаление успешно.');
     notificationStore.showNotification('Карточка осмотра успешно удалена!', 'success');
-    // Эмитим событие, чтобы родительский компонент мог обновить список и закрыть модальное окно
     emit('delete-work'); 
 
   } catch (error) {
@@ -331,8 +327,6 @@ const onConfirmDelete = async () => {
     notificationStore.showNotification('Ошибка при удалении карточки осмотра.', 'error');
   }
 };
-
-// --- Конец логики удаления ---
 
 
 const getButtonLabel = () => {
@@ -499,7 +493,6 @@ const saveWork = async () => {
   }
 
   if (activeTab.value === 'defects') {
-    // Валидация данных дефекта
     if (!defectRecord.value.component || !defectRecord.value.defectType) {
       notificationStore.showNotification('Необходимо выбрать компонент и дефект!', 'error');
       return;
@@ -511,6 +504,8 @@ const saveWork = async () => {
 
     isSaving.value = true;
     try {
+      const user = await fetchUserData();
+
       const selectedDefect = defectOptions.value.find(d => d.value === (defectRecord.value.defectType.value || defectRecord.value.defectType));
       if (!selectedDefect) {
         throw new Error('Выбранный дефект не найден');
@@ -534,6 +529,9 @@ const saveWork = async () => {
         FinishPicket: defectRecord.value.startCoordinates.coordEndPk || defectRecord.value.startCoordinates.coordStartPk,
         StartLink: defectRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: defectRecord.value.startCoordinates.coordEndZv || defectRecord.value.startCoordinates.coordStartZv || 0,
+        objUser: user.id,
+        pvUser: user.pv,
+        fullNameUser: user.fullName,
         Description: defectRecord.value.note || '',
         CreationDateTime: currentDateTime
       };
@@ -577,6 +575,8 @@ const saveWork = async () => {
 
     isSaving.value = true;
     try {
+      const user = await fetchUserData();
+
       const selectedParameter = parameterOptions.value.find(p => p.value === (parameterRecord.value.parameterType.value || parameterRecord.value.parameterType));
       if (!selectedParameter) { throw new Error('Выбранный параметр не найден'); }
 
@@ -601,6 +601,9 @@ const saveWork = async () => {
         FinishPicket: parameterRecord.value.startCoordinates.coordEndPk || parameterRecord.value.startCoordinates.coordStartPk || 0,
         StartLink: parameterRecord.value.startCoordinates.coordStartZv || 0,
         FinishLink: parameterRecord.value.startCoordinates.coordEndZv || parameterRecord.value.startCoordinates.coordStartZv || 0,
+        objUser: user.id,
+        pvUser: user.pv,
+        fullNameUser: user.fullName,
         Description: parameterRecord.value.note || '',
         CreationDateTime: currentDateTime
       };

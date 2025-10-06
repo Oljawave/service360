@@ -40,8 +40,6 @@ export async function deleteFaultOrParameter(id) {
     throw new Error("ID записи для удаления не предоставлен.");
   }
 
-  console.log('Вызов метода data/deleteObjWithProperties с ID:', id);
-
   const response = await axios.post(
     API_BASE_URL, 
     {
