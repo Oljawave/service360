@@ -7,6 +7,7 @@ import Inspections from '@/views/Inspections.vue';
 import WorkPlanForm from '@/views/WorkPlanForm.vue';
 import FaultJournalPage from '@/views/FaultJournalPage.vue';
 import ParameterLogPage from '@/views/ParameterLogPage.vue';
+import Incidents from '@/views/Incidents.vue';
 
 const routes = [
   {
@@ -52,7 +53,12 @@ const routes = [
     path: '/organization',
     name: 'OrgStructure',
     component: OrgStructure
-  }
+  },
+  {
+    path: '/incidents',
+    name: 'Incidents',
+    component: Incidents
+  },
 ];
 
 

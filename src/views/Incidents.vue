@@ -1,0 +1,239 @@
+<template>
+  <TableWrapper
+    ref="tableWrapperRef"
+    title="Журнал событий и запросов на работы"
+    :columns="columns"
+    :actions="tableActions"
+    :limit="limit"
+    :loadFn="loadIncidentsWrapper"
+    :datePickerConfig="datePickerConfig"
+    :dropdownConfig="dropdownConfig"
+    :showFilters="true"
+    :filters="filters"
+    :getRowClassFn="getRowClassFn"
+    @update:filters="filters = $event"
+  />
+  <WorkCardInfoModal
+    v-if="showIncidentInfoModal"
+    :record="selectedRecord"
+    :inspectionId="selectedRecord?.rawData?.id"
+    :section="selectedRecord?.name"
+    :date="selectedRecord?.factDate"
+    :sectionId="selectedRecord?.rawData?.objLocationClsSection"
+    :sectionPv="selectedRecord?.rawData?.pvLocationClsSection"
+    @delete-work="handleIncidentDeleted"
+    @close="showIncidentInfoModal = false"
+  />
+
+  <ModalAddIncident
+    v-if="showAddIncidentModal"
+    @close="closeAddIncidentModal"
+    @update-table="handleTableUpdate"
+  />
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
+import { loadIncidents } from '@/api/incidentApi'; 
+import { loadPeriodTypes } from '@/api/periodApi';
+
+import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
+// НОВАЯ: Импорт модалки добавления инцидента
+import ModalAddIncident from '@/modals/ModalAddIncident.vue'; 
+
+const router = useRouter();
+
+const limit = 10;
+const tableWrapperRef = ref(null);
+
+const showIncidentInfoModal = ref(false);
+const showAddIncidentModal = ref(false); // НОВАЯ: Состояние для модалки добавления
+const selectedRecord = ref(null);
+
+const filters = ref({
+  date: new Date(),
+  periodType: null,
+});
+
+const datePickerConfig = {
+  label: 'Дата',
+  placeholder: 'Выберите дату',
+};
+
+const dropdownConfig = ref({
+  label: 'Тип периода',
+  options: [],
+  placeholder: 'Выберите тип периода',
+});
+
+onMounted(async () => {
+  try {
+    const types = await loadPeriodTypes();
+    
+    dropdownConfig.value.options = types;
+    const defaultType = types.find(t => t.value === 41);
+    if (defaultType) {
+      filters.value.periodType = defaultType;
+    } else if (types.length > 0) {
+      filters.value.periodType = types[0];
+    }
+    
+  } catch (error) {
+    console.error('Ошибка загрузки типов периодов:', error);
+    dropdownConfig.value.options = [];
+  }
+});
+
+const handleTableUpdate = () => {
+  if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
+    tableWrapperRef.value.refreshTable();
+  }
+};
+
+// НОВАЯ: Функция для закрытия модалки добавления
+const closeAddIncidentModal = () => {
+  showAddIncidentModal.value = false;
+  handleTableUpdate(); 
+};
+
+const formatDateToString = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
+  const isPresent = (val) => val !== null && val !== undefined && val !== '';
+
+  const createCoordPart = (km, pk, zv) => {
+    const parts = [];
+    if (isPresent(km)) parts.push(`${km}км`);
+    if (isPresent(pk)) parts.push(`${pk}пк`);
+    if (isPresent(zv)) parts.push(`${zv}зв`);
+    return parts.join(' ');
+  };
+
+  const startPart = createCoordPart(startKm, startPk, startZv);
+  const finishPart = createCoordPart(finishKm, finishPk, finishZv);
+
+  if (startPart && finishPart) {
+    return `${startPart} - ${finishPart}`;
+  } else if (startPart) {
+    return startPart;
+  }
+  return 'Координаты отсутствуют';
+};
+
+const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
+  try {
+    const objLocation = localStorage.getItem('objLocation');
+    if (!objLocation) {
+      return { total: 0, data: [] };
+    }
+
+    const selectedDate = filterValues.date ? formatDateToString(filterValues.date) : formatDateToString(new Date());
+    const periodTypeId = filterValues.periodType?.value ?? 41;
+    const records = await loadIncidents(selectedDate, periodTypeId);
+    const totalRecords = records.length;
+    const start = (page - 1) * limit;
+    const end = page * limit;
+
+    const sliced = records.slice(start, end).map((r, index) => {
+      const registrationDateTime = r.RegistrationDateTime;
+      let date = null;
+      let time = null;
+      
+      if (registrationDateTime && typeof registrationDateTime === 'string') {
+        [date, time] = registrationDateTime.split('T');
+      }
+      
+      return {
+        index: null,
+        id: r.id,
+        name: r.name,
+        object: r.nameObject,
+        coordinates: formatCoordinates(r.StartKm, r.StartPicket, r.StartLink, r.FinishKm, r.FinishPicket, r.FinishLink),
+        statusName: r.nameStatus, 
+        criticality: r.nameCriticality,
+        date: date,
+        time: time ? time.substring(0, 8) : null,
+        description: r.Description,
+        rawData: r,
+        hasDefects: r.nameFlagDefect,
+      };
+    });
+
+    return {
+      total: totalRecords,
+      data: sliced,
+    };
+  } catch (e) {
+    console.error('Ошибка при загрузке данных инцидентов:', e);
+    return { total: 0, data: [] };
+  }
+};
+
+const onRowDoubleClick = (row) => {
+  console.log('Двойной клик по записи инцидента:', row);
+  
+  selectedRecord.value = row;
+  
+  if (!row.rawData?.id) {
+    console.warn('Отсутствует ID инцидента. Открытие модального окна невозможно.');
+    return;
+  }
+  showIncidentInfoModal.value = true;
+};
+
+const handleIncidentDeleted = () => {
+  showIncidentInfoModal.value = false;
+  selectedRecord.value = null;
+  handleTableUpdate();
+};
+
+const getRowClassFn = (row) => {
+  return {
+    'row-has-defects': row.hasDefects,
+  };
+};
+
+const columns = [
+  { key: 'id', label: '№' },
+  { key: 'name', label: 'Наименование' },
+  { key: 'object', label: 'Объект' },
+  { key: 'coordinates', label: 'Координаты' },
+  { key: 'criticality', label: 'Критичность' },
+  { key: 'statusName', label: 'Статус'},
+  { key: 'date', label: 'Дата' },
+  { key: 'time', label: 'Время' },
+  { key: 'description', label: 'Описание' },
+];
+
+const tableActions = [
+  {
+    label: 'Добавить запись',
+    icon: 'Plus',
+    onClick: () => {
+      // ИЗМЕНЕНО: Открываем модалку вместо перехода на маршрут
+      // router.push({ name: 'IncidentRecord' }); 
+      showAddIncidentModal.value = true;
+    },
+  },
+  {
+    label: 'Экспорт',
+    icon: 'Download',
+    onClick: () => console.log('Экспортирование инцидентов...'),
+  },
+];
+</script>
+
+<style scoped>
+.row-has-defects {
+  background-color: #ffeaea;
+}
+</style>

@@ -46,7 +46,7 @@ const items = [
   { label: 'Журнал осмотров/проверок', path: '/inspections', icon: 'BookOpen' },
   { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler' },
   { label: 'Журнал неисправностей', path: '/defects', icon: 'AlertTriangle' },
-  // { label: 'Журнал событий и запросов на работы', path: '/events', icon: 'Cog' },
+  { label: 'Журнал событий и запросов на работы', path: '/incidents', icon: 'Cog' },
   { label: 'Обслуживаемые объекты', path: '/objects', icon: 'Folder' },
   { label: 'Организационная структура', path: '/organization', icon: 'FolderTree' },
 ]
