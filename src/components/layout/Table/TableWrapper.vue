@@ -35,8 +35,7 @@
       :sortKey="sortKey"
       :sortDirection="sortDirection"
       :getRowClassFn="getRowClassFn"
-      @row-dblclick="handleRowDoubleClick"
-      @toggle-filter="toggleFilter"
+      @row-dblclick="handleRowDoubleClick" @toggle-filter="toggleFilter"
       @sort="handleSort"
     >
       <template #filter="{ column }">
@@ -195,11 +194,13 @@ const updateFilter = (key, value) => {
   }, 100);
 };
 
+// 👇 UPDATED: This function now sets the state to open the modal
 const handleRowDoubleClick = (row) => {
-  const plainRow = JSON.parse(JSON.stringify(row));
+  // Use a shallow copy to ensure reactivity and prevent direct mutation of the table row
+  const plainRow = JSON.parse(JSON.stringify(row)); 
   selectedRow.value = plainRow;
   showEditModal.value = true;
-  emit('row-dblclick', plainRow);
+  emit('row-dblclick', plainRow); // Emit the event to the parent for flexibility
 };
 
 const closeModals = () => {

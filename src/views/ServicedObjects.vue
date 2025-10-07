@@ -6,14 +6,15 @@
     :actions="tableActions"
     :limit="limit"
     :loadFn="loadObjectServed"
+    @row-dblclick="onRowDoubleClick"
   >
-  
     <template #modals="{ selectedRow, showEditModal, closeModals }">
       <ModalUpdateObject
         v-if="showEditModal"
         :rowData="selectedRow"
-        @close="closeModals"
-        @save="closeModals"
+        @close="closeModals"        
+        @save="() => handleTableUpdate(closeModals)"
+        @deleted="() => handleTableUpdate(closeModals)"
       />
     </template>
   </TableWrapper>
@@ -21,7 +22,7 @@
   <ModalAddObject
     v-if="isAddObjectModalOpen"
     @close="closeModal"
-    @update-table="handleTableUpdate"
+    @update-table="() => handleTableUpdate(closeModal)"
   />
 </template>
 
@@ -39,8 +40,12 @@ const closeModal = () => {
   isAddObjectModalOpen.value = false
 }
 
-const handleTableUpdate = () => {
+const handleTableUpdate = (closeFn) => {
   tableWrapperRef.value?.refreshTable()
+  closeFn()
+}
+
+const onRowDoubleClick = (row) => {
 }
 
 const tableActions = [

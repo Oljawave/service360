@@ -3,119 +3,133 @@
     title="Редактировать объект"
     @close="closeModal"
     @save="saveData"
-    :disabled="isSaveDisabled"
+    :showDelete="true"
+    @delete="handleDelete"
   >
     <div class="form-section">
-      <h3 class="section-title">Объект</h3>
-      
       <AppInput 
         class="col-span-2" 
         id="name" 
         label="Наименование объекта" 
         placeholder="Введите наименование" 
         v-model="form.name" 
-        :required="true" />
-      
-      <AppDropdown
-        class="col-span-2"
-        id="type"
-        label="Вид объекта"
-        placeholder="Выберите вид объекта"
-        v-model="form.type"
-        :options="typeOptions"
-        :loading="loadingTypes"
-        @update:value="onTypeChange"
+        :required="true"
+      />
+
+      <AppDropdown 
+        class="col-span-2" 
+        id="type" 
+        label="Вид объекта" 
+        placeholder="Выберите вид объекта" 
+        v-model="form.type" 
+        :options="typeOptions" 
+        :loading="loadingTypes" 
+        :required="true" 
         :disabled="true"
-        :required="true" />
-      
-      <CoordinateInputs
-        v-model="coordinates"
-        @update:modelValue="updateCoordinates"
-        :required="true" />
-      
+        @update:value="onTypeChange"
+      />
+
+      <CoordinateInputs v-model="coordinates" />
+
       <AppInput 
         class="col-span-2" 
         id="place" 
         label="Место" 
         placeholder="Введите место" 
         v-model="form.place" 
-        :disabled="true" 
-        :required="true" />
-      
+        :disabled="true"
+      />
+
       <AppInput 
         class="col-span-2" 
         id="additionalInfo" 
-        label="Дополнительные сведения о месте" 
-        placeholder="Введите дополнительные сведения" 
-        v-model="form.additionalInfo" 
-        :required="true" />
-      
-      <AppDropdown
-        id="side"
-        label="Сторона"
-        placeholder="Выберите сторону"
-        v-model="form.side"
-        :options="sideOptions"
-        :loading="loadingSides"
-        :required="true" />
-      
+        label="Дополнительные сведения" 
+        placeholder="Введите сведения" 
+        v-model="form.additionalInfo"
+      />
+
+      <AppInput 
+        class="col-span-2" 
+        id="characteristic" 
+        label="Характеристика" 
+        placeholder="Введите характеристику" 
+        v-model="form.characteristic"
+      />
+
+      <AppDropdown 
+        id="side" 
+        label="Сторона" 
+        placeholder="Выберите сторону" 
+        v-model="form.side" 
+        :options="sideOptions" 
+        :loading="loadingSides" 
+        @update:value="onSideChange"
+      />
+
       <AppInput 
         id="deviceNumber" 
         label="Номер" 
         placeholder="Введите номер прибора" 
-        v-model="form.deviceNumber" 
-        :required="true" />
-      
+        v-model="form.deviceNumber"
+      />
+
       <AppNumberInput 
         id="replacementPeriod" 
         label="Периодичность замены (год)" 
         placeholder="Введите периодичность" 
-        v-model="form.replacementPeriod" 
-        :required="true" />
-      
+        v-model="form.replacementPeriod"
+      />
+
       <AppDatePicker 
         id="installDate" 
         label="Дата установки" 
         placeholder="Выберите дату" 
-        v-model="form.installDate" 
-        :required="true" />
-      
+        v-model="form.installDate"
+      />
+
       <AppInput 
         class="col-span-2" 
         id="description" 
         label="Описание объекта" 
         placeholder="Введите примечание..." 
         v-model="form.description" 
-        type="textarea" 
-        :required="true" />
+        type="textarea"
+      />
     </div>
+
+    <ConfirmationModal
+      v-if="showConfirmModal"
+      title="Удаление объекта"
+      message="Вы действительно хотите удалить этот объект?"
+      @confirm="confirmDelete"
+      @cancel="showConfirmModal = false" />
   </ModalWrapper>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineEmits, defineProps, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue'
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
-
-import { useNotificationStore } from '@/stores/notificationStore'
+import ConfirmationModal from './ConfirmationModal.vue'
 import { loadTypes, loadSides, fetchStationOfCoord } from '@/api/objectApi'
-import { updateObject } from '@/api/updateObjectApi'
+import { deleteObject, updateObjectServed } from '@/api/updateObjectApi' // Изменено: Импорт updateObjectServed и удален saveObjectServed
 import { fetchUserData } from '@/api/inspectionsApi'
+import { useNotificationStore } from '@/stores/notificationStore'
 
-import { parseDate, formatDateToISO } from '@/stores/date'
-
-const notificationStore = useNotificationStore()
-const emit = defineEmits(['close', 'update-table'])
 const props = defineProps({
   rowData: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
+
+const emit = defineEmits(['close', 'save', 'deleted'])
+
+const notificationStore = useNotificationStore()
 
 const form = ref({
   name: '',
@@ -123,266 +137,193 @@ const form = ref({
   additionalInfo: '',
   characteristic: '',
   side: null,
-  sidePv: '',
   deviceNumber: '',
-  replacementPeriod: 0,
-  installDate: null, 
+  replacementPeriod: null,
+  installDate: null,
   description: '',
   place: '',
 })
 
 const coordinates = ref({
-  coordStartKm: 0,
-  coordStartPk: 0,
-  coordEndKm: 0,
-  coordEndPk: 0,
+  coordStartKm: null,
+  coordStartPk: null,
+  coordEndKm: null,
+  coordEndPk: null,
 })
 
 const typeOptions = ref([])
-const loadingTypes = ref(false)
 const sideOptions = ref([])
+const loadingTypes = ref(false)
 const loadingSides = ref(false)
-
 const selectedType = ref(null)
+const selectedSide = ref(null)
 const stationData = ref(null)
-const firstCheckDone = ref(false)
+const isFetching = ref(false)
+const showConfirmModal = ref(false)
+let fetchTimeout = null
 
-const isSaveDisabled = computed(() => {
-  return !form.value.place || ['Место не найдено', 'Не найдено'].includes(form.value.place) || !selectedType.value || !stationData.value
-})
+const closeModal = () => emit('close')
 
-const closeModal = () => {
-  emit('close')
+const formatDateToString = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
+onMounted(async () => {
+  loadingTypes.value = true
+  typeOptions.value = await loadTypes()
+  loadingTypes.value = false
+
+  loadingSides.value = true
+  sideOptions.value = await loadSides()
+  loadingSides.value = false
+
+  if (props.rowData) {
+    form.value = {
+      name: props.rowData.name,
+      type: props.rowData.objObjectType || null,
+      additionalInfo: props.rowData.location,
+      characteristic: props.rowData.feature,
+      side: props.rowData.fvSide || null,
+      deviceNumber: props.rowData.number,
+      replacementPeriod: props.rowData.replacement,
+      installDate: props.rowData.installDate ? new Date(props.rowData.installDate.split('.').reverse().join('-')) : null,
+      description: props.rowData.description,
+      place: props.rowData.sectionName || '',
+    }
+
+    coordinates.value = {
+      coordStartKm: props.rowData.rawData?.StartKm ?? 0,
+      coordStartPk: props.rowData.rawData?.StartPicket ?? 0,
+      coordEndKm: props.rowData.rawData?.FinishKm ?? 0,
+      coordEndPk: props.rowData.rawData?.FinishPicket ?? 0,
+    }
+  }
+})
+
 const saveData = async () => {
-  console.group('ModalUpdateObject: Сохранение данных')
-  console.log('form.value.installDate (до форматирования):', form.value.installDate)
-
   try {
-    if (!selectedType.value || !selectedType.value.cls) {
-      notificationStore.showNotification('Тип объекта не выбран', 'error')
-      console.warn('Тип объекта не выбран')
-      console.groupEnd()
-      return
-    }
-
-    if (!stationData.value) {
-      notificationStore.showNotification('Станция не найдена', 'error')
-      console.warn('Станция не найдена')
-      console.groupEnd()
-      return
-    }
-
-    // Получаем данные пользователя
     const user = await fetchUserData()
-
-    // Форматируем дату установки
-    let installDate = null
-    const rawDate = form.value.installDate
-
-    const formatDateToString = (date) => {
-      if (!date) return null
-      const d = new Date(date)
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
-    if (typeof rawDate === 'number' && !isNaN(rawDate)) {
-      installDate = formatDateToString(rawDate)
-    } else if (rawDate instanceof Date && !isNaN(rawDate)) {
-      installDate = formatDateToString(rawDate)
-    } else if (typeof rawDate === 'string' && rawDate.length >= 10) {
-      installDate = rawDate.slice(0, 10)
-    }
-
-    console.log('Форматированная дата установки:', installDate)
-
+    const installDate = formatDateToString(form.value.installDate)
     const updatedAt = new Date().toISOString().slice(0, 10)
-    console.log('updatedAt:', updatedAt)
+    const typeLabel = selectedType.value?.label || typeOptions.value.find(t => t.value === form.value.type)?.label || ''
+    const sideLabel = selectedSide.value?.label || sideOptions.value.find(s => s.value === form.value.side)?.label || ''
+    const sectionName = stationData.value?.name || props.rowData.nameSection || form.value.place || ''
 
-    const sideLabel = sideOptions.value.find(s => s.value === form.value.side)?.label || ''
-    const typeLabel = typeOptions.value.find(t => t.value === form.value.type)?.label || ''
+    const startCoordStr = `${coordinates.value.coordStartKm ?? ''}км` +
+      (coordinates.value.coordStartPk != null ? ` ${coordinates.value.coordStartPk}пк` : '')
+
+    const endCoordStr = `${coordinates.value.coordEndKm ?? ''}км` +
+      (coordinates.value.coordEndPk != null ? ` ${coordinates.value.coordEndPk}пк` : '')
+
+    const coordsString = `[${startCoordStr} - ${endCoordStr}]`
+
+    const fullName = [form.value.name || '', form.value.additionalInfo || '', coordsString, sideLabel ? `[${sideLabel}]` : '', `[${typeLabel}]`, `[${sectionName}]`]
+      .filter(Boolean).join(' ').trim()
 
     const payload = {
-      id: props.rowData.id,
-      name: form.value.name,
-      type: form.value.type,
-      additionalInfo: form.value.additionalInfo,
-      characteristic: form.value.characteristic,
-      side: form.value.side,
-      sidePv: form.value.sidePv,
-      deviceNumber: form.value.deviceNumber,
-      replacementPeriod: form.value.replacementPeriod,
-      installDate,
-      updatedAt,
-      description: form.value.description,
-      place: form.value.place,
-      coordStartKm: coordinates.value.coordStartKm,
-      coordStartPk: coordinates.value.coordStartPk,
-      coordEndKm: coordinates.value.coordEndKm,
-      coordEndPk: coordinates.value.coordEndPk,
-      linkCls: selectedType.value.cls,
-      objSection: stationData.value.id,
-      pvSection: stationData.value.pv,
-      fvSide: form.value.side,
-      pvSide: form.value.sidePv,
-      sideLabel,
-      typeLabel,
+      ...props.rowData.rawData, // Используем rawData для сохранения всех id/cls и прочих полей
+      id: props.rowData.id, // Явно указываем id для обновления
+      cls: props.rowData.cls, // Явно указываем cls для обновления
+      Description: form.value.description || '',
+      FinishKm: coordinates.value.coordEndKm ?? 0,
+      FinishPicket: coordinates.value.coordEndPk ?? 0,
+      InstallationDate: installDate,
+      LocationDetails: form.value.additionalInfo || '',
+      Number: form.value.deviceNumber || '',
+      PeriodicityReplacement: form.value.replacementPeriod || '',
+      Specs: form.value.characteristic || '',
+      StartKm: coordinates.value.coordStartKm ?? 0,
+      StartPicket: coordinates.value.coordStartPk ?? 0,
+      UpdatedAt: updatedAt,
+      fullName,
+      fvSide: selectedSide.value?.value ?? form.value.side ?? null,
+      linkCls: selectedType.value?.cls ?? props.rowData.rawData?.linkCls ?? null,
+      name: form.value.name || '',
+      objObjectType: selectedType.value?.value ?? form.value.type ?? null,
+      pvObjectType: selectedType.value?.pv ?? props.rowData.rawData?.pvObjectType ?? null,
+      pvSide: selectedSide.value?.pv ?? props.rowData.rawData?.pvSide ?? null,
       objUser: user.id,
       pvUser: user.pv,
     }
 
-    console.log("Payload для обновления:", payload)
-
-    await updateObject(payload, selectedType.value, stationData.value)
-
+    // Удаляем поля, которые не должны отправляться или отправляются автоматом
+    delete payload.nameObjectType
+    delete payload.nameSection
+    delete payload.nameSide
+    
+    // Используем новый метод для обновления
+    await updateObjectServed(payload) 
+    
     notificationStore.showNotification('Объект успешно обновлён!', 'success')
-    closeModal()
-    emit('update-table')
+    emit('save')
   } catch (error) {
-    console.error('Ошибка при обновлении объекта:', error)
-    notificationStore.showNotification('Ошибка при сохранении изменений', 'error')
-  } finally {
-    console.groupEnd()
+    console.error(error)
+    notificationStore.showNotification('Ошибка при обновлении объекта', 'error')
   }
 }
 
-const checkPlace = async () => {
-  const { coordStartKm, coordStartPk, coordEndKm, coordEndPk } = coordinates.value
-  if (coordStartKm && coordStartPk && coordEndKm && coordEndPk) {
-    try {
-      const response = await fetchStationOfCoord({
-        StartKm: coordStartKm,
-        FinishKm: coordEndKm,
-        StartPicket: coordStartPk,
-        FinishPicket: coordEndPk
-      })
-      if (response.result && response.result.records.length > 0) {
-        form.value.place = response.result.records[0].name || 'Место не найдено'
-        stationData.value = response.result.records[0]
-      } else {
-        form.value.place = 'Место не найдено'
-        stationData.value = null
-      }
-    } catch (error) {
-      form.value.place = 'Место не найдено'
-      stationData.value = null
-    }
+const handleDelete = () => {
+  if (!props.rowData?.id) {
+    notificationStore.showNotification('Не удалось получить ID объекта для удаления.', 'error')
+    return
   }
+  showConfirmModal.value = true
 }
 
-const updateCoordinates = async (newCoordinates) => {
-  coordinates.value = newCoordinates
-  const filled = Object.values(coordinates.value).every(v => v !== null && v !== undefined)
-
-  if (!firstCheckDone.value && filled) {
-    firstCheckDone.value = true
-    await checkPlace()
-  } else if (firstCheckDone.value) {
-    await checkPlace()
+const confirmDelete = async () => {
+  showConfirmModal.value = false
+  try {
+    await deleteObject(props.rowData.id)
+    notificationStore.showNotification('Объект успешно удален!', 'success')
+    emit('deleted')
+  } catch (error) {
+    console.error('Ошибка при удалении объекта:', error)
+    notificationStore.showNotification('Ошибка при удалении объекта.', 'error')
   }
 }
 
 const onTypeChange = (value) => {
-  selectedType.value = typeOptions.value.find(option => option.value === value)
-  if (!selectedType.value) {
-    notificationStore.showNotification('Тип объекта не выбран', 'error')
-  }
+  selectedType.value = typeOptions.value.find(t => t.value === value)
 }
 
-onMounted(async () => {
-  try {
-    loadingTypes.value = true
-    const loadedTypes = await loadTypes()
-    typeOptions.value = loadedTypes
-  } catch (error) {
-    notificationStore.showNotification('Ошибка загрузки типов', 'error')
-  } finally {
-    loadingTypes.value = false
-  }
-
-  try {
-    loadingSides.value = true
-    const loadedSides = await loadSides()
-    sideOptions.value = loadedSides.map(option => ({
-      label: option.name,
-      value: option.id,
-      pv: option.pv,
-    }))
-  } catch (error) {
-    notificationStore.showNotification('Ошибка загрузки сторон', 'error')
-  } finally {
-    loadingSides.value = false
-  }
-
-  fillFormWithData()
-})
-
-const fillFormWithData = () => {
-  const data = props.rowData
-
-  console.group('ModalUpdateObject: Загрузка данных')
-  console.log('rowData:', data)
-  console.log('data.installDate (raw):', data.installDate)
-
-  form.value.name = data.name || ''
-  form.value.type = data.objObjectType || null
-  form.value.additionalInfo = data.location || ''
-  form.value.characteristic = data.feature || ''
-  form.value.deviceNumber = data.number || ''
-  form.value.replacementPeriod = data.replacement || 0
-  form.value.description = data.description || ''
-
-  const parsedDate = parseDate(data.installDate)
-  console.log('Результат parseDate(data.installDate):', parsedDate)
-  form.value.installDate = parsedDate
-
-  const match = data.coords?.match(/(\d+) км (\d+) пк - (\d+) км (\d+) пк/)
-  if (match) {
-    coordinates.value = {
-      coordStartKm: parseInt(match[1]),
-      coordStartPk: parseInt(match[2]),
-      coordEndKm: parseInt(match[3]),
-      coordEndPk: parseInt(match[4]),
-    }
-    console.log('Координаты распаршены:', coordinates.value)
-  } else {
-    console.warn('Координаты не распарсились из:', data.coords)
-  }
-
-  form.value.side = data.fvSide || null
-  console.log('fvSide из данных:', data.fvSide)
-
-  const selectedSide = sideOptions.value.find(s => s.value === data.fvSide)
-  if (selectedSide) {
-    form.value.sidePv = selectedSide.pv
-    console.log('sidePv установлен из стороны:', selectedSide.pv)
-  } else {
-    console.warn('Сторона не найдена в sideOptions:', data.fvSide)
-  }
-
-  selectedType.value = typeOptions.value.find(t => t.value === data.objObjectType) || null
-  console.log('objObjectType из данных:', data.objObjectType)
-  console.log('selectedType.value:', selectedType.value)
-
-  setTimeout(() => {
-    firstCheckDone.value = false
-    console.log('Вызов updateCoordinates с:', coordinates.value)
-    updateCoordinates(coordinates.value)
-  }, 100)
-
-  console.groupEnd()
+const onSideChange = (value) => {
+  selectedSide.value = sideOptions.value.find(s => s.value === value)
 }
 
-watch(() => form.value.side, (newSideId) => {
-  const selectedSide = sideOptions.value.find(option => option.value === newSideId)
-  if (selectedSide) {
-    form.value.sidePv = selectedSide.pv
+const fetchPlace = async () => {
+  const { coordStartKm, coordStartPk, coordEndKm, coordEndPk } = coordinates.value
+  if (coordStartKm == null || coordEndKm == null) return
+  isFetching.value = true
+  const data = await fetchStationOfCoord({
+    StartKm: coordStartKm,
+    FinishKm: coordEndKm,
+    StartPicket: coordStartPk ?? 0,
+    FinishPicket: coordEndPk ?? 0,
+  })
+  const records = data?.result?.records || []
+  if (records.length > 0) {
+    form.value.place = records[0].name
+    stationData.value = records[0]
+  } else {
+    form.value.place = 'Место не найдено'
+    stationData.value = null
   }
-})
+  isFetching.value = false
+}
+
+watch(
+  () => ({ ...coordinates.value }),
+  () => {
+    if (fetchTimeout) clearTimeout(fetchTimeout)
+    fetchTimeout = setTimeout(() => fetchPlace(), 800)
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -390,32 +331,10 @@ watch(() => form.value.side, (newSideId) => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
-  padding: 32px;
+  padding: 0 32px 32px;
   background-color: #f9fafb;
 }
-
-.section-title {
-  font-weight: 600;
-  color: #2b6cb0;
-  grid-column: span 2;
-  font-size: 14px;
-  margin-bottom: -12px;
-}
-
 .col-span-2 {
   grid-column: span 2;
-}
-
-.coordinate-row {
-  display: flex;
-  gap: 24px;
-}
-
-.coordinate-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  width: 100%;
-  align-items: end;
 }
 </style>

@@ -30,7 +30,9 @@ export async function loadObjectServed({ page = 1, limit = 10 }) {
   return {
 
     data: records.map((item, i) => ({
+      rawData: item, // Добавляем исходные данные
       id: item.id,
+      cls: item.cls,
       type: typeMap[item.objObjectType] || 'Неизвестно',
       name: item.name || '',
       coords: `${item.StartKm} км ${item.StartPicket} пк - ${item.FinishKm} км ${item.FinishPicket} пк`,
@@ -44,6 +46,22 @@ export async function loadObjectServed({ page = 1, limit = 10 }) {
       description: item.Description || '',
       fvSide: item.fvSide,
       objObjectType: item.objObjectType,
+      idObjectType: item.idObjectType,
+      idSection: item.idSection,
+      idStartKm: item.idStartKm,
+      idFinishKm: item.idFinishKm,
+      idStartPicket: item.idStartPicket,
+      idFinishPicket: item.idFinishPicket,
+      idCreatedAt: item.idCreatedAt,
+      idUpdatedAt: item.idUpdatedAt,
+      idPeriodicityReplacement: item.idPeriodicityReplacement,
+      idSide: item.idSide,
+      idSpecs: item.idSpecs,
+      idLocationDetails: item.idLocationDetails,
+      idNumber: item.idNumber,
+      idInstallationDate: item.idInstallationDate,
+      idDescription: item.idDescription,
+
       _originalIndex: i + 1, 
     })),
     total: records.length
