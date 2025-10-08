@@ -28,6 +28,7 @@
 
       <CoordinateInputs 
       v-model="coordinates" 
+      :required="true" 
       />
 
       <AppInput 
@@ -37,6 +38,7 @@
       placeholder="Введите место" 
       v-model="form.place" 
       :disabled="true"
+      :required="true" 
       />
 
       <AppInput 
@@ -155,8 +157,27 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const validateForm = () => {
+  if (!form.value.name.trim()) {
+    notificationStore.showNotification('Не заполнено "Наименование объекта"', 'error')
+    return false
+  }
+  if (!form.value.type) {
+    notificationStore.showNotification('Не выбран Вид объекта', 'error')
+    return false
+  }
+  if (!form.value.place || form.value.place === 'Место не найдено') {
+    notificationStore.showNotification('Не удалось определить "Место" по координатам. Проверьте координаты', 'error')
+    return false
+  }
+  return true
+}
+
 const saveData = async () => {
   try {
+    if (!validateForm()) {
+      return
+    }
     const user = await fetchUserData()
     const installDate = formatDateToString(form.value.installDate)
     const createdAt = new Date().toISOString().slice(0, 10)

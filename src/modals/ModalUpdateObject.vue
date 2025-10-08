@@ -29,7 +29,10 @@
         @update:value="onTypeChange"
       />
 
-      <CoordinateInputs v-model="coordinates" />
+      <CoordinateInputs 
+      v-model="coordinates" 
+      :required="true" 
+      />
 
       <AppInput 
         class="col-span-2" 
@@ -38,6 +41,7 @@
         placeholder="Введите место" 
         v-model="form.place" 
         :disabled="true"
+        :required="true" 
       />
 
       <AppInput 
@@ -173,6 +177,22 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const validateForm = () => {
+  if (!form.value.name.trim()) {
+    notificationStore.showNotification('Не заполнено Наименование объекта', 'error')
+    return false
+  }
+  if (!form.value.type) {
+    notificationStore.showNotification('Не выбран Вид объекта', 'error')
+    return false
+  }
+  if (!form.value.place || form.value.place === 'Место не найдено') {
+    notificationStore.showNotification('Не удалось определить "Место" по координатам. Проверьте координаты', 'error')
+    return false
+  }
+  return true
+}
+
 onMounted(async () => {
   loadingTypes.value = true
   typeOptions.value = await loadTypes()
@@ -206,6 +226,9 @@ onMounted(async () => {
 })
 
 const saveData = async () => {
+  if (!validateForm()) {
+    return
+  }
   try {
     const user = await fetchUserData()
     const installDate = formatDateToString(form.value.installDate)

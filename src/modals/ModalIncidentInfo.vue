@@ -141,7 +141,7 @@ const fillFormWithData = () => {
   form.value.description = data.description || ''
   
   form.value.place = rawData.nameLocationClsSection || 'Не указано'
-  form.value.applicantName = rawData.nameUser || 'Неизвестно' 
+  form.value.applicantName = rawData.InfoApplicant || 'Неизвестно', 
   
   form.value.parsedCoordinates = {
     coordStartKm: rawData.StartKm || null, 
