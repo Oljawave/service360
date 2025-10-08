@@ -13,6 +13,17 @@
         v-model="form.incidentType"
         :options="incidentTypeOptions"
         :required="true"
+        @update:modelValue="onIncidentTypeChange"
+      />
+
+      <AppDropdown
+        class="col-span-2"
+        id="criticality"
+        label="Критичность"
+        placeholder="Критичность"
+        v-model="form.criticality"
+        :options="criticalityOptions"
+        :loading="loadingCriticality"
       />
 
       <AppDropdown
@@ -97,7 +108,7 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
-import { loadEvents, saveIncident } from '@/api/incidentApi'
+import { loadEvents, saveIncident, loadCriticalityLevels } from '@/api/incidentApi'
 import { fetchObjectsForSelect, fetchLocationByCoords } from '@/api/planWorkApi'
 import { useNotificationStore } from '@/stores/notificationStore'
 
@@ -112,6 +123,7 @@ const form = ref({
   section: null,
   description: '',
   applicantName: '',
+  criticality: null,
 })
 
 const coordinates = ref({
@@ -130,6 +142,7 @@ const placeOptions = ref([])
 const objectTypeOptions = ref([])
 const objectOptions = ref([])
 const sectionOptions = ref([])
+const criticalityOptions = ref([])
 const allLoadedRecords = ref([])
 const filteredRecordsByPlace = ref([])
 
@@ -137,6 +150,21 @@ const loadingPlaces = ref(false)
 const loadingObjectTypes = ref(false)
 const loadingObjects = ref(false)
 const loadingSections = ref(false)
+const loadingCriticality = ref(false)
+
+const onIncidentTypeChange = (selectedIncident) => {
+  form.value.criticality = null;
+
+  if (selectedIncident && selectedIncident.nameCriticality) {
+    // fvCriticality из события соответствует value (id) в опциях критичности
+    const foundCriticality = criticalityOptions.value.find(
+      c => c.value === selectedIncident.fvCriticality
+    );
+    if (foundCriticality) {
+      form.value.criticality = foundCriticality;
+    }
+  }
+};
 
 const loadAllObjects = async () => {
   loadingPlaces.value = true
@@ -412,11 +440,12 @@ const saveData = async () => {
      return
   }
   
-  const selectedEvent = incidentTypeOptions.value.find(opt => opt.value == form.value.incidentType?.value)
+  const selectedCriticality = form.value.criticality;
   const selectedObjectOption = objectOptions.value.find(opt => opt.value == form.value.object?.value)
   const selectedSection = form.value.section
+  const selectedEvent = incidentTypeOptions.value.find(opt => opt.value == form.value.incidentType?.value)
   
-  if (!selectedEvent || !selectedObjectOption || !selectedObjectOption.fullRecord || !selectedSection) {
+  if (!selectedEvent || !selectedObjectOption || !selectedObjectOption.fullRecord || !selectedSection || !selectedCriticality) {
       notificationStore.showNotification('Не удалось получить полные данные для сохранения (внутренняя ошибка)', 'error')
       return
   }
@@ -427,8 +456,8 @@ const saveData = async () => {
     eventName: selectedEvent.label,
     eventId: selectedEvent.id,
     eventPv: selectedEvent.pv,
-    criticalityFv: selectedEvent.fvCriticality,
-    criticalityPv: selectedEvent.pvCriticality,
+    criticalityFv: selectedCriticality.value, // id из loadFactorValForSelect
+    criticalityPv: selectedCriticality.pv,    // pv из loadFactorValForSelect
     
     objectId: objectRecord.objObject,
     objectPv: objectRecord.pvObject,
@@ -472,10 +501,18 @@ const handleOutOfBounds = () => {
 
 onMounted(async () => {
   try {
-    incidentTypeOptions.value = await loadEvents()
-    await loadAllObjects()
+    loadingCriticality.value = true;
+    const [events, criticalityLevels, _] = await Promise.all([
+      loadEvents(),
+      loadCriticalityLevels(),
+      loadAllObjects()
+    ]);
+    incidentTypeOptions.value = events;
+    criticalityOptions.value = criticalityLevels;
   } catch (error) {
     notificationStore.showNotification('Ошибка при загрузке начальных данных', 'error')
+  } finally {
+    loadingCriticality.value = false;
   }
 })
 

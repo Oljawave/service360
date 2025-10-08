@@ -2,9 +2,9 @@
   <ModalWrapper
     title="Информация об инциденте"
     @close="closeModal"
-    :showSaveButton="false"
-    :showCancelButton="false"
+    :showSaveButton="true"
     :showDelete="true"
+    @save="saveChanges"
     @delete="onDeleteClicked" 
   >
     <div class="form-section">
@@ -31,11 +31,13 @@
         :disabled="true"
       />
       
-      <AppInput
+      <AppDropdown
         id="criticality"
         label="Критичность"
+        placeholder="Выберите критичность"
         v-model="form.criticality"
-        :disabled="true"
+        :options="criticalityOptions"
+        :loading="loadingCriticality"
       />
       
       <FullCoordinates
@@ -50,7 +52,7 @@
         id="description"
         label="Описание"
         v-model="form.description"
-        :disabled="true"
+        :disabled="false"
         type="textarea"
       />
       
@@ -58,7 +60,7 @@
         id="applicantName"
         label="ФИО заявителя"
         v-model="form.applicantName"
-        :disabled="true"
+        :disabled="false"
       />
       
       <AppInput
@@ -84,10 +86,11 @@
 import { ref, onMounted, defineEmits, defineProps } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
+import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
 import ConfirmationModal from './ConfirmationModal.vue' 
 import { useNotificationStore } from '@/stores/notificationStore'
-import { deleteIncident } from '@/api/incidentApi' 
+import { deleteIncident, loadCriticalityLevels, updateIncident } from '@/api/incidentApi' 
 
 const emit = defineEmits(['close', 'deleted'])
 const props = defineProps({
@@ -99,6 +102,8 @@ const props = defineProps({
 
 const showConfirmModal = ref(false)
 const notificationStore = useNotificationStore()
+const criticalityOptions = ref([])
+const loadingCriticality = ref(false)
 
 const initialCoordinates = { 
   coordStartKm: null, 
@@ -134,14 +139,20 @@ const fillFormWithData = () => {
   form.value.id = data.id || null
   form.value.name = data.name || ''
   form.value.object = data.object || ''
-  form.value.criticality = data.criticality || ''
   form.value.statusName = data.statusName || ''
   form.value.date = data.date || null
   form.value.time = data.time || null
   form.value.description = data.description || ''
   
   form.value.place = rawData.nameLocationClsSection || 'Не указано'
-  form.value.applicantName = rawData.InfoApplicant || 'Неизвестно', 
+  form.value.applicantName = rawData.InfoApplicant || 'Неизвестно'
+
+  // Устанавливаем критичность
+  const foundCriticality = criticalityOptions.value.find(
+    c => c.value === rawData.fvCriticality
+  );
+  form.value.criticality = foundCriticality || null;
+  
   
   form.value.parsedCoordinates = {
     coordStartKm: rawData.StartKm || null, 
@@ -155,8 +166,58 @@ const fillFormWithData = () => {
 }
 
 onMounted(() => {
-  fillFormWithData()
+  loadInitialData();
 })
+
+const loadInitialData = async () => {
+  loadingCriticality.value = true;
+  try {
+    criticalityOptions.value = await loadCriticalityLevels();
+    fillFormWithData();
+  } catch (error) {
+    notificationStore.showNotification('Ошибка при загрузке данных для редактирования', 'error');
+  } finally {
+    loadingCriticality.value = false;
+  }
+}
+
+const saveChanges = async () => {
+  const rawData = props.rowData.rawData;
+  const selectedCriticality = form.value.criticality;
+
+  if (!rawData || !rawData.id) {
+    notificationStore.showNotification('Отсутствуют исходные данные для обновления.', 'error');
+    return;
+  }
+
+  if (!selectedCriticality) {
+    notificationStore.showNotification('Необходимо выбрать Критичность.', 'error');
+    return;
+  }
+
+  const payload = {
+    id: rawData.id, // id инцидента
+    
+    // Передаем ID свойств из rawData, чтобы сервер знал, какие свойства обновлять
+    idCriticality: rawData.idCriticality,
+    idInfoApplicant: rawData.idInfoApplicant,
+    idDescription: rawData.idDescription,
+    idUpdatedAt: rawData.idUpdatedAt,
+
+    criticalityFv: selectedCriticality.value, // id из loadFactorValForSelect
+    criticalityPv: selectedCriticality.pv,    // pv из loadFactorValForSelect
+    InfoApplicant: form.value.applicantName,
+    Description: form.value.description,
+  };
+
+  try {
+    await updateIncident(payload);
+    notificationStore.showNotification('Инцидент успешно обновлен!', 'success');
+    emit('deleted'); // Используем событие 'deleted' для обновления таблицы, как при удалении
+  } catch (error) {
+    notificationStore.showNotification(error.message || 'Ошибка при обновлении инцидента.', 'error');
+  }
+};
 
 const onDeleteClicked = () => {
   if (!form.value.id) {
