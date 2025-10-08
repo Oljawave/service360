@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_INCIDENTS_URL;
+const PLAN_URL = import.meta.env.VITE_PLAN_URL;
 
 async function fetchUserData() {
   return { id: 1003, pv: 1087 }; 
@@ -167,5 +168,68 @@ export async function deleteIncident(id) {
   } catch (error) {
     console.error("Ошибка при удалении инцидента:", error);
     throw new Error(error.response?.data?.error || error.message || 'Не удалось удалить инцидент');
+  }
+}
+
+export async function assignWorkToIncident(incident, work, completionDate) {
+  if (!incident || !work || !completionDate) {
+    throw new Error("Недостаточно данных для назначения работы.");
+  }
+
+  try {
+    const user = await fetchUserData();
+    const today = new Date().toISOString().slice(0, 10);
+    const planDateEnd = new Date(completionDate).toISOString().slice(0, 10);
+
+    const payload = {
+      method: "data/assignPlan",
+      params: [
+        {
+          id: incident.id,
+          cls: incident.cls,
+          pvLocationClsSection: incident.pvLocationClsSection,
+          objLocationClsSection: incident.objLocationClsSection,
+          pvObject: incident.pvObject,
+          objObject: incident.objObject,
+          pvUser: user.pv,
+          objUser: user.id,
+          StartKm: incident.StartKm,
+          FinishKm: incident.FinishKm,
+          StartPicket: incident.StartPicket,
+          FinishPicket: incident.FinishPicket,
+          idStatus: incident.idStatus,
+          name: `${incident.id}-${planDateEnd}`,
+          PlanDateEnd: planDateEnd,
+          CreatedAt: today,
+          UpdatedAt: today,
+          objWork: work.value,
+          pvWork: work.pv,
+          linkCls: work.cls, // Используем work.cls (класс объекта работы)
+        },
+      ],
+    };
+
+    console.log('Отправка данных для назначения работы:', JSON.stringify(payload, null, 2));
+
+    const response = await axios.post(
+      PLAN_URL,
+      payload,
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (response.data && response.data.error) {
+      // Улучшаем обработку ошибок для получения сообщения
+      const errorMessage = typeof response.data.error === 'object' && response.data.error !== null 
+                           ? response.data.error.message || JSON.stringify(response.data.error) 
+                           : response.data.error;
+      throw new Error(errorMessage || 'Ошибка от сервера при назначении работы');
+    }
+
+    return response.data.result;
+  } catch (error) {
+    console.error("Ошибка при назначении работы инциденту:", error);
+    throw new Error(error.response?.data?.error?.message || error.message || 'Не удалось назначить работу');
   }
 }

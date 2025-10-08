@@ -29,6 +29,13 @@
     @close="closeAddIncidentModal"
     @update-table="handleTableUpdate"
   />
+
+  <ModalAssignWork
+    v-if="showAssignWorkModal"
+    :incidents="loadedIncidents"
+    @close="showAssignWorkModal = false"
+    @assign-work="handleWorkAssigned"
+  />
 </template>
 
 <script setup>
@@ -40,6 +47,7 @@ import { loadPeriodTypes } from '@/api/periodApi';
 
 import ModalAddIncident from '@/modals/ModalAddIncident.vue'; 
 import ModalIncidentInfo from '@/modals/ModalIncidentInfo.vue'; 
+import ModalAssignWork from '@/modals/ModalAssignWork.vue';
 
 const router = useRouter();
 
@@ -48,7 +56,9 @@ const tableWrapperRef = ref(null);
 
 const showIncidentInfoModal = ref(false);
 const showAddIncidentModal = ref(false);
+const showAssignWorkModal = ref(false);
 const selectedRecord = ref(null);
+const loadedIncidents = ref([]);
 
 const filters = ref({
   date: new Date(),
@@ -93,6 +103,11 @@ const handleTableUpdate = () => {
 const closeAddIncidentModal = () => {
   showAddIncidentModal.value = false;
   handleTableUpdate(); 
+};
+
+const handleWorkAssigned = () => {
+  showAssignWorkModal.value = false;
+  handleTableUpdate();
 };
 
 const formatDateToString = (date) => {
@@ -153,6 +168,7 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
         index: null,
         id: r.id,
         name: r.name,
+        nameCls: r.nameCls,
         object: r.nameObject,
         coordinates: formatCoordinates(r.StartKm, r.StartPicket, r.StartLink, r.FinishKm, r.FinishPicket, r.FinishLink),
         statusName: r.nameStatus, 
@@ -162,8 +178,13 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
         description: r.Description,
         rawData: r,
         hasDefects: r.nameFlagDefect,
+        fullNameWork: r.fullNameWork,
+        PlanDateEnd: r.PlanDateEnd,
+        FactDateEnd: r.FactDateEnd === '0000-01-01' ? null : r.FactDateEnd,
       };
     });
+
+    loadedIncidents.value = sliced;
 
     return {
       total: totalRecords,
@@ -201,6 +222,7 @@ const getRowClassFn = (row) => {
 const columns = [
   { key: 'id', label: '№' },
   { key: 'name', label: 'Наименование' },
+  { key: 'nameCls', label: 'Источник' },
   { key: 'object', label: 'Объект' },
   { key: 'coordinates', label: 'Координаты' },
   { key: 'criticality', label: 'Критичность' },
@@ -208,6 +230,9 @@ const columns = [
   { key: 'date', label: 'Дата' },
   { key: 'time', label: 'Время' },
   { key: 'description', label: 'Описание' },
+  { key: 'fullNameWork', label: 'Назначенная работа' },
+  { key: 'PlanDateEnd', label: 'Дата (план)' },
+  { key: 'FactDateEnd', label: 'Дата (факт)' },
 ];
 
 const tableActions = [
@@ -216,6 +241,13 @@ const tableActions = [
     icon: 'Plus',
     onClick: () => {
       showAddIncidentModal.value = true;
+    },
+  },
+  {
+    label: 'Назначить работу',
+    icon: 'ClipboardList',
+    onClick: () => {
+      showAssignWorkModal.value = true;
     },
   },
   {
