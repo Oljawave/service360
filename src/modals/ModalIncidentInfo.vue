@@ -17,27 +17,26 @@
       />
 
       <AppInput
-        class="col-span-2"
-        id="object"
-        label="Объект"
-        v-model="form.object"
-        :disabled="true"
-      />
-      
-      <AppInput
         id="status"
         label="Статус"
         v-model="form.statusName"
         :disabled="true"
       />
       
-      <AppDropdown
+      <AppInput
         id="criticality"
         label="Критичность"
-        placeholder="Выберите критичность"
-        v-model="form.criticality"
-        :options="criticalityOptions"
-        :loading="loadingCriticality"
+        :model-value="form.criticalityName"
+        placeholder="Критичность не указана"
+        :disabled="true"
+      />
+
+      <AppInput
+        class="col-span-2"
+        id="object"
+        label="Объект"
+        v-model="form.object"
+        :disabled="true"
       />
       
       <FullCoordinates
@@ -118,6 +117,7 @@ const form = ref({
   id: null,
   name: '', 
   object: '', 
+  criticalityName: '',
   place: 'Не указано', 
   criticality: '', 
   statusName: '', 
@@ -152,6 +152,7 @@ const fillFormWithData = () => {
     c => c.value === rawData.fvCriticality
   );
   form.value.criticality = foundCriticality || null;
+  form.value.criticalityName = foundCriticality ? foundCriticality.label : 'Не указана';
   
   
   form.value.parsedCoordinates = {
@@ -183,15 +184,9 @@ const loadInitialData = async () => {
 
 const saveChanges = async () => {
   const rawData = props.rowData.rawData;
-  const selectedCriticality = form.value.criticality;
 
   if (!rawData || !rawData.id) {
     notificationStore.showNotification('Отсутствуют исходные данные для обновления.', 'error');
-    return;
-  }
-
-  if (!selectedCriticality) {
-    notificationStore.showNotification('Необходимо выбрать Критичность.', 'error');
     return;
   }
 
@@ -204,8 +199,8 @@ const saveChanges = async () => {
     idDescription: rawData.idDescription,
     idUpdatedAt: rawData.idUpdatedAt,
 
-    criticalityFv: selectedCriticality.value, // id из loadFactorValForSelect
-    criticalityPv: selectedCriticality.pv,    // pv из loadFactorValForSelect
+    criticalityFv: form.value.criticality?.value,
+    criticalityPv: form.value.criticality?.pv,
     InfoApplicant: form.value.applicantName,
     Description: form.value.description,
   };

@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
 const items = [
   // { label: 'Главная', path: '/', icon: 'Home' },
   { label: 'План работ', path: '/work-plan', icon: 'ClipboardList' },
-  { label: 'Журнал осмотров/проверок', path: '/inspections', icon: 'BookOpen' },
+  { label: 'Журнал осмотров и проверок', path: '/inspections', icon: 'BookOpen' },
   { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler' },
   { label: 'Журнал неисправностей', path: '/defects', icon: 'AlertTriangle' },
   { label: 'Журнал событий и запросов на работы', path: '/incidents', icon: 'Cog' },

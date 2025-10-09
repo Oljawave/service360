@@ -110,7 +110,7 @@ export async function loadCriticalityLevels() {
     return records.map(record => ({
       ...record,
       label: record.name,
-      value: record.id, // This will be fvCriticality
+      value: record.id,
     }));
   } catch (error) {
     console.error("Ошибка при загрузке уровней критичности:", error);
@@ -136,8 +136,6 @@ export async function saveIncident(payloadData) {
         objObject: payloadData.objectId,
         pvUser: user.pv,
         objUser: user.id,
-        fvCriticality: payloadData.criticalityFv,
-        pvCriticality: payloadData.criticalityPv,
         objLocationClsSection: payloadData.objLocationClsSection,
         pvLocationClsSection: payloadData.pvLocationClsSection,
         InfoApplicant: payloadData.InfoApplicant,
@@ -152,6 +150,12 @@ export async function saveIncident(payloadData) {
         UpdatedAt: datePart,
         RegistrationDateTime: registrationDateTime,
       }]
+    };
+
+    // Добавляем критичность, если она есть
+    if (payloadData.criticalityFv !== undefined && payloadData.criticalityPv !== undefined) {
+      payload.params[1].fvCriticality = payloadData.criticalityFv;
+      payload.params[1].pvCriticality = payloadData.criticalityPv;
     };
     
     console.log('Отправляемый payload для saveIncident:', JSON.stringify(payload, null, 2));
@@ -244,11 +248,11 @@ export async function deleteIncident(id) {
   }
 }
 
-export async function assignWorkToIncident(incident, work, completionDate) {
-  if (!incident || !work || !completionDate) {
+export async function assignWorkToIncident(incident, work, completionDate, selectedCriticality, selectedSection) {
+  if (!incident || !work || !completionDate || !selectedCriticality || !selectedSection) {
     throw new Error("Недостаточно данных для назначения работы.");
   }
-
+  
   try {
     const user = await fetchUserData();
     const today = new Date().toISOString().slice(0, 10);
@@ -260,8 +264,8 @@ export async function assignWorkToIncident(incident, work, completionDate) {
         {
           id: incident.id,
           cls: incident.cls,
-          pvLocationClsSection: incident.pvLocationClsSection,
-          objLocationClsSection: incident.objLocationClsSection,
+          pvLocationClsSection: selectedSection.pv, 
+          objLocationClsSection: selectedSection.value,
           pvObject: incident.pvObject,
           objObject: incident.objObject,
           pvUser: user.pv,
@@ -278,6 +282,8 @@ export async function assignWorkToIncident(incident, work, completionDate) {
           objWork: work.value,
           pvWork: work.pv,
           linkCls: work.cls,
+          fvCriticality: selectedCriticality.value, 
+          pvCriticality: selectedCriticality.pv,
         },
       ],
     };
