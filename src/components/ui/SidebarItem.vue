@@ -1,5 +1,5 @@
 <template>
-  <router-link :to="to" class="sidebar-item" :class="{ active: isActive }">
+  <router-link :to="to" class="sidebar-item" :class="{ active: isActive, 'is-collapsed': isCollapsed }">
     <UiIcon :name="icon" class="icon" />
     <span class="label">{{ label }}</span>
   </router-link>
@@ -13,7 +13,11 @@ import { useRoute } from 'vue-router'
 const props = defineProps({
   label: String,
   to: String,
-  icon: String
+  icon: String,
+  isCollapsed: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const route = useRoute()
@@ -42,6 +46,14 @@ const isActive = computed(() => {
   color: #4a5568;
   transition: color 0.2s;
   margin-right: 16px;
+}
+
+.sidebar-item.is-collapsed .icon {
+  margin-right: 0;
+}
+
+.sidebar-item.is-collapsed .label {
+  display: none;
 }
 
 .sidebar-item:hover {

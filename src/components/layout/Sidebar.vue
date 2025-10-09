@@ -14,6 +14,7 @@
         :icon="item.icon"
         :label="sidebar.collapsed ? '' : item.label"
         :to="item.path"
+        :is-collapsed="sidebar.collapsed"
       />
     </nav>
   </aside>

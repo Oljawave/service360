@@ -1,6 +1,6 @@
 <template>
   <div class="table-container">
-    <table class="styled-table">
+    <table class="styled-table" :class="tableWidthClass">
       <thead>
         <tr>
           <th 
@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import TableRow from './TableRow.vue'
 import UiIcon from '@/components/ui/UiIcon.vue'
 
@@ -83,6 +84,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])
+
+const tableWidthClass = computed(() => {
+  return props.columns && props.columns.length > 10 ? 'wide-table' : 'default-table';
+});
 </script>
 
 <style scoped>
@@ -100,7 +105,14 @@ const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])
   border-collapse: collapse;
   font-size: 14px;
   color: #2d3748;
-  min-width: 1200px;
+}
+
+.styled-table.default-table {
+  min-width: 1500px; 
+}
+
+.styled-table.wide-table {
+  min-width: 2000px;
 }
 
 th, td {
