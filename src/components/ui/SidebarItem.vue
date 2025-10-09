@@ -41,6 +41,7 @@ const isActive = computed(() => {
   flex-shrink: 0;
   color: #4a5568;
   transition: color 0.2s;
+  margin-right: 16px;
 }
 
 .sidebar-item:hover {

@@ -9,9 +9,12 @@
         class="col-span-2"
         id="incidentType"
         label="Событие / запрос"
-        placeholder="Выберите тип инцидента"
+        placeholder="Введите или выберите тип инцидента"
         v-model="form.incidentType"
-        :options="incidentTypeOptions"
+        :options="computedIncidentTypeOptions"
+        @update:value="onIncidentTypeSelect"
+        filterable
+        @search="handleIncidentSearch"
         :required="true"
       />
 
@@ -82,12 +85,12 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, onMounted, nextTick } from 'vue'
+import { ref, defineEmits, onMounted, nextTick, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue' 
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
-import { loadEvents, saveIncident } from '@/api/incidentApi'
+import { loadEvents, saveIncident, saveNewEvent } from '@/api/incidentApi'
 import { fetchObjectsForSelect, fetchLocationByCoords } from '@/api/planWorkApi'
 import { useNotificationStore } from '@/stores/notificationStore'
 
@@ -124,6 +127,55 @@ const filteredRecordsByPlace = ref([])
 const loadingPlaces = ref(false)
 const loadingObjectTypes = ref(false)
 const loadingObjects = ref(false)
+const searchQuery = ref('');
+
+const computedIncidentTypeOptions = computed(() => {
+  if (searchQuery.value && !incidentTypeOptions.value.some(opt => opt.label.toLowerCase() === searchQuery.value.toLowerCase())) {
+    return [
+      {
+        label: `Создать "${searchQuery.value}"`,
+        value: `__CREATE__${searchQuery.value}`,
+        isCreate: true
+      },
+      ...incidentTypeOptions.value
+    ];
+  }
+  return incidentTypeOptions.value;
+});
+
+const handleIncidentSearch = (query) => {
+  searchQuery.value = query;
+};
+
+const onIncidentTypeSelect = async (selectedValue, selectedOption) => {
+  if (typeof selectedValue === 'string' && selectedValue.startsWith('__CREATE__')) {
+    const labelToCreate = selectedValue.substring('__CREATE__'.length);
+    
+    // Сбрасываем v-model, чтобы "Создать..." не оставалось в поле
+    form.value.incidentType = null;
+    searchQuery.value = '';
+
+    try {
+      if (!labelToCreate.trim()) return;
+      
+      const newEvent = await saveNewEvent(labelToCreate);
+      incidentTypeOptions.value.push(newEvent);
+      
+      // Устанавливаем только что созданный элемент как выбранный
+      await nextTick();
+      // Важно: присваиваем полный объект, а не только его value
+      form.value.incidentType = incidentTypeOptions.value.find(opt => opt.value === newEvent.value);
+      notificationStore.showNotification(`Событие "${labelToCreate}" успешно создано`, 'success');
+    } catch (error) {
+      notificationStore.showNotification(`Ошибка при создании события: ${error.message}`, 'error');
+      form.value.incidentType = null; // Очищаем поле в случае ошибки
+    }
+  } else {
+    // Обычный выбор из списка
+    form.value.incidentType = selectedOption;
+    searchQuery.value = '';
+  }
+};
 
 const loadAllObjects = async () => {
   loadingPlaces.value = true

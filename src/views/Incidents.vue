@@ -172,7 +172,7 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
         object: r.nameObject,
         coordinates: formatCoordinates(r.StartKm, r.StartPicket, r.StartLink, r.FinishKm, r.FinishPicket, r.FinishLink),
         statusName: r.nameStatus, 
-        criticality: r.nameCriticality,
+        criticality: r.nameCriticality || 'не указана',
         date: date,
         time: time ? time.substring(0, 8) : null,
         description: r.Description,

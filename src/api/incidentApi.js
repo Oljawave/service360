@@ -31,6 +31,15 @@ function getAstanaISOString() {
   return isoString;
 }
 
+function formatDateToYYYYMMDD(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export async function loadIncidents(date = "2025-07-30", periodType = 11) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -87,6 +96,40 @@ export async function loadEvents() {
     }));
   } catch (error) {
     console.error("Ошибка при загрузке событий/запросов:", error);
+    throw error;
+  }
+}
+
+export async function saveNewEvent(eventName) {
+  try {
+    const payload = {
+      method: "data/saveEvent",
+      params: ["ins", { "name": eventName }]
+    };
+
+    console.log('Отправляемый payload для saveNewEvent:', JSON.stringify(payload, null, 2));
+
+    const response = await axios.post(
+      API_BASE_URL,
+      payload,
+      {
+        withCredentials: true
+      }
+    );
+
+    if (response.data && response.data.error) {
+      const error = response.data.error;
+      throw new Error(error.message || JSON.stringify(error));
+    }
+
+    // Предполагаем, что сервер возвращает ID созданной записи
+    const newRecordId = response.data.result?.records?.[0]?.id;
+    if (!newRecordId) {
+      throw new Error('Сервер не вернул ID для нового события.');
+    }
+    return { id: newRecordId, name: eventName, label: eventName, value: newRecordId };
+  } catch (error) {
+    console.error("Ошибка при сохранении нового события:", error);
     throw error;
   }
 }
@@ -255,8 +298,8 @@ export async function assignWorkToIncident(incident, work, completionDate, selec
   
   try {
     const user = await fetchUserData();
-    const today = new Date().toISOString().slice(0, 10);
-    const planDateEnd = new Date(completionDate).toISOString().slice(0, 10);
+    const today = formatDateToYYYYMMDD(new Date());
+    const planDateEnd = formatDateToYYYYMMDD(completionDate);
 
     const payload = {
       method: "data/assignPlan",

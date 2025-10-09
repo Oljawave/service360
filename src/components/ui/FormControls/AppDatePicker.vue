@@ -15,6 +15,7 @@
       :locale="ruLocale"
       :format="dateFormat"
       @update:value="updateValue"
+      :is-date-disabled="isDateDisabled"
     />
   </div>
 </template>
@@ -36,6 +37,10 @@ const props = defineProps({
   required: {
     type: Boolean,
     default: false
+  },
+  isDateDisabled: {
+    type: Function,
+    default: () => false
   }
 });
 

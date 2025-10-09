@@ -52,7 +52,7 @@
         label="Дата завершения"
         placeholder="Выберите дату"
         v-model="form.completionDate"
-        :required="true"
+        :is-date-disabled="isDateDisabled" :required="true"
       />
     </div>
   </ModalWrapper>
@@ -64,8 +64,8 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
-import { fetchWorks, fetchLocationByCoords } from '@/api/planWorkApi' // Добавлен fetchLocationByCoords
-import { assignWorkToIncident, loadCriticalityLevels } from '@/api/incidentApi' // Добавлен loadCriticalityLevels
+import { fetchWorks, fetchLocationByCoords } from '@/api/planWorkApi' 
+import { assignWorkToIncident, loadCriticalityLevels } from '@/api/incidentApi'
 
 const props = defineProps({
   incidents: { type: Array, default: () => [] }
@@ -78,9 +78,15 @@ const incidentOptions = computed(() => {
     .map(incident => ({
       label: `${incident.id} - ${incident.name} - ${incident.object}`,
       value: incident.id,
-      fullIncidentData: incident.rawData // Сохраняем полные данные инцидента
+      fullIncidentData: incident.rawData
     }));
 });
+
+const isDateDisabled = (timestamp) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Устанавливаем время на начало дня
+  return timestamp < today.getTime();
+};
 
 const emit = defineEmits(['close', 'assign-work'])
 const notificationStore = useNotificationStore()
