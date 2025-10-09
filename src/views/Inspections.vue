@@ -170,7 +170,6 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
 };
 
 const onRowDoubleClick = (row) => {
-  console.log('Двойной клик по записи:', row);
   
   selectedRecord.value = row;
   

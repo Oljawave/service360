@@ -244,7 +244,6 @@ const handleSave = async () => {
 };
 
 const refreshTable = () => {
-  console.log('Обновление таблицы');
   loadData();
 };
 

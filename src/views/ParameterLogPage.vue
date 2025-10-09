@@ -166,7 +166,6 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
 };
 
 const onRowDoubleClick = (row) => {
-  console.log('Двойной клик по строке:', row);
   selectedRowData.value = row;
   isModalOpen.value = true;
 };

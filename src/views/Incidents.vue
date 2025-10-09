@@ -197,7 +197,6 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
 };
 
 const onRowDoubleClick = (row) => {
-  console.log('Двойной клик по записи инцидента:', row);
   selectedRecord.value = row;
   
   if (!row.rawData?.id) {

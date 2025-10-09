@@ -295,7 +295,6 @@ const validateMinMax = () => {
 const closeModal = () => { emit('close'); };
 
 const handleDelete = () => {
-    console.log('Кнопка "Удалить" в модале WorkCardInfoModal нажата. Показ модала подтверждения.');
     showConfirmModal.value = true;
 };
 
@@ -315,10 +314,7 @@ const onConfirmDelete = async () => {
   }
 
   try {
-    console.log(`Попытка удаления записи осмотра с ID: ${recordId}`);
     await deleteFaultOrParameter(recordId); 
-    
-    console.log('Удаление успешно.');
     notificationStore.showNotification('Карточка осмотра успешно удалена!', 'success');
     emit('delete-work'); 
 

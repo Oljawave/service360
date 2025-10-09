@@ -170,7 +170,6 @@ const loadWorkPlanWrapper = async ({ page, limit, filters: filterValues }) => {
 };
 
 const onRowDoubleClick = (row) => {
-  console.log('Двойной клик по строке:', row);
 };
 
 const columns = [

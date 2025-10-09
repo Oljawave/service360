@@ -167,7 +167,6 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
 };
 
 const onRowDoubleClick = (row) => {
-  console.log('Двойной клик по строке:', row);
   selectedFaultRow.value = row;
   showInfoModal.value = true;
 };

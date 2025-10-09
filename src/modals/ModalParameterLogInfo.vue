@@ -183,8 +183,6 @@ const parseCoordinatesString = (coordsString, rawData) => {
 const fillFormWithData = () => {
   const data = props.rowData
 
-  console.log('ModalParameterLogInfo: Загрузка данных параметра:', data)
-
   form.value.factDateEnd = parseDateForPicker(data.FactDateEnd)
   form.value.nameLocationClsSection = data.nameLocationClsSection || ''
   form.value.nameSection = data.nameSection || ''
@@ -195,15 +193,12 @@ const fillFormWithData = () => {
   form.value.paramsLimitMin = data.ParamsLimitMin
   form.value.paramsLimitMax = data.ParamsLimitMax || ''
   form.value.paramsLimit = data.ParamsLimit || ''
-  // Получаем ID из rawData для удаления
   form.value.id = data.rawData?.id || null
 }
 
 onMounted(() => {
   fillFormWithData()
 })
-
-// --- Логика удаления ---
 
 const onDeleteClicked = () => {
   showConfirmModal.value = true
@@ -225,10 +220,8 @@ const onConfirmDelete = async () => {
   }
 
   try {
-    console.log(`Попытка удаления записи параметра с ID: ${recordId}`)
     await deleteFaultOrParameter(recordId)
     
-    console.log('Удаление успешно.')
     notificationStore.showNotification('Параметр успешно удален!', 'success')
 
     emit('deleted') 

@@ -146,8 +146,6 @@ const parseCoordinatesString = (coordsString, rawData) => {
 const fillFormWithData = () => {
   const data = props.rowData
 
-  console.log('ModalFaultInfo: Загрузка данных неисправности:', data)
-
   form.value.nameObject = data.nameObject || ''
   form.value.nameSection = data.nameSection || ''
   form.value.nameLocationClsSection = data.nameLocationClsSection || ''
@@ -155,15 +153,12 @@ const fillFormWithData = () => {
   form.value.nameDefect = data.nameDefect || ''
   form.value.factDateEnd = parseDateForPicker(data.FactDateEnd)
   form.value.parsedCoordinates = parseCoordinatesString(data.coordinates, data.rawData)
-  // Получаем ID из rawData для удаления
   form.value.id = data.rawData?.id || null 
 }
 
 onMounted(() => {
   fillFormWithData()
 })
-
-// --- Логика удаления ---
 
 const onDeleteClicked = () => {
   showConfirmModal.value = true
@@ -185,17 +180,13 @@ const onConfirmDelete = async () => {
   }
 
   try {
-    console.log(`Попытка удаления записи с ID: ${recordId}`)
     await deleteFaultOrParameter(recordId)
     
-    console.log('Удаление успешно.')
     notificationStore.showNotification('Неисправность успешно удалена!', 'success')
-    // Эмитим событие, чтобы родительский компонент мог обновить список и закрыть модальное окно
     emit('deleted') 
 
   } catch (error) {
     console.error('Ошибка при удалении записи:', error)
-    // Можно добавить уведомление пользователю об ошибке
     notificationStore.showNotification('Ошибка при удалении неисправности.', 'error')
   }
 }

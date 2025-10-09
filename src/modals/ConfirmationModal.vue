@@ -30,12 +30,10 @@ defineProps({
 const emit = defineEmits(['confirm', 'cancel']);
 
 const onConfirm = () => {
-  console.log('ConfirmationModal: onConfirm нажато');
   emit('confirm');
 };
 
 const onCancel = () => {
-  console.log('ConfirmationModal: onCancel нажато');
   emit('cancel');
 };
 </script>
