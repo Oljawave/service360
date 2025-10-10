@@ -84,6 +84,7 @@
             label="Плановый срок завершения"
             placeholder="Выберите дату"
             v-model="object.plannedDate"
+            :is-date-disabled="isDateDisabled"
             :required="true"
           />
         </div>
@@ -156,6 +157,12 @@ const form = ref({
 const workOptions = ref([])
 const loadingWorks = ref(false)
 const isAddingObject = ref(false)
+
+const isDateDisabled = (timestamp) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Устанавливаем время на начало дня
+  return timestamp < today.getTime();
+};
 
 const closeModal = () => {
   emit('close')
