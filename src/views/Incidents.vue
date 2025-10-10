@@ -176,6 +176,7 @@ const loadIncidentsWrapper = async ({ page, limit, filters: filterValues }) => {
         date: date,
         time: time ? time.substring(0, 8) : null,
         description: r.Description,
+        source: r.objFault || r.objParameterLog,
         rawData: r,
         hasDefects: r.nameFlagDefect,
         fullNameWork: r.fullNameWork,
@@ -221,6 +222,7 @@ const getRowClassFn = (row) => {
 const columns = [
   { key: 'id', label: '№' },
   { key: 'name', label: 'Наименование' },
+  { key: 'source', label: 'Ссылка на источник' },
   { key: 'nameCls', label: 'Источник' },
   { key: 'object', label: 'Объект' },
   { key: 'coordinates', label: 'Координаты' },

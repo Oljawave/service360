@@ -16,15 +16,15 @@
       label-field="label"
       value-field="value"
       filterable
+      :render-label="renderLabel"
       clearable
       @update:value="updateValue"
     />
     <p v-if="hint" class="hint">{{ hint }}</p>
   </div>
 </template>
-
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, h } from 'vue'
 import { NSelect } from 'naive-ui'
 
 const props = defineProps({
@@ -47,6 +47,16 @@ const updateValue = (selectedValue) => {
   const selectedOption = props.options.find(opt => opt.value === selectedValue)
   emit('update:modelValue', selectedOption ?? selectedValue)
 }
+
+const renderLabel = (option) => {
+  // Проверяем, что label существует и является строкой
+  const labelText = String(option.label ?? '');
+  return h(
+    'div',
+    { title: labelText },
+    labelText
+  );
+};
 </script>
 
 <style scoped>

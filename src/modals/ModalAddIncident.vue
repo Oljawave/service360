@@ -52,13 +52,12 @@
         :required="true" 
       />
 
-      <CoordinateInputs
+      <FullCoordinates
         class="col-span-2"
         v-model="coordinates"
         :object-bounds="objectBounds"
-        @update:modelValue="updateCoordinates"
-        @invalid-range="handleInvalidRange" 
-        @out-of-bounds="handleOutOfBounds"
+        @invalid-range="handleInvalidRange"
+        @out-of-bounds="handleOutOfBounds" 
         :required="true" 
       />
 
@@ -75,8 +74,8 @@
       <AppInput 
         class="col-span-2" 
         id="applicantName" 
-        label="ФИО заявителя" 
-        placeholder="Введите ФИО" 
+        label="Информация о заявителе" 
+        placeholder="Введите информацию о заявителе.." 
         v-model="form.applicantName" 
         :required="true"
       />
@@ -88,8 +87,8 @@
 import { ref, defineEmits, onMounted, nextTick, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
-import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue' 
-import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
+import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
+import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
 import { loadEvents, saveIncident, saveNewEvent } from '@/api/incidentApi'
 import { fetchObjectsForSelect, fetchLocationByCoords } from '@/api/planWorkApi'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -109,8 +108,10 @@ const form = ref({
 const coordinates = ref({
   coordStartKm: null,
   coordStartPk: null,
+  coordStartZv: null,
   coordEndKm: null,
   coordEndPk: null,
+  coordEndZv: null,
 })
 
 const objectBounds = ref(null)
@@ -211,7 +212,7 @@ const onPlaceChange = (selectedPlaceId) => {
   objectTypeOptions.value = []
   objectOptions.value = []
   filteredRecordsByPlace.value = []
-  coordinates.value = { coordStartKm: null, coordStartPk: null, coordEndKm: null, coordEndPk: null }
+  coordinates.value = { coordStartKm: null, coordStartPk: null, coordStartZv: null, coordEndKm: null, coordEndPk: null, coordEndZv: null }
   objectBounds.value = null
   isInvalidRange.value = false
   isOutOfBounds.value = false
@@ -245,7 +246,7 @@ const onPlaceChange = (selectedPlaceId) => {
 const onObjectTypeChange = (selectedObjectTypeId) => {
   form.value.object = null
   objectOptions.value = []
-  coordinates.value = { coordStartKm: null, coordStartPk: null, coordEndKm: null, coordEndPk: null }
+  coordinates.value = { coordStartKm: null, coordStartPk: null, coordStartZv: null, coordEndKm: null, coordEndPk: null, coordEndZv: null }
   objectBounds.value = null
   isInvalidRange.value = false
   isOutOfBounds.value = false
@@ -273,7 +274,7 @@ const onObjectTypeChange = (selectedObjectTypeId) => {
 }
 
 const onObjectChange = async (selectedObjectId) => {
-  coordinates.value = { coordStartKm: null, coordStartPk: null, coordEndKm: null, coordEndPk: null }
+  coordinates.value = { coordStartKm: null, coordStartPk: null, coordStartZv: null, coordEndKm: null, coordEndPk: null, coordEndZv: null }
   objectBounds.value = null
   isInvalidRange.value = false
   isOutOfBounds.value = false
@@ -297,23 +298,23 @@ const onObjectChange = async (selectedObjectId) => {
   coordinates.value = {
     coordStartKm: parseInt(record.StartKm) || 0,
     coordStartPk: parseInt(record.StartPicket) || 0,
+    coordStartZv: parseInt(record.StartLink) || 0,
     coordEndKm: parseInt(record.FinishKm) || 0,
-    coordEndPk: parseInt(record.FinishPicket) || 0
+    coordEndPk: parseInt(record.FinishPicket) || 0,
+    coordEndZv: parseInt(record.FinishLink) || 0,
   }
 
   objectBounds.value = {
-    startAbs: (record.StartKm || 0) * 1000 + (record.StartPicket || 0) * 100,
-    endAbs: (record.FinishKm || 0) * 1000 + (record.FinishPicket || 0) * 100,
+    startAbs: (record.StartKm || 0) * 1000 + (record.StartPicket || 0) * 100 + (record.StartLink || 0) * 25,
+    endAbs: (record.FinishKm || 0) * 1000 + (record.FinishPicket || 0) * 100 + (record.FinishLink || 0) * 25,
     StartKm: record.StartKm,
     StartPicket: record.StartPicket,
+    StartLink: record.StartLink,
     FinishKm: record.FinishKm,
-    FinishPicket: record.FinishPicket
+    FinishPicket: record.FinishPicket,
+    FinishLink: record.FinishLink,
   }
 
-}
-
-const updateCoordinates = async (newCoords) => {
-  coordinates.value = newCoords
 }
 
 const validateForm = () => {
@@ -340,14 +341,18 @@ const validateForm = () => {
     coords.coordStartKm === null ||
     coords.coordStartPk === null ||
     coords.coordEndKm === null ||
-    coords.coordEndPk === null
+    coords.coordEndPk === null ||
+    coords.coordStartZv === null ||
+    coords.coordEndZv === null
   ) {
     notificationStore.showNotification('Не заполнены все Координаты', 'error')
     return false
   }
 
-  const startAbs = (coords.coordStartKm || 0) * 1000 + (coords.coordStartPk || 0) * 100
-  const endAbs = (coords.coordEndKm || 0) * 1000 + (coords.coordEndPk || 0) * 100
+  const startAbs = (coords.coordStartKm || 0) * 1000 + (coords.coordStartPk || 0) * 100 + (coords.coordStartZv || 0) * 25
+  const endAbs = (coords.coordEndKm || 0) * 1000 + (coords.coordEndPk || 0) * 100 + (coords.coordEndZv || 0) * 25
+
+
 
   if (startAbs > endAbs) {
     notificationStore.showNotification('Начало не может быть больше конца', 'error')
@@ -417,12 +422,11 @@ const saveData = async () => {
     FinishKm: coordinates.value.coordEndKm !== null ? parseFloat(coordinates.value.coordEndKm) : 0.0,
     StartPicket: coordinates.value.coordStartPk !== null ? parseFloat(coordinates.value.coordStartPk) : 0.0,
     FinishPicket: coordinates.value.coordEndPk !== null ? parseFloat(coordinates.value.coordEndPk) : 0.0,
-    
     Description: form.value.description,
     InfoApplicant: form.value.applicantName,
     
-    StartLink: 0.0,
-    FinishLink: 0.0,
+    StartLink: coordinates.value.coordStartZv !== null ? parseFloat(coordinates.value.coordStartZv) : 0.0,
+    FinishLink: coordinates.value.coordEndZv !== null ? parseFloat(coordinates.value.coordEndZv) : 0.0,
   }
   
   try {
@@ -469,7 +473,7 @@ const closeModal = () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
-  padding: 0 32px 32px;
+  padding: 32px;
   background-color: #f9fafb;
 }
 

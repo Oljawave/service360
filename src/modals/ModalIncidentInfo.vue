@@ -57,7 +57,7 @@
       
       <AppInput
         id="applicantName"
-        label="ФИО заявителя"
+        label="Информация о заявителе"
         v-model="form.applicantName"
         :disabled="false"
       />

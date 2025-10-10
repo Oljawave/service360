@@ -5,11 +5,10 @@
       <span v-if="required" class="required-asterisk">*</span>
     </label>
     <div class="coordinate-group">
-      <AppNumberInput
+<AppNumberInput
         :modelValue="currentStartKm"
         label="Начало (км)"
         placeholder="км"
-        :required="required"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartKm"
@@ -21,7 +20,6 @@
         label="Начало (пк)"
         placeholder="пк"
         :max="10"
-        :required="required"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartPk"
@@ -32,8 +30,7 @@
         :modelValue="currentStartZv"
         label="Начало (зв)"
         placeholder="зв"
-        :max="99"
-        :required="required"
+        :max="8"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleStartZv"
@@ -44,7 +41,6 @@
         :modelValue="currentEndKm"
         label="Конец (км)"
         placeholder="км"
-        :required="required"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndKm"
@@ -56,7 +52,6 @@
         label="Конец (пк)"
         placeholder="пк"
         :max="10"
-        :required="required"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndPk"
@@ -67,8 +62,7 @@
         :modelValue="currentEndZv"
         label="Конец (зв)"
         placeholder="зв"
-        :max="99"
-        :required="required"
+        :max="8"
         :disabled="disabled"
         :status="shouldShowError && (isInvalid || isOutOfBounds) ? 'error' : null"
         @update:modelValue="handleEndZv"
@@ -135,16 +129,15 @@ const isInvalid = computed(() => startAbs.value > endAbs.value)
 const isOutOfBounds = computed(() => {
   if (!props.objectBounds) return false
   
-  // Проверяем наличие всех необходимых полей в objectBounds
-  const hasStartZv = props.objectBounds.StartZv !== undefined && props.objectBounds.StartZv !== null
-  const hasFinishZv = props.objectBounds.FinishZv !== undefined && props.objectBounds.FinishZv !== null
+  const startZv = props.objectBounds.StartLink ?? props.objectBounds.StartZv ?? 0;
+  const finishZv = props.objectBounds.FinishLink ?? props.objectBounds.FinishZv ?? 0;
   
-  const objStartAbs = props.objectBounds.StartKm * 1000 + 
-                      props.objectBounds.StartPicket * 100 + 
-                      (hasStartZv ? props.objectBounds.StartZv * 25 : 0)
-  const objEndAbs = props.objectBounds.FinishKm * 1000 + 
-                    props.objectBounds.FinishPicket * 100 + 
-                    (hasFinishZv ? props.objectBounds.FinishZv * 25 : 0)
+  const objStartAbs = (props.objectBounds.StartKm ?? 0) * 1000 + 
+                      (props.objectBounds.StartPicket ?? 0) * 100 + 
+                      startZv * 25;
+  const objEndAbs = (props.objectBounds.FinishKm ?? 0) * 1000 + 
+                    (props.objectBounds.FinishPicket ?? 0) * 100 + 
+                    finishZv * 25;
   
   return startAbs.value < objStartAbs || endAbs.value > objEndAbs
 })
