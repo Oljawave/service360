@@ -18,7 +18,6 @@
       />
 
       <IncidentHeaderInfo
-        v-if="selectedIncident"
         class="col-span-2"
         :incident="selectedIncident"
       />
@@ -73,8 +72,8 @@ import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import IncidentHeaderInfo from '@/components/ui/IncidentHeaderInfo.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
-import { fetchWorks, fetchLocationByCoords } from '@/api/planWorkApi' 
-import { assignWorkToIncident, loadCriticalityLevels } from '@/api/incidentApi'
+import { fetchLocationByCoords } from '@/api/planWorkApi' 
+import { assignWorkToIncident, loadCriticalityLevels, loadWorksForIncidentObject } from '@/api/incidentApi'
 
 const props = defineProps({
   incidents: { type: Array, default: () => [] }
@@ -121,6 +120,10 @@ const onIncidentTypeChange = async (selectedIncidentValue) => {
   form.value.criticality = null;
   form.value.section = null;
   sectionOptions.value = [];
+  // Очищаем список работ при смене инцидента
+  form.value.workType = null;
+  workTypeOptions.value = [];
+
   selectedIncident.value = null;
 
   if (!selectedIncidentValue) return;
@@ -130,6 +133,20 @@ const onIncidentTypeChange = async (selectedIncidentValue) => {
 
   selectedIncident.value = selectedIncidentOption.fullIncidentData;
   const incidentData = selectedIncidentOption.fullIncidentData.rawData;
+
+  // Загружаем работы для объекта этого инцидента
+  if (incidentData.objObject) {
+    loadingWorks.value = true;
+    try {
+      const works = await loadWorksForIncidentObject(incidentData.objObject);
+      workTypeOptions.value = works;
+      if (works.length === 0) {
+        notificationStore.showNotification('Для объекта этого инцидента нет подходящих работ.', 'warning');
+      }
+    } finally {
+      loadingWorks.value = false;
+    }
+  }
 
   // Устанавливаем критичность из данных инцидента
   if (incidentData.fvCriticality) {
@@ -207,24 +224,14 @@ const loadSections = async (coords, workId) => {
 onMounted(async () => {
   try {
     loadingWorks.value = true
-    loadingCriticality.value = true
-    const [works, criticalityLevels] = await Promise.all([
-      fetchWorks(),
-      loadCriticalityLevels()
-    ]);
-
-    workTypeOptions.value = works;
+    loadingCriticality.value = true;
+    const criticalityLevels = await loadCriticalityLevels();
     criticalityOptions.value = criticalityLevels;
-
-    if (works.length === 0) {
-      notificationStore.showNotification('Нет доступных работ для выбора', 'warning');
-    } else {
-      // notificationStore.showNotification('Нет доступных работ для выбора', 'warning')
-    }
   } catch (error) {
     notificationStore.showNotification('Ошибка при загрузке данных', 'error');
   } finally {
-    loadingWorks.value = false
+    // Загрузка работ теперь происходит при выборе инцидента
+    loadingWorks.value = false;
     loadingCriticality.value = false;
   }
 })

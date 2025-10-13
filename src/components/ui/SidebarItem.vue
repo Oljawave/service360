@@ -29,6 +29,7 @@ const isActive = computed(() => {
 
 <style scoped>
 .sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 12px 16px;
@@ -53,12 +54,31 @@ const isActive = computed(() => {
 }
 
 .sidebar-item.is-collapsed .label {
-  display: none;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ffffff;
+  color: #2d3748;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+  margin-left: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-item:hover {
   background: #edf2f7;
   color: #2b6cb0;
+}
+
+.sidebar-item.is-collapsed:hover .label {
+  opacity: 1;
 }
 
 .active {

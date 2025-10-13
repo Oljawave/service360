@@ -18,14 +18,14 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/dtj/service/auth': {
-        target: 'http://192.168.1.20:9177',
+        target: 'http://192.168.1.20:9180',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace('/dtj/service/', ''),
       },
       
       '/dtj/service/userapi': {
-        target: 'http://192.168.1.20:9177/api',
+        target: 'http://192.168.1.20:9180/api',
         changeOrigin: true,
         rewrite: (path) => path.replace('/dtj/service/userapi', ''),
         secure: false,

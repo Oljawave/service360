@@ -27,13 +27,12 @@
             <UiIcon :name="isExpanded ? 'ChevronDown' : 'ChevronRight'" />
           </span>
         </span>
-        <!-- Отображаем значение, только если оно не совпадает с индексом, чтобы избежать дублирования -->
         <span class="cell-content" v-if="row[col.key] != fullIndex">
-          {{ row[col.key] }}
+          {{ formatValue(row[col.key]) }}
         </span>
       </template>
       <template v-else>
-        <span class="cell-content">{{ row[col.key] }}</span>
+        <span class="cell-content">{{ formatValue(row[col.key]) }}</span>
       </template>
     </td>
   </tr>
@@ -89,6 +88,25 @@ const fullIndex = computed(() => {
   if (props.parentIndex) return props.parentIndex;
   return props.row.index?.toString() || '';
 });
+
+const formatValue = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  // Форматирование даты YYYY-MM-DD -> DD.MM.YYYY
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-');
+    return `${day}.${month}.${year}`;
+  }
+
+  // Форматирование времени HH:mm:ss.sss -> HH:mm:ss
+  if (/^\d{2}:\d{2}:\d{2}\.\d+$/.test(value)) {
+    return value.substring(0, 8);
+  }
+
+  return value;
+};
 
 // Добавленная логика для проверки дат
 const isFactDateOverdue = (key) => {

@@ -7,6 +7,8 @@
             v-for="col in columns" 
             :key="col.key" 
             class="header-cell-container"
+            @click="$emit('sort', col.key)"
+            :style="{ cursor: col.sortable === false ? 'default' : 'pointer' }"
             >
             <div class="header-cell">
               <span>{{ col.label }}</span>

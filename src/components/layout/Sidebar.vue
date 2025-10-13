@@ -12,7 +12,7 @@
         v-for="item in items"
         :key="item.path"
         :icon="item.icon"
-        :label="sidebar.collapsed ? '' : item.label"
+        :label="item.label"
         :to="item.path"
         :is-collapsed="sidebar.collapsed"
       />

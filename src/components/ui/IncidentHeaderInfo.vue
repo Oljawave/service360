@@ -1,33 +1,33 @@
 <template>
-  <div v-if="incident" class="incident-header-info">
+  <div class="incident-header-info">
     <div class="info-grid">
       <div class="info-item col-span-2">
         <span class="info-label">Источник:</span>
-        <span class="info-value">{{ incident.nameCls || 'Не указан' }}</span>
+        <span class="info-value">{{ incident?.nameCls || '-' }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Статус:</span>
-        <span class="info-value">{{ incident.statusName || 'Не указан' }}</span>
+        <span class="info-value">{{ incident?.statusName || '-' }}</span>
       </div>
       <div class="info-item">
-        <span class="info-label">Дата регистрации:</span>
-        <span class="info-value">{{ incident.date || 'Нет даты' }}</span>
+        <span class="info-label">Дата и время регистрации:</span>
+        <span class="info-value">{{ incident?.date || '-' }}</span>
       </div>
       <div class="info-item col-span-2">
         <span class="info-label">Объект:</span>
-        <span class="info-value">{{ incident.object || 'Не указан' }}</span>
+        <span class="info-value">{{ incident?.object || '-' }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Координаты:</span>
-        <span class="info-value">{{ incident.coordinates || 'Не указаны' }}</span>
+        <span class="info-value">{{ incident?.coordinates || '-' }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Информация о заявителе:</span>
-        <span class="info-value">{{ incident.rawData?.InfoApplicant || 'Не указана' }}</span>
+        <span class="info-value">{{ incident?.rawData?.InfoApplicant || '-' }}</span>
       </div>
       <div class="info-item col-span-2">
         <span class="info-label">Описание:</span>
-        <span class="info-value description-value">{{ incident.description || 'Нет описания' }}</span>
+        <span class="info-value description-value">{{ incident?.description || '-' }}</span>
       </div>
     </div>
   </div>

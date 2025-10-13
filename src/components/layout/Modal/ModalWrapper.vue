@@ -1,26 +1,28 @@
 <template>
-  <div class="modal-overlay" @click.self="closeModal">
-    <div class="modal-wrapper">
-      <div class="modal-card">
-        <ModalHeader :title="title" @close="closeModal" />
-        <div class="modal-scrollable">
-          <div class="modal-body">
-            <slot></slot>
+  <Transition name="modal-fade" appear>
+    <div class="modal-overlay" @click.self="closeModal">
+      <div class="modal-wrapper">
+        <div class="modal-card">
+          <ModalHeader :title="title" @close="closeModal" />
+          <div class="modal-scrollable">
+            <div class="modal-body">
+              <slot></slot>
+            </div>
           </div>
+          <ModalFooter
+            v-if="showFooter || showDelete || showSaveButton"
+            :disabled="disabled"
+            :showDelete="showDelete"
+            :showSave="showSaveButton"
+            :showCancel="showCancelButton"
+            @cancel="closeModal"
+            @save="onSave"
+            @delete="onDelete"
+          />
         </div>
-        <ModalFooter
-          v-if="showFooter || showDelete || showSaveButton"
-          :disabled="disabled"
-          :showDelete="showDelete"
-          :showSave="showSaveButton"
-          :showCancel="showCancelButton"
-          @cancel="closeModal"
-          @save="onSave"
-          @delete="onDelete"
-        />
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -47,6 +49,28 @@ const onDelete = () => emit('delete')
 </script>
 
 <style scoped>
+/* Стили для анимации модального окна */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s cubic-bezier(0.52, 0.02, 0.19, 1.02);
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .modal-wrapper,
+.modal-fade-leave-active .modal-wrapper {
+  transition: all 0.3s cubic-bezier(0.52, 0.02, 0.19, 1.02);
+}
+
+.modal-fade-enter-from .modal-wrapper,
+.modal-fade-leave-to .modal-wrapper {
+  transform: scale(0.95) translateY(-20px);
+  opacity: 0;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;

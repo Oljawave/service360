@@ -23,6 +23,7 @@
           :required="true"
           class="filter-item"
           :options="months"
+          :disabled="!selectedSection"
           @update:value="onMonthChange"
         />
         <AppDropdown
@@ -32,7 +33,8 @@
           placeholder="Выберите день"
           :required="true"
           class="filter-item"
-          :options="days"
+          :options="filteredDays"
+          :disabled="!selectedMonth"
         />
         <div class="action-buttons">
           <MainButton
@@ -111,6 +113,7 @@ const sections = ref([]);
 const sectionsData = ref([]);
 const months = ref([]);
 const days = ref([]);
+const allDatesData = ref([]); // Храним все даты
 const monthDropdownKey = ref(0);
 const dayDropdownKey = ref(0);
 const isWorkCardModalOpen = ref(false);
@@ -140,6 +143,31 @@ const formattedDate = computed(() => {
 const selectedSectionName = computed(() => {
   const section = sections.value.find((s) => s.value === selectedSection.value);
   return section ? section.label : null;
+});
+
+// Вычисляемое свойство для фильтрации дней по выбранному месяцу
+const filteredDays = computed(() => {
+  if (!selectedMonth.value) return [];
+  
+  // Фильтруем даты, которые соответствуют выбранному месяцу
+  const daysForMonth = allDatesData.value
+    .filter(date => {
+      const [year, month] = date.split('-');
+      return `${year}-${month}` === selectedMonth.value;
+    })
+    .map(date => {
+      const [, , day] = date.split('-');
+      return day;
+    });
+  
+  // Убираем дубликаты и сортируем
+  const uniqueDays = [...new Set(daysForMonth)];
+  return uniqueDays
+    .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
+    .map((day) => ({
+      value: day,
+      label: day,
+    }));
 });
 
 const getSelectedSectionData = () => {
@@ -247,7 +275,7 @@ const loadWorkPlanForDate = async () => {
       objectType: record.nameClsObject || 'Неизвестно',
       object: record.fullNameObject || 'Объект не указан',
       objObject: record.objObject,
-      coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк ${record.StartLink || 0}зв — ${record.FinishKm}км ${record.FinishPicket || 0}пк ${record.FinishLink || 0}зв` : 'Координаты отсутствуют',
+      coordinates: record.StartKm && record.FinishKm ? `${record.StartKm}км ${record.StartPicket || 0}пк ${record.StartLink || 0}зв – ${record.FinishKm}км ${record.FinishPicket || 0}пк ${record.FinishLink || 0}зв` : 'Координаты отсутствуют',
       StartKm: record.StartKm,
       StartPicket: record.StartPicket,
       StartLink: record.StartLink,
@@ -271,11 +299,6 @@ const loadSectionsData = async () => {
       value: section.id,
       label: section.name,
     }));
-
-    if (data.length > 0) {
-      selectedSection.value = data[0].id;
-      await loadWorkPlanDatesData();
-    }
   } catch (error) {
     notificationStore.showNotification('Не удалось загрузить участки', 'error');
   }
@@ -287,6 +310,7 @@ const loadWorkPlanDatesData = async () => {
   if (!sectionData.pv) {
     months.value = [];
     days.value = [];
+    allDatesData.value = [];
     selectedMonth.value = null;
     selectedDay.value = null;
     monthDropdownKey.value++;
@@ -296,40 +320,25 @@ const loadWorkPlanDatesData = async () => {
 
   try {
     const dates = await loadWorkPlanDates(sectionData.id, sectionData.pv);
+    
+    // Сохраняем все даты для последующей фильтрации
+    allDatesData.value = dates;
 
     const monthsSet = new Set();
-    const daysSet = new Set();
 
     dates.forEach((date) => {
-      const [year, month, day] = date.split('-');
+      const [year, month] = date.split('-');
       monthsSet.add(`${year}-${month}`);
-      daysSet.add(day);
     });
 
     months.value = Array.from(monthsSet).map((month) => ({
       value: month,
       label: new Date(`${month}-01`).toLocaleString('ru-RU', { month: 'long' }),
     }));
-    days.value = Array.from(daysSet).map((day) => ({
-      value: day,
-      label: day,
-    }));
 
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const currentDay = now.getDate().toString();
-
-    if (months.value.some((m) => m.value === currentMonth)) {
-      selectedMonth.value = currentMonth;
-      if (days.value.some((d) => d.value === currentDay)) {
-        selectedDay.value = currentDay;
-      } else {
-        selectedDay.value = days.value.length > 0 ? days.value[0].value : null;
-      }
-    } else {
-      selectedMonth.value = months.value.length > 0 ? months.value[0].value : null;
-      selectedDay.value = days.value.length > 0 ? days.value[0].value : null;
-    }
+    // Не устанавливаем автоматически месяц и день
+    selectedMonth.value = null;
+    selectedDay.value = null;
 
     monthDropdownKey.value++;
     dayDropdownKey.value++;
@@ -337,6 +346,7 @@ const loadWorkPlanDatesData = async () => {
     notificationStore.showNotification('Не удалось загрузить даты для плана', 'error');
     months.value = [];
     days.value = [];
+    allDatesData.value = [];
     selectedMonth.value = null;
     selectedDay.value = null;
     monthDropdownKey.value++;
@@ -350,6 +360,7 @@ const onSectionChange = async (newSectionId) => {
     selectedDay.value = null;
     months.value = [];
     days.value = [];
+    allDatesData.value = [];
     monthDropdownKey.value++;
     dayDropdownKey.value++;
 
@@ -357,6 +368,7 @@ const onSectionChange = async (newSectionId) => {
   } else {
     months.value = [];
     days.value = [];
+    allDatesData.value = [];
     selectedMonth.value = null;
     selectedDay.value = null;
     tableData.value = [];
@@ -366,11 +378,7 @@ const onSectionChange = async (newSectionId) => {
 };
 
 const onMonthChange = (newMonth) => {
-  if (!newMonth) {
-    selectedDay.value = null;
-    dayDropdownKey.value++;
-    return;
-  }
+  // Сбрасываем выбранный день при изменении месяца
   selectedDay.value = null;
   dayDropdownKey.value++;
 };
