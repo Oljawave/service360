@@ -7,18 +7,11 @@
             v-for="col in columns" 
             :key="col.key" 
             class="header-cell-container"
-            @click="$emit('sort', col.key)"
-            :style="{ cursor: col.sortable === false ? 'default' : 'pointer' }"
+            :style="{ cursor: 'default' }"
             >
             <div class="header-cell">
               <span>{{ col.label }}</span>
               <div class="sort-filter-controls">
-                <UiIcon 
-                  v-if="sortKey === col.key" 
-                  :name="sortDirection === 'asc' ? 'ChevronUp' : 'ChevronDown'" 
-                  class="sort-icon" 
-                />
-                
                 <button 
                   v-if="showFilters"
                   @click.stop="$emit('toggle-filter', col.key)" 

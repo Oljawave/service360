@@ -73,6 +73,8 @@ export default {
         
         // This is the correct way to get the user ID
         const curUser = await getCurrentUser()
+        console.log('User target:', curUser?.result?.target)
+
         const userId = curUser?.result?.id
         
         if (!userId) throw new Error("Не удалось получить ID пользователя")

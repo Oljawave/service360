@@ -1,5 +1,5 @@
 <template>
-  <ModalWrapper title="Запланировать новую работу" @close="closeModal" @save="saveData">
+  <ModalWrapper title="Запланировать новую работу" @close="closeModal" @save="saveData" :show-save="canInsert">
     <div class="form-section">
 
       <AppDropdown
@@ -105,13 +105,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { usePermissions } from '@/api/usePermissions';
 import { fetchWorks, fetchPlacesForWork, fetchLocationByCoords } from '@/api/planWorkApi'
 import { saveAllPlans } from '@/api/savePlanApi'
 
@@ -119,6 +120,9 @@ const emit = defineEmits(['close', 'update-table'])
 const notificationStore = useNotificationStore()
 
 let nextObjectId = 1
+
+const { hasPermission } = usePermissions()
+const canInsert = computed(() => hasPermission('plan:ins'))
 const generateObjectId = () => nextObjectId++
 
 const createNewObjectForm = () => ({

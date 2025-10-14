@@ -1,8 +1,10 @@
 <template>
   <ModalWrapper
-    title="Редактировать плановую работу"
-    :showDelete="true"
+    :title="modalTitle"
+    :show-delete="canDelete"
     @close="closeModal"
+    :show-cancel="canUpdate"
+    :show-save="canUpdate"
     @save="saveData"
     @delete="confirmDelete"
   >
@@ -100,13 +102,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import CoordinateInputs from '@/components/ui/FormControls/CoordinateInputs.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { usePermissions } from '@/api/usePermissions';
 import { fetchWorks, fetchLocationByCoords, fetchObjectsForSelect } from '@/api/planWorkApi'
 import { updatePlan } from '@/api/updatePlanApi'
 import { deletePlan as deletePlanApi } from '@/api/deletePlanApi'
@@ -117,6 +120,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 const notificationStore = useNotificationStore()
+
+const { hasPermission } = usePermissions()
+const canUpdate = computed(() => hasPermission('plan:upd'))
+const canDelete = computed(() => hasPermission('plan:del'))
+
+const modalTitle = computed(() => canUpdate.value ? 'Редактировать плановую работу' : 'Просмотр плановой работы')
+
 
 const form = ref({
   work: null,

@@ -2,8 +2,8 @@
   <ModalWrapper
     title="Информация об инциденте"
     @close="closeModal"
-    :showSaveButton="true"
-    :showDelete="true"
+    :show-save="canUpdate"
+    :show-delete="canDelete"
     @save="saveChanges"
     @delete="onDeleteClicked" 
   >
@@ -90,6 +90,7 @@ import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
 import ConfirmationModal from './ConfirmationModal.vue' 
 import { useNotificationStore } from '@/stores/notificationStore'
+import { usePermissions } from '@/api/usePermissions';
 import { deleteIncident, loadCriticalityLevels, updateIncident } from '@/api/incidentApi' 
 
 const emit = defineEmits(['close', 'deleted'])
@@ -104,6 +105,10 @@ const showConfirmModal = ref(false)
 const notificationStore = useNotificationStore()
 const criticalityOptions = ref([])
 const loadingCriticality = ref(false)
+
+const { hasPermission } = usePermissions();
+const canUpdate = computed(() => hasPermission('inc:upd'));
+const canDelete = computed(() => hasPermission('inc:del'));
 
 const initialCoordinates = { 
   coordStartKm: null, 

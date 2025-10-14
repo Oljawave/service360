@@ -1,9 +1,9 @@
 <template>
   <ModalWrapper
     title="Карточка осмотра/проверки"
-    :showSaveButton="false"
-    :showCancelButton="false"
-    :showDelete="true"
+    :show-save="false"
+    :show-cancel="false"
+    :showDelete="canDelete"
     @close="closeModal"
     @delete="handleDelete" 
     :disabled="isSaving"
@@ -13,7 +13,7 @@
 
       <div class="tabs-block">
         <TabsHeader 
-          :tabs="tabs" 
+          :tabs="visibleTabs" 
           :modelValue="activeTab" 
           @update:modelValue="handleTabChange" 
           :disabledTabs="disabledTabs" 
@@ -21,7 +21,7 @@
 
         <div class="tab-content">
           <div v-if="activeTab === 'info'">
-            <ExistingDataBlock :existingRecords="existingRecords" dataType="info" />
+            <!-- <ExistingDataBlock :existingRecords="existingRecords" dataType="info" /> -->
             <div class="new-info-content">
               <div class="section-heading spaced-heading info-heading">Местоположение работы (disabled)</div>
               <div class="coordinates-input-group info-coords">
@@ -180,7 +180,7 @@
 
       <div class="button-container">
         <div class="main-actions">
-          <MainButton :label="getButtonLabel()" :loading="isSaving" @click="saveWork" class="save-btn" v-if="activeTab !== 'info'" />
+          <MainButton :label="getButtonLabel()" :loading="isSaving" @click="saveWork" class="save-btn" v-if="canSaveChanges" />
         </div>
       </div>
     </div>
@@ -215,6 +215,7 @@ import {
   loadComponentParametersForSelect, loadFaultEntriesForInspection, 
   loadParameterEntriesForInspection
 } from '@/api/inspectionsApi.js';
+import { usePermissions } from '@/api/usePermissions';
 import { deleteFaultOrParameter } from '@/api/faultApi.js'; // Импорт метода удаления
 import { formatDate } from '@/stores/date.js';
 
@@ -229,20 +230,45 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'delete-work']); 
 
+const { hasPermission } = usePermissions();
+const canDelete = computed(() => hasPermission('ins:del'));
+const canInsertDefect = computed(() => hasPermission('def:ins'));
+const canInsertParameter = computed(() => hasPermission('par:ins'));
+
+const canSaveChanges = computed(() => {
+  if (activeTab.value === 'defects') {
+    return canInsertDefect.value;
+  }
+  if (activeTab.value === 'parameters') {
+    return canInsertParameter.value;
+  }
+  return false;
+});
+
 const isSaving = ref(false);
 
-const activeTab = ref('defects');
+const allTabs = ref([
+  { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle', show: canInsertDefect },
+  { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal', show: canInsertParameter },
+]);
+
+const visibleTabs = computed(() => allTabs.value.filter(tab => tab.show.value));
+
+const activeTab = ref(null);
+
+onMounted(() => {
+  // Устанавливаем активную вкладку на первую видимую
+  if (visibleTabs.value.length > 0) {
+    activeTab.value = visibleTabs.value[0].name;
+  }
+});
+
 const savedInspectionId = ref(props.inspectionId);
 
 const shouldShowMinMaxError = ref(false);
 const isUserTypingMinMax = ref(false);
 
 const showConfirmModal = ref(false);
-
-const tabs = ref([
-  { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle' },
-  { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal' },
-]);
 
 const disabledTabs = computed(() => ['info']);
 
@@ -627,7 +653,7 @@ const saveWork = async () => {
   }
 };
 
-onMounted(async () => {
+const initialLoad = async () => {
 
   if (savedInspectionId.value) {
     await loadExistingDefects(savedInspectionId.value);
@@ -635,7 +661,9 @@ onMounted(async () => {
   }
 
   await loadComponents();
-});
+};
+
+onMounted(initialLoad);
 
 watch(() => props.record, (newRecordData) => {
   if (newRecordData?.rawData) {

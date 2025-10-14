@@ -2,10 +2,10 @@
   <ModalWrapper
     title="Информация о неисправности"
     @close="closeModal"
-    :showSaveButton="false"
-    :showCancelButton="false"
-    :showDelete="true"
-    @delete="onDeleteClicked" 
+    :show-save="false"
+    :show-cancel="true"
+    :show-delete="canDelete"
+    @delete="onDeleteClicked"
   >
     <div class="form-section">
 
@@ -75,13 +75,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineEmits, defineProps } from 'vue'
+import { ref, onMounted, defineEmits, defineProps, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
-import ConfirmationModal from './ConfirmationModal.vue' 
+import ConfirmationModal from './ConfirmationModal.vue'
 import { deleteFaultOrParameter } from '@/api/faultApi'
+import { usePermissions } from '@/api/usePermissions';
 import { useNotificationStore } from '@/stores/notificationStore'
 
 const emit = defineEmits(['close', 'deleted'])
@@ -94,6 +95,9 @@ const props = defineProps({
 
 const showConfirmModal = ref(false)
 const notificationStore = useNotificationStore()
+
+const { hasPermission } = usePermissions()
+const canDelete = computed(() => hasPermission('def:del'))
 
 const initialCoordinates = { coordStartKm: null, coordStartPk: null, coordStartZv: null, coordEndKm: null, coordEndPk: null, coordEndZv: null }
 

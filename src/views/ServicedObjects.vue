@@ -27,7 +27,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { usePermissions } from '@/api/usePermissions';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue'
 import ModalAddObject from '@/modals/ModalAddObject.vue'
 import ModalUpdateObject from '@/modals/ModalUpdateObject.vue'
@@ -35,6 +36,9 @@ import { loadObjectServed } from '@/api/objectService'
 
 const tableWrapperRef = ref(null)
 const isAddObjectModalOpen = ref(false)
+
+const { hasPermission } = usePermissions();
+const canInsert = computed(() => hasPermission('obj:ins'));
 
 const closeModal = () => {
   isAddObjectModalOpen.value = false
@@ -48,25 +52,22 @@ const handleTableUpdate = (closeFn) => {
 const onRowDoubleClick = (row) => {
 }
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     label: 'Добавить объект',
     icon: 'Plus',
     onClick: () => {
       isAddObjectModalOpen.value = true
-    }
+    },
+    show: canInsert.value,
   },
   {
     label: 'Экспорт',
     icon: 'Download',
-    onClick: () => console.log('Экспортирование...')
+    onClick: () => console.log('Экспортирование...'),
+    show: true,
   },
-  {
-    label: 'Печать',
-    icon: 'Printer',
-    onClick: () => console.log('Печать...')
-  }
-]
+].filter(action => action.show));
 
 const limit = 10
 

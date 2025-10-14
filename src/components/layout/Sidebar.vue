@@ -9,7 +9,7 @@
 
     <nav class="nav-links">
       <SidebarItem
-        v-for="item in items"
+        v-for="item in filteredItems"
         :key="item.path"
         :icon="item.icon"
         :label="item.label"
@@ -23,7 +23,7 @@
 <script setup>
 import SidebarItem from '../ui/SidebarItem.vue'
 import UiIcon from '../ui/UiIcon.vue'
-import { onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useSidebarStore } from '@/stores/sidebar'
 
 const sidebar = useSidebarStore()
@@ -41,16 +41,33 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-const items = [
-  // { label: 'Главная', path: '/', icon: 'Home' },
-  { label: 'План работ', path: '/work-plan', icon: 'ClipboardList' },
-  { label: 'Журнал осмотров и проверок', path: '/inspections', icon: 'BookOpen' },
-  { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler' },
-  { label: 'Журнал неисправностей', path: '/defects', icon: 'AlertTriangle' },
-  { label: 'Журнал событий и запросов на работы', path: '/incidents', icon: 'Cog' },
-  { label: 'Обслуживаемые объекты', path: '/objects', icon: 'Folder' },
-  { label: 'Организационная структура', path: '/organization', icon: 'FolderTree' },
+const allItems = [
+  { label: 'План работ', path: '/work-plan', icon: 'ClipboardList', permission: 'plan' },
+  { label: 'Журнал осмотров и проверок', path: '/inspections', icon: 'BookOpen', permission: 'ins' },
+  { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler', permission: 'par' },
+  { label: 'Журнал неисправностей', path: '/defects', icon: 'AlertTriangle', permission: 'def' },
+  { label: 'Журнал событий и запросов на работы', path: '/incidents', icon: 'Cog', permission: 'inc' },
+  { label: 'Обслуживаемые объекты', path: '/objects', icon: 'Folder', permission: 'obj' },
+  { label: 'Организационная структура', path: '/organization', icon: 'FolderTree', permission: 'org' },
 ]
+
+const getUserPermissions = () => {
+  const curUserString = localStorage.getItem('curUser')
+  if (!curUserString) return new Set()
+
+  try {
+    const curUser = JSON.parse(curUserString)
+    const target = curUser?.result?.target || ''
+    const permissions = target.split(',').map(p => p.split(':')[0])
+    return new Set(permissions)
+  } catch (e) {
+    console.error('Ошибка парсинга данных пользователя:', e)
+    return new Set()
+  }
+}
+
+const userPermissions = getUserPermissions()
+const filteredItems = computed(() => allItems.filter(item => userPermissions.has(item.permission)))
 </script>
 
 <style scoped>

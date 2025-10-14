@@ -28,13 +28,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadInspections } from '@/api/inspectionApi';
 import { loadPeriodTypes } from '@/api/periodApi';
 import WorkStatus from '@/components/ui/WorkStatus.vue';
 import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
+import { usePermissions } from '@/api/usePermissions';
+
+const { hasPermission } = usePermissions();
+const canInsert = computed(() => hasPermission('insp:ins'));
 
 const router = useRouter();
 
@@ -207,18 +211,20 @@ const columns = [
   { key: 'status', label: 'Статус работы', component: WorkStatus,}
 ];
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     label: 'Добавить запись',
     icon: 'Plus',
     onClick: () => {
       router.push({ name: 'InspectionRecord' });
     },
+    show: canInsert.value,
   },
   {
     label: 'Экспорт',
     icon: 'Download',
     onClick: () => console.log('Экспортирование инспекций...'),
+    show: true,
   },
-];
+].filter(action => action.show));
 </script>

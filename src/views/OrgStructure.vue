@@ -20,7 +20,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { usePermissions } from '@/api/usePermissions'
 import TableActions from '@/components/layout/Table/TableActions.vue'
 import ModalOrgStructure from '@/modals/ModalOrgStructure.vue'
 import OrgStructureTree from '@/components/ui/OrgStructureTree.vue'
@@ -31,6 +32,9 @@ const organizationData = ref([])
 const expandedRows = ref([])
 const childrenMap = ref({})
 const isCreateModalOpen = ref(false)
+
+const { hasPermission } = usePermissions()
+const canInsert = computed(() => hasPermission('org:ins'))
 
 const openCreateModal = () => {
   isCreateModalOpen.value = true
@@ -49,13 +53,14 @@ const toggleRowExpand = (id) => {
   }
 }
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     label: 'Добавить структуру',
     icon: 'Plus',
-    onClick: openCreateModal
-  }
-]
+    onClick: openCreateModal,
+    show: canInsert.value,
+  },
+].filter(action => action.show))
 
 const fetchData = async () => {
   try {

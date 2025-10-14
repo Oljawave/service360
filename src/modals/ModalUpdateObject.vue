@@ -2,8 +2,9 @@
   <ModalWrapper
     title="Редактировать объект"
     @close="closeModal"
+    :show-save="canUpdate"
+    :show-delete="canDelete"
     @save="saveData"
-    :showDelete="true"
     @delete="handleDelete"
   >
     <div class="form-section">
@@ -14,6 +15,7 @@
         placeholder="Введите наименование" 
         v-model="form.name" 
         :required="true"
+        :disabled="!canUpdate"
       />
 
       <AppDropdown 
@@ -31,7 +33,8 @@
 
       <CoordinateInputs 
       v-model="coordinates" 
-      :required="true" 
+      :required="true"
+      :disabled="!canUpdate"
       />
 
       <AppInput 
@@ -50,6 +53,7 @@
         label="Дополнительные сведения" 
         placeholder="Введите сведения" 
         v-model="form.additionalInfo"
+        :disabled="!canUpdate"
       />
 
       <AppInput 
@@ -58,6 +62,7 @@
         label="Характеристика" 
         placeholder="Введите характеристику" 
         v-model="form.characteristic"
+        :disabled="!canUpdate"
       />
 
       <AppDropdown 
@@ -68,6 +73,7 @@
         :options="sideOptions" 
         :loading="loadingSides" 
         @update:value="onSideChange"
+        :disabled="!canUpdate"
       />
 
       <AppInput 
@@ -75,6 +81,7 @@
         label="Номер" 
         placeholder="Введите номер прибора" 
         v-model="form.deviceNumber"
+        :disabled="!canUpdate"
       />
 
       <AppNumberInput 
@@ -82,6 +89,7 @@
         label="Периодичность замены (год)" 
         placeholder="Введите периодичность" 
         v-model="form.replacementPeriod"
+        :disabled="!canUpdate"
       />
 
       <AppDatePicker 
@@ -89,6 +97,7 @@
         label="Дата установки" 
         placeholder="Выберите дату" 
         v-model="form.installDate"
+        :disabled="!canUpdate"
       />
 
       <AppInput 
@@ -98,6 +107,7 @@
         placeholder="Введите примечание..." 
         v-model="form.description" 
         type="textarea"
+        :disabled="!canUpdate"
       />
     </div>
 
@@ -111,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
@@ -123,6 +133,7 @@ import { loadTypes, loadSides, fetchStationOfCoord } from '@/api/objectApi'
 import { deleteObject, updateObjectServed } from '@/api/updateObjectApi' // Изменено: Импорт updateObjectServed и удален saveObjectServed
 import { fetchUserData } from '@/api/inspectionsApi'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { usePermissions } from '@/api/usePermissions';
 
 const props = defineProps({
   rowData: {
@@ -134,6 +145,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save', 'deleted'])
 
 const notificationStore = useNotificationStore()
+
+const { hasPermission } = usePermissions();
+const canUpdate = computed(() => hasPermission('obj:upd'));
+const canDelete = computed(() => hasPermission('obj:del'));
+
 
 const form = ref({
   name: '',

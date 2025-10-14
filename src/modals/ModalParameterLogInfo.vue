@@ -2,9 +2,9 @@
   <ModalWrapper
     title="Информация о параметре"
     @close="closeModal"
-    :showSaveButton="false"
-    :showCancelButton="false"
-    :showDelete="true"
+    :show-save="false"
+    :show-cancel="true"
+    :show-delete="canDelete"
     @delete="onDeleteClicked"
   >
     <div class="form-section">
@@ -63,14 +63,14 @@
       <AppInput
         id="paramsLimitMax"
         label="Значение (Max)"
-        v-model="form.paramsLimitMax"
+        :model-value="String(form.paramsLimitMax ?? '')"
         :disabled="true"
       />
       
       <AppInput
         id="paramsLimit"
         label="Значение"
-        v-model="form.paramsLimit"
+        :model-value="String(form.paramsLimit ?? '')"
         :disabled="true"
       />
 
@@ -99,8 +99,9 @@ import ModalWrapper from '@/components/layout/Modal/ModalWrapper.vue'
 import AppInput from '@/components/ui/FormControls/AppInput.vue'
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
-import ConfirmationModal from './ConfirmationModal.vue' // Предполагается, что ConfirmationModal.vue находится в той же папке
+import ConfirmationModal from './ConfirmationModal.vue'
 import { deleteFaultOrParameter } from '@/api/faultApi'
+import { usePermissions } from '@/api/usePermissions';
 import { useNotificationStore } from '@/stores/notificationStore'
 
 const emit = defineEmits(['close', 'deleted'])
@@ -113,6 +114,9 @@ const props = defineProps({
 
 const showConfirmModal = ref(false)
 const notificationStore = useNotificationStore()
+
+const { hasPermission } = usePermissions()
+const canDelete = computed(() => hasPermission('par:del'))
 
 const initialCoordinates = { 
   coordStartKm: null, 
@@ -141,11 +145,11 @@ const form = ref({
 })
 
 const minLimitDisplay = computed(() => {
-
-  if (form.value.paramsLimitMin === null || form.value.paramsLimitMin === undefined || form.value.paramsLimitMin === '') {
+  const value = form.value.paramsLimitMin;
+  if (value === null || value === undefined || value === '') {
     return '0'
   }
-  return form.value.paramsLimitMin
+  return String(value);
 })
 
 const closeModal = () => {

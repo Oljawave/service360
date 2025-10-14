@@ -1,6 +1,7 @@
 <template>
   <ModalWrapper
     title="Добавить новый инцидент"
+    :show-save="canInsert"
     @close="closeModal"
     @save="saveData"
   >
@@ -91,10 +92,13 @@ import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue'
 import FullCoordinates from '@/components/ui/FormControls/FullCoordinates.vue'
 import { loadEvents, saveIncident, saveNewEvent } from '@/api/incidentApi'
 import { fetchObjectsForSelect, fetchLocationByCoords } from '@/api/planWorkApi'
+import { usePermissions } from '@/api/usePermissions';
 import { useNotificationStore } from '@/stores/notificationStore'
 
 const emit = defineEmits(['close', 'update-table'])
 const notificationStore = useNotificationStore()
+const { hasPermission } = usePermissions()
+const canInsert = computed(() => hasPermission('inc:ins'))
 
 const form = ref({
   incidentType: null,

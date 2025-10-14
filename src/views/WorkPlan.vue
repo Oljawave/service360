@@ -31,12 +31,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import { loadWorkPlan } from '@/api/planApi';
 import { loadPeriodTypes } from '@/api/periodApi';
+import { usePermissions } from '@/api/usePermissions';
+
+const { hasPermission } = usePermissions();
 
 const limit = 10;
 const isPlanWorkModalOpen = ref(false);
@@ -182,18 +185,19 @@ const columns = [
   { key: 'planDate', label: 'Плановая дата' },
 ];
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     label: 'Запланировать новую работу',
     icon: 'Plus',
     onClick: () => {
       isPlanWorkModalOpen.value = true;
     },
+    hidden: !hasPermission('plan:ins'),
   },
   {
     label: 'Экспорт',
     icon: 'Download',
     onClick: () => console.log('Экспортирование...'),
   }
-];
+].filter(action => !action.hidden));
 </script>
