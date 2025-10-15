@@ -12,6 +12,10 @@ import WorkPlanForm from '@/views/WorkPlanForm.vue';
 
 const routes = [
   {
+    path: '/',
+    redirect: '/login'
+  },
+  {
     path: '/main',
     name: 'Dashboard',
     component: Dashboard,
