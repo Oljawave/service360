@@ -54,6 +54,7 @@ const router = useRouter();
 
 const { hasPermission } = usePermissions();
 const canInsert = computed(() => hasPermission('inc:ins'));
+const canAssign = computed(() => hasPermission('inc:assign'));
 
 const limit = 10;
 const tableWrapperRef = ref(null);
@@ -255,7 +256,7 @@ const tableActions = computed(() => [
     onClick: () => {
       showAssignWorkModal.value = true;
     },
-    show: true, // Всегда показывать
+    show: canAssign.value,
   },
   {
     label: 'Экспорт',

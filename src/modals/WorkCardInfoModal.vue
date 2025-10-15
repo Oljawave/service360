@@ -247,12 +247,12 @@ const canSaveChanges = computed(() => {
 
 const isSaving = ref(false);
 
-const allTabs = ref([
-  { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle', show: canInsertDefect },
-  { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal', show: canInsertParameter },
-]);
+const allTabs = computed(() => [
+  { name: 'defects', label: 'Неисправности', icon: 'AlertTriangle', show: canInsertDefect.value },
+  { name: 'parameters', label: 'Параметры', icon: 'SlidersHorizontal', show: canInsertParameter.value },
+].filter(tab => tab.show));
 
-const visibleTabs = computed(() => allTabs.value.filter(tab => tab.show.value));
+const visibleTabs = computed(() => allTabs.value);
 
 const activeTab = ref(null);
 

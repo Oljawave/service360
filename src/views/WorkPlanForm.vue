@@ -249,7 +249,7 @@ const columns = [
 ];
 
 const goToInspections = () => {
-  router.push({ name: 'Inspections' });
+  router.back();
 };
 
 const loadWorkPlanForDate = async () => {

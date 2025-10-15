@@ -38,7 +38,7 @@ import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
 import { usePermissions } from '@/api/usePermissions';
 
 const { hasPermission } = usePermissions();
-const canInsert = computed(() => hasPermission('insp:ins'));
+const canInsert = computed(() => hasPermission('ins:ins'));
 
 const router = useRouter();
 

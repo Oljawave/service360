@@ -1,18 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Dashboard from '@/views/Dashboard.vue';
 import ServicedObjects from '../views/ServicedObjects.vue'
 import OrgStructure from '../views/OrgStructure.vue';
 import Login from '../views/Login.vue';
 import WorkPlan from '@/views/WorkPlan.vue';
 import Inspections from '@/views/Inspections.vue';
-import WorkPlanForm from '@/views/WorkPlanForm.vue';
 import FaultJournalPage from '@/views/FaultJournalPage.vue';
 import ParameterLogPage from '@/views/ParameterLogPage.vue';
 import Incidents from '@/views/Incidents.vue';
+import WorkPlanForm from '@/views/WorkPlanForm.vue';
 
 const routes = [
   {
-    path: '/',
-    redirect: '/login'
+    path: '/main',
+    name: 'Dashboard',
+    component: Dashboard,
   },
   {
     path: '/login',

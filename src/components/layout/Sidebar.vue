@@ -42,6 +42,7 @@ onBeforeUnmount(() => {
 })
 
 const allItems = [
+  { label: 'Главная', path: '/main', icon: 'Home' },
   { label: 'План работ', path: '/work-plan', icon: 'ClipboardList', permission: 'plan' },
   { label: 'Журнал осмотров и проверок', path: '/inspections', icon: 'BookOpen', permission: 'ins' },
   { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler', permission: 'par' },
@@ -67,7 +68,9 @@ const getUserPermissions = () => {
 }
 
 const userPermissions = getUserPermissions()
-const filteredItems = computed(() => allItems.filter(item => userPermissions.has(item.permission)))
+const filteredItems = computed(() => 
+  allItems.filter(item => !item.permission || userPermissions.has(item.permission))
+)
 </script>
 
 <style scoped>
