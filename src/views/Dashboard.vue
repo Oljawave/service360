@@ -1,53 +1,56 @@
 <template>
   <div class="dashboard-page">
-    <h1 class="page-title">Главная</h1>
+    <h1 class="page-title">Добро пожаловать в Service 360</h1>
 
     <div class="kpi-grid">
-      <div class="kpi-card">
-        <span class="kpi-value">{{ kpi.newIncidents }}</span>
-        <span class="kpi-label">Новые инциденты сегодня</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-value">{{ kpi.worksToday }}</span>
-        <span class="kpi-label">Работы на сегодня</span>
-      </div>
-      <div class="kpi-card overdue">
-        <span class="kpi-value">{{ kpi.overdueWorks }}</span>
-        <span class="kpi-label">Просроченные работы</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-value">{{ kpi.openIncidents }}</span>
-        <span class="kpi-label">Всего открытых инцидентов</span>
-      </div>
+      <KpiCard :value="kpi.newIncidents" label="Новые инциденты сегодня" />
+      <KpiCard :value="kpi.worksToday" label="Работы на сегодня" />
+      <KpiCard :value="kpi.overdueWorks" label="Просроченные работы" variant="overdue" />
+      <KpiCard :value="kpi.openIncidents" label="Всего открытых инцидентов" />
     </div>
 
     <div class="quick-actions">
       <h2 class="section-title">Быстрые действия</h2>
       <div class="actions-container">
-        <MainButton label="Добавить инцидент" @click="isAddIncidentModalOpen = true" />
-        <MainButton label="Запланировать работу" @click="isPlanWorkModalOpen = true" />
-        <MainButton label="Журнал осмотров" @click="goToWorkPlan" variant="secondary" />
-      </div>
+        <DashboardButton 
+          label="Добавить инцидент" 
+          iconName="BookOpen" 
+          iconColor="#2B6CB0"
+          @click="isAddIncidentModalOpen = true" 
+        />
+        <DashboardButton 
+          label="Запланировать работу" 
+          iconName="Calendar" 
+          iconColor="#2B6CB0"
+          @click="isPlanWorkModalOpen = true" 
+        />
+        <DashboardButton 
+          label="Журнал осмотров" 
+          iconName="ClipboardList" 
+          iconColor="#2B6CB0"
+          @click="goToWorkPlan" 
+        />
+        </div>
     </div>
 
     <div class="main-grid">
-      <div class="widget-card">
-        <h2 class="section-title">Календарь работ</h2>
-        <CalendarWidget />
+      <div class="widget-card no-padding">
+        <CalendarWidget @date-selected="handleDateSelected" />
       </div>
 
       <div class="widget-card">
-        <h2 class="section-title">Последние события</h2>
+        <h2 class="section-title">{{ activityTitle }}</h2>
         <ul class="activity-feed">
-          <li v-for="event in activityFeed" :key="event.id" class="feed-item">
-            <div class="feed-icon" :class="event.type">
-              <UiIcon :name="event.type === 'incident' ? 'AlertTriangle' : 'Tool'" />
+          <li v-for="event in dayEvents" :key="event.id" class="feed-item">
+            <div class="feed-icon work">
+              <UiIcon name="ClipboardList" color="#2b6cb0" style="margin-right: 1px;" />
             </div>
             <div class="feed-content">
-              <p class="feed-description">{{ event.description }}</p>
-              <span class="feed-time">{{ event.time }}</span>
+              <p class="feed-description">{{ event.fullNameWork }}</p> 
+              <p class="feed-time" :class="{ 'overdue': isOverdue(event.PlanDateEnd) }">{{ getDaysRemainingText(event.PlanDateEnd) }}</p>
             </div>
           </li>
+          <li v-if="!dayEvents.length" class="feed-item-empty">На выбранную дату работ не запланировано.</li>
         </ul>
       </div>
     </div>
@@ -68,10 +71,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import MainButton from '@/components/ui/MainButton.vue';
+// import MainButton from '@/components/ui/MainButton.vue'; // MainButton удален
+import DashboardButton from '@/components/ui/DashboardButton.vue'; // ActionButton заменен на DashboardButton
 import UiIcon from '@/components/ui/UiIcon.vue';
 import ModalAddIncident from '@/modals/ModalAddIncident.vue';
 import ModalPlanWork from '@/modals/ModalPlanWork.vue';
+import KpiCard from '@/components/ui/KpiCard.vue';
+import { loadIncidents } from '@/api/incidentApi.js';
+import { loadWorkPlan } from '@/api/planApi.js';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
 
 const router = useRouter();
@@ -79,38 +86,124 @@ const router = useRouter();
 const isAddIncidentModalOpen = ref(false);
 const isPlanWorkModalOpen = ref(false);
 
-// TODO: Заменить на реальные данные из API
 const kpi = ref({
-  newIncidents: 3,
-  worksToday: 12,
-  overdueWorks: 2,
-  openIncidents: 48,
+  newIncidents: 0,
+  worksToday: 0,
+  overdueWorks: 0,
+  openIncidents: 0,
 });
 
-// TODO: Заменить на реальные данные из API
-const activityFeed = ref([
-  { id: 1, type: 'incident', description: "Новый инцидент 'Обрыв кабеля' на ПЧ-5", time: '15 минут назад', icon: 'AlertTriangle' },
-  { id: 2, type: 'work', description: "Работа 'Осмотр пути' завершена", time: '1 час назад', icon: 'Tool' },
-  { id: 3, type: 'work', description: "Запланирована работа 'Замена шпал'", time: '3 часа назад', icon: 'Tool' },
-  { id: 4, type: 'incident', description: "Инцидент 'Неисправность светофора' закрыт", time: 'Вчера', icon: 'AlertTriangle' },
-]);
+const dayEvents = ref([]);
+const activityTitle = ref('План работ на день');
 
 const goToWorkPlan = () => {
   router.push({ name: 'Inspections' });
 };
 
-// Функция goToWorkPlanWithDate удалена, т.к. она теперь внутри CalendarWidget.vue
+const formatDateToString = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDaysRemainingText = (planDateEnd) => {
+  if (!planDateEnd) return '';
+
+  const endDate = new Date(planDateEnd.split('T')[0]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = endDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return `Просрочено на ${Math.abs(diffDays)} дн.`;
+  } else if (diffDays === 0) {
+    return 'Завершается сегодня';
+  } else {
+    // Простое правило для склонения
+    const lastDigit = diffDays % 10;
+    const lastTwoDigits = diffDays % 100;
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) return `Осталось ${diffDays} дней`;
+    if (lastDigit === 1) return `Осталось ${diffDays} день`;
+    if ([2, 3, 4].includes(lastDigit)) return `Осталось ${diffDays} дня`;
+    return `Осталось ${diffDays} дней`;
+  }
+};
+
+const isOverdue = (planDateEnd) => {
+  if (!planDateEnd) return false;
+
+  const endDate = new Date(planDateEnd.split('T')[0]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = endDate.getTime() - today.getTime();
+  return diffTime < 0;
+};
+
+const loadKpiData = async () => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = formatDateToString(today);
+    const periodTypeToday = 71;
+    const periodTypeAll = 11;
+
+    const [incidentsToday, worksToday, allWorks, allIncidents] = await Promise.all([
+      loadIncidents(todayStr, periodTypeToday),
+      loadWorkPlan(todayStr, periodTypeToday),
+      loadWorkPlan(todayStr, periodTypeAll),
+      loadIncidents(todayStr, periodTypeAll)
+    ]);
+
+    kpi.value.newIncidents = incidentsToday.length;
+    kpi.value.worksToday = worksToday.length;
+    kpi.value.openIncidents = allIncidents.length;
+
+    const overdue = allWorks.filter(work => {
+      const planDate = new Date(work.PlanDateEnd.split('T')[0]);
+      return planDate < today;
+    });
+    kpi.value.overdueWorks = overdue.length;
+
+  } catch (error) {
+    console.error("Ошибка при загрузке данных для KPI:", error);
+  }
+};
+
+const handleDateSelected = async (dateStr) => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (date.getTime() === today.getTime()) {
+    activityTitle.value = 'План работ на сегодня';
+  } else {
+    activityTitle.value = `План работ на ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+  }
+
+  try {
+    const works = await loadWorkPlan(dateStr, 71);
+    dayEvents.value = works;
+  } catch (error) {
+    console.error(`Ошибка при загрузке работ на ${dateStr}:`, error);
+    dayEvents.value = [];
+  }
+};
 
 const refreshData = () => {
-  // TODO: Добавить логику обновления данных на дашборде после закрытия модальных окон
-  console.log('Dashboard data should be refreshed');
+  loadKpiData();
+  const todayStr = formatDateToString(new Date());
+  handleDateSelected(todayStr);
 };
 
 onMounted(() => {
-  // generateCalendar() удалена, т.к. логика календаря теперь в CalendarWidget
-  // TODO: Загрузить реальные данные для KPI и ленты событий
+  loadKpiData();
 });
-
 </script>
 
 <style scoped>
@@ -125,10 +218,6 @@ onMounted(() => {
 .section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin-bottom: 16px; }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px; }
-.kpi-card { background: white; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.kpi-value { font-size: 36px; font-weight: 700; color: #2b6cb0; }
-.kpi-label { font-size: 14px; color: #718096; margin-top: 8px; }
-.kpi-card.overdue .kpi-value { color: #c53030; }
 
 .quick-actions { margin-bottom: 32px; }
 .actions-container { display: flex; gap: 16px; }
@@ -136,7 +225,9 @@ onMounted(() => {
 .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
 .widget-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
-/* Все стили, относящиеся к старому календарю, удалены */
+.widget-card.no-padding {
+  padding: 0;
+}
 
 .activity-feed { list-style: none; padding: 0; margin: 0; }
 .feed-item { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; }
@@ -144,8 +235,22 @@ onMounted(() => {
 .feed-icon { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .feed-icon.incident { background-color: #fed7d7; color: #c53030; }
 .feed-icon.work { background-color: #c3dafe; color: #2c5282; }
-.feed-icon .icon { width: 18px; height: 18px; }
+.feed-icon .icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 0; /* Убираем margin-right чтобы иконка была по центру */
+}
 .feed-content { flex-grow: 1; }
 .feed-description { font-size: 14px; color: #2d3748; margin: 0 0 4px; }
-.feed-time { font-size: 12px; color: #a0aec0; }
+.feed-time { font-size: 12px; color: #a0aec0; margin: 0; }
+
+.feed-time.overdue {
+  color: #c53030; /* Красный цвет для просроченных задач */
+}
+
+.feed-item-empty {
+  font-size: 14px;
+  color: #718096;
+  padding: 16px 0;
+}
 </style>

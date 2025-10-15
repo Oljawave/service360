@@ -322,8 +322,8 @@ export async function deleteIncident(id) {
   }
 }
 
-export async function assignWorkToIncident(incident, work, completionDate, selectedCriticality, selectedSection) {
-  if (!incident || !work || !completionDate || !selectedCriticality || !selectedSection) {
+export async function assignWorkToIncident(incident, work, completionDate, selectedCriticality, selectedSection, assignDateTime) {
+  if (!incident || !work || !completionDate || !selectedCriticality || !selectedSection || !assignDateTime) {
     throw new Error("Недостаточно данных для назначения работы.");
   }
   
@@ -352,6 +352,7 @@ export async function assignWorkToIncident(incident, work, completionDate, selec
           name: `${incident.id}-${planDateEnd}`,
           PlanDateEnd: planDateEnd,
           CreatedAt: today,
+          AssignDateTime: assignDateTime,
           UpdatedAt: today,
           objWork: work.value,
           pvWork: work.pv,
