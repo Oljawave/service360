@@ -1,30 +1,37 @@
 <template>
-  <div class="table-wrapper">
-    <h2 class="title">{{ title }}</h2>
-
-    <div class="controls-header">
-      <div class="filters" v-if="showFilters">
-        <AppDatePicker
-          v-if="datePickerConfig"
-          :modelValue="filters.date"
-          :label="datePickerConfig.label"
-          :placeholder="datePickerConfig.placeholder"
-          @update:modelValue="updateFilter('date', $event)"
-        />
-
-        <AppDropdown
-          v-if="dropdownConfig"
-          :modelValue="filters.periodType"
-          :label="dropdownConfig.label"
-          :options="dropdownConfig.options"
-          :placeholder="dropdownConfig.placeholder"
-          @update:modelValue="updateFilter('periodType', $event)"
-        />
+  <div class="table-wrapper" :class="{ 'mobile-view': isMobile }">
+    <div class="header-content">
+      <h2 class="title" v-if="!isMobile">{{ title }}</h2>
+      <div v-if="isMobile" class="mobile-header-top">
+        <h2 class="title">{{ title }}</h2>
+        <TableActions :actions="actions" :isMobile="isMobile" />
       </div>
-      <TableActions :actions="actions" />
+
+      <div class="controls-header">
+        <div class="filters" v-if="showFilters">
+          <AppDatePicker
+            v-if="datePickerConfig"
+            :modelValue="filters.date"
+            :label="isMobile ? '' : datePickerConfig.label"
+            :placeholder="datePickerConfig.placeholder"
+            @update:modelValue="updateFilter('date', $event)"
+          />
+
+          <AppDropdown
+            v-if="dropdownConfig"
+            :modelValue="filters.periodType"
+            :label="isMobile ? '' : dropdownConfig.label"
+            :options="dropdownConfig.options"
+            :placeholder="dropdownConfig.placeholder"
+            @update:modelValue="updateFilter('periodType', $event)"
+          />
+        </div>
+        <TableActions v-if="!isMobile" :actions="actions" :isMobile="isMobile" />
+      </div>
     </div>
 
     <BaseTable
+      v-if="!isMobile"
       :columns="columns"
       :rows="pagedRows"
       :loading="loading"
@@ -49,7 +56,15 @@
         />
       </template>
     </BaseTable>
-    <div class="table-footer">
+
+    <MobileCardList
+      v-else
+      :rows="pagedRows"
+      :loading="loading"
+      @row-dblclick="handleRowDoubleClick"
+    />
+
+    <div class="table-footer" v-if="!isMobile && filteredRows.length > 0">
       <div class="record-summary">{{ recordSummary }}</div>
       <Pagination
         :total="filteredRows.length"
@@ -57,6 +72,16 @@
         :limit="limit"
         @change-page="setPage"
       />
+    </div>
+
+    <div class="mobile-pagination-and-summary" v-else-if="isMobile && filteredRows.length > 0">
+      <Pagination
+        :total="filteredRows.length"
+        :page="page"
+        :limit="limit"
+        @change-page="setPage"
+      />
+      <div class="record-summary">{{ recordSummary }}</div>
     </div>
 
     <slot
@@ -77,6 +102,13 @@ import Pagination from './Pagination.vue';
 import ColumnFilter from './ColumnFilter.vue';
 import AppDatePicker from '@/components/ui/FormControls/AppDatePicker.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
+import MobileCardList from './MobileCardList.vue'; // New import
+
+// Simple useIsMobile helper (replace with actual global logic if available)
+const isMobile = ref(window.innerWidth <= 768);
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
 
 const props = defineProps({
   title: String,
@@ -91,7 +123,6 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  // НОВЫЙ ПРОПС
   getRowClassFn: {
     type: Function,
     default: () => ({}),
@@ -112,8 +143,8 @@ const showEditModal = ref(false);
 const columnFilters = ref({});
 const openFilter = ref(null);
 
-const sortKey = ref('id'); // Установка сортировки по умолчанию по 'id'
-const sortDirection = ref('asc'); // Установка направления сортировки по умолчанию 'asc'
+const sortKey = ref('id');
+const sortDirection = ref('asc');
 
 const activeFilters = computed(() => {
   const active = {};
@@ -123,12 +154,10 @@ const activeFilters = computed(() => {
   return active;
 });
 
-// New computed property: Sorts the rows and then applies column filters
 const sortedAndFilteredRows = computed(() => {
   let processedRows = [...rows.value];
 
-  // 1. Apply Sorting
-  if (sortKey.value) {
+  if (sortKey.value && !isMobile.value) { // Only sort in desktop view
     processedRows.sort((a, b) => {
       const aValue = a[sortKey.value];
       const bValue = b[sortKey.value];
@@ -144,17 +173,19 @@ const sortedAndFilteredRows = computed(() => {
     });
   }
 
-  // 2. Apply Column Filters
-  Object.keys(columnFilters.value).forEach(columnKey => {
-    const filterValue = columnFilters.value[columnKey];
-    if (filterValue && filterValue.trim()) {
-      processedRows = processedRows.filter(row => {
-        const cellValue = row[columnKey];
-        if (cellValue == null) return false;
-        return String(cellValue).toLowerCase().includes(filterValue.toLowerCase().trim());
-      });
-    }
-  });
+  // Column filters only apply in desktop view (as they are not rendered in mobile)
+  if (!isMobile.value) { 
+    Object.keys(columnFilters.value).forEach(columnKey => {
+      const filterValue = columnFilters.value[columnKey];
+      if (filterValue && filterValue.trim()) {
+        processedRows = processedRows.filter(row => {
+          const cellValue = row[columnKey];
+          if (cellValue == null) return false;
+          return String(cellValue).toLowerCase().includes(filterValue.toLowerCase().trim());
+        });
+      }
+    });
+  }
 
   return processedRows;
 });
@@ -163,13 +194,10 @@ const filteredRows = computed(() => sortedAndFilteredRows.value);
 
 const pagedRows = computed(() => {
   const start = (page.value - 1) * props.limit;
-  const end = start + props.limit; // Correct calculation for slice end
+  const end = start + props.limit;
   
   return filteredRows.value.slice(start, end).map((row, i) => ({
     ...row,
-    // Присваиваем индекс, только если его нет в исходных данных.
-    // Это предотвращает добавление ненужных индексов в таблицы,
-    // где первая колонка - это данные, а не номер.
     index: row.index === undefined ? start + i + 1 : row.index,
   }));
 });
@@ -194,13 +222,11 @@ const updateFilter = (key, value) => {
   }, 100);
 };
 
-// 👇 UPDATED: This function now sets the state to open the modal
 const handleRowDoubleClick = (row) => {
-  // Use a shallow copy to ensure reactivity and prevent direct mutation of the table row
   const plainRow = JSON.parse(JSON.stringify(row)); 
   selectedRow.value = plainRow;
   showEditModal.value = true;
-  emit('row-dblclick', plainRow); // Emit the event to the parent for flexibility
+  emit('row-dblclick', plainRow);
 };
 
 const closeModals = () => {
@@ -222,7 +248,7 @@ const loadData = async () => {
   try {
     const { data } = await props.loadFn({
       page: 1,
-      limit: 999999, // Load all data for local filtering/sorting
+      limit: 999999,
       filters: props.filters,
     });
 
@@ -249,20 +275,17 @@ const refreshTable = () => {
 
 const handleSort = (key) => {
   if (sortKey.value === key) {
-    // If the same column is clicked
     if (sortDirection.value === 'asc') {
       sortDirection.value = 'desc';
     } else {
-      // Third click resets sorting to default (id, asc)
       sortKey.value = 'id'; 
       sortDirection.value = 'asc';
     }
   } else {
-    // New column clicked
     sortKey.value = key;
     sortDirection.value = 'asc';
   }
-  page.value = 1; // Reset to first page after sorting
+  page.value = 1;
 };
 
 defineExpose({
@@ -290,10 +313,12 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   loadData();
+  window.addEventListener('resize', updateIsMobile);
   document.addEventListener('click', handleClickOutside);
 });
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile);
   document.removeEventListener('click', handleClickOutside);
 });
 </script>
@@ -313,6 +338,24 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+.table-wrapper.mobile-view {
+  margin: 0;
+  padding: 16px;
+  box-shadow: none;
+  border-radius: 0;
+  gap: 12px;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table-wrapper.mobile-view .header-content {
+  gap: 8px;
+}
+
 .controls-header {
   display: flex;
   justify-content: space-between;
@@ -325,9 +368,25 @@ onUnmounted(() => {
   color: #1a202c;
 }
 
+.table-wrapper.mobile-view .title {
+  font-size: 20px; /* Make title a bit bigger on mobile */
+}
+
+.mobile-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 .filters {
   display: flex;
   gap: 16px;
+}
+
+.table-wrapper.mobile-view .filters {
+  flex-grow: 1;
+  gap: 8px;
 }
 
 .table-footer {
@@ -339,5 +398,12 @@ onUnmounted(() => {
 .record-summary {
   font-size: 14px;
   color: #6b7280;
+}
+
+.mobile-pagination-and-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 </style>

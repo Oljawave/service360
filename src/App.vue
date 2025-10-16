@@ -1,6 +1,7 @@
 <template>
   <NaiveProvider>
     <div v-if="!isLoginPage" class="app-layout">
+      <div v-if="sidebar.mobileOpen" class="sidebar-overlay" @click="sidebar.toggleMobile"></div>
       <Sidebar />
       <div class="main-content">
         <Navbar />
@@ -16,15 +17,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './components/layout/Sidebar.vue'
 import Navbar from './components/layout/Navbar.vue'
 import NaiveProvider from './naive.config.js'
 import AppNotification from './components/layout/AppNotification.vue'
+import { useSidebarStore } from './stores/sidebar'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')
+const sidebar = useSidebarStore()
+
 </script>
 
 <style scoped>
@@ -49,4 +53,24 @@ const isLoginPage = computed(() => route.path === '/login')
   background: #f5f7fa;
   overflow: hidden;
 }
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+  }
+}
+
 </style>

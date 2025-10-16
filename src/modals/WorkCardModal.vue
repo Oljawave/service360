@@ -1,8 +1,8 @@
 <template>
   <ModalWrapper
     title="Карточка осмотра/проверки"
-    :showSaveButton="false"
-    :showCancelButton="false"
+    :show-save="false"
+    :show-cancel="false"
     :showDelete="false"
     @close="closeModal"
   >

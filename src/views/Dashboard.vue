@@ -131,7 +131,6 @@ const getDaysRemainingText = (planDateEnd) => {
   } else if (diffDays === 0) {
     return 'Завершается сегодня';
   } else {
-    // Простое правило для склонения
     const lastDigit = diffDays % 10;
     const lastTwoDigits = diffDays % 100;
     if (lastTwoDigits >= 11 && lastTwoDigits <= 19) return `Осталось ${diffDays} дней`;
@@ -280,6 +279,8 @@ onMounted(() => {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  max-width: 100%; /* Гарантирует, что карточка не превысит ширину своего контейнера */
+  overflow-x: auto; /* Позволяет горизонтальную прокрутку внутри карточки, если содержимое слишком широкое */
 }
 .widget-card.no-padding {
   padding: 0;
@@ -295,6 +296,11 @@ onMounted(() => {
   align-items: flex-start;
   gap: 16px;
   padding: 12px 12px;
+  /* Добавьте это для предотвращения выделения текста при двойном клике */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+ */
+  user-select: none;         /* Standard */
 }
 .feed-item:not(:last-child) {
   border-bottom: 1px solid #e2e8f0;
@@ -348,4 +354,11 @@ onMounted(() => {
   color: #718096;
   padding: 16px 0;
 }
+
+@media (max-width: 480px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>

@@ -1,9 +1,9 @@
 <template>
-  <aside :class="['sidebar', { collapsed: sidebar.collapsed }]">
+  <aside :class="['sidebar', { collapsed: isCollapsed, 'mobile-open': sidebar.mobileOpen }]">
     <div class="logo-section">
-      <img v-if="!sidebar.collapsed" src="@/assets/img/logo.png" alt="Service 360" class="logo-img" />
-      <button class="panel-btn" @click="sidebar.toggle">
-        <UiIcon :name="sidebar.collapsed ? 'PanelLeftOpen' : 'PanelLeft'" class="icon" />
+      <img v-if="!isCollapsed" src="@/assets/img/logo.png" alt="Service 360" class="logo-img" />
+      <button class="panel-btn desktop-only" @click="sidebar.toggle">
+        <UiIcon :name="isCollapsed ? 'PanelLeftOpen' : 'PanelLeft'" class="icon" />
       </button>
     </div>
 
@@ -14,7 +14,8 @@
         :icon="item.icon"
         :label="item.label"
         :to="item.path"
-        :is-collapsed="sidebar.collapsed"
+        :is-collapsed="isCollapsed"
+        @clicked="handleItemClick"
       />
     </nav>
   </aside>
@@ -28,13 +29,26 @@ import { useSidebarStore } from '@/stores/sidebar'
 
 const sidebar = useSidebarStore()
 
+const isMobile = ref(window.innerWidth < 768);
+
+const isCollapsed = computed(() => {
+  // На мобильных устройствах сайдбар никогда не должен быть collapsed
+  return isMobile.value ? false : sidebar.collapsed;
+});
+
 const handleResize = () => {
-  sidebar.setCollapsed(window.innerWidth < 768)
+  isMobile.value = window.innerWidth < 768;
+  sidebar.setCollapsed(isMobile.value);
+}
+
+const handleItemClick = () => {
+  if (isMobile.value && sidebar.mobileOpen) {
+    sidebar.toggleMobile();
+  }
 }
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
-  handleResize()
 })
 
 onBeforeUnmount(() => {
@@ -85,12 +99,40 @@ const filteredItems = computed(() =>
   transition: width 0.3s ease, padding 0.3s ease;
 
 }
+.desktop-only {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -250px;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    width: 250px; /* Ensure it's not collapsed on mobile when open */
+  }
+
+  .sidebar:not(.mobile-open) {
+    display: none;
+  }
+}
 
 .sidebar.collapsed {
   width: 60px;
   padding: 16px 4px;
 }
 
+
+@media (max-width: 768px) {
+  .sidebar.mobile-open {
+    left: 0;
+  }
+  .desktop-only {
+    display: none;
+  }
+}
 
 .logo-section {
   display: flex;
@@ -156,4 +198,5 @@ const filteredItems = computed(() =>
 .sidebar-item.active .icon {
   color: #2b6cb0;
 }
+
 </style>

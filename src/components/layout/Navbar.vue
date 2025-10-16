@@ -1,7 +1,10 @@
 <template>
   <header class="navbar">
     <div class="navbar-left">
-      <SearchBox :collapsed="collapsedSearch" />
+      <button class="hamburger-btn" @click="sidebar.toggleMobile">
+        <UiIcon name="Menu" class="icon" />
+      </button>
+      <SearchBox v-if="!isMobile" :collapsed="collapsedSearch" />
     </div>
 
     <div class="navbar-right">
@@ -34,12 +37,15 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import UiIcon from '../ui/UiIcon.vue'
 import SearchBox from '../ui/SearchBox.vue'
 import UserAvatar from '../ui/UserAvatar.vue'
+import { useSidebarStore } from '@/stores/sidebar'
 
 
-const collapsedSearch = ref(false)
+const collapsedSearch = ref(false) // Оставляем для возможного сжатия на десктопе
+const isMobile = ref(false)
 const currentLang = ref(localStorage.getItem('lang') || 'РУС')
 const languages = ['РУС', 'ҚАЗ', 'ENG']
 const langMenuOpen = ref(false)
+const sidebar = useSidebarStore()
 
 const toggleLangMenu = () => {
   langMenuOpen.value = !langMenuOpen.value
@@ -52,7 +58,8 @@ const setLanguage = (lang) => {
 }
 
 const handleResize = () => {
-  collapsedSearch.value = window.innerWidth < 768
+  isMobile.value = window.innerWidth < 768
+  collapsedSearch.value = window.innerWidth < 992 && !isMobile.value // Пример логики для десктопа
 }
 
 onMounted(() => {
@@ -91,6 +98,23 @@ onBeforeUnmount(() => {
 
 .navbar-left {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #4a5568;
+}
+
+.hamburger-btn .icon {
+  width: 24px;
+  height: 24px;
 }
 
 .navbar-right {
@@ -175,5 +199,11 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: block;
+  }
 }
 </style>

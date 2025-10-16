@@ -1,5 +1,5 @@
 <template>
-  <router-link :to="to" class="sidebar-item" :class="{ active: isActive, 'is-collapsed': isCollapsed }">
+  <router-link :to="to" class="sidebar-item" :class="{ active: isActive, 'is-collapsed': isCollapsed }" @click="handleClick">
     <UiIcon :name="icon" class="icon" />
     <span class="label">{{ label }}</span>
   </router-link>
@@ -20,11 +20,17 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['clicked']);
+
 const route = useRoute()
 
 const isActive = computed(() => {
   return route.path.startsWith(props.to)
 })
+
+const handleClick = () => {
+  emit('clicked');
+}
 </script>
 
 <style scoped>

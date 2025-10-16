@@ -202,7 +202,7 @@ watch(currentDate, (newDate) => {
 }
 
 .calendar-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
@@ -211,7 +211,6 @@ watch(currentDate, (newDate) => {
 .month-navigation {
   display: flex;
   align-items: center;
-  gap: 16px;
 }
 
 .nav-button {
@@ -230,16 +229,13 @@ watch(currentDate, (newDate) => {
 }
 
 .current-month {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #1a1a1a;
   min-width: 140px;
   text-align: center;
 }
 
-.calendar-grid {
-  margin-bottom: 32px;
-}
 
 .weekdays {
   display: grid;
@@ -322,5 +318,11 @@ watch(currentDate, (newDate) => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+@media (max-width: 480px) {
+  .calendar-container {
+    padding: 16px;
+  }
 }
 </style>

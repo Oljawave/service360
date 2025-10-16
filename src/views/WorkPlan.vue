@@ -1,27 +1,30 @@
 <template>
-  <TableWrapper
-    ref="tableWrapperRef"
-    title="План работ"
-    :columns="columns"
-    :actions="tableActions"
-    :limit="limit"
-    :loadFn="loadWorkPlanWrapper"
-    :datePickerConfig="datePickerConfig"
-    :dropdownConfig="dropdownConfig"
-    :showFilters="true"
-    :filters="filters"
-    @update:filters="filters = $event"
-    @row-dblclick="onRowDoubleClick"
-  >
-    <template #modals="{ selectedRow, showEditModal, closeModals }">
-      <ModalEditPlan
-        v-if="showEditModal"
-        :rowData="selectedRow"
-        @close="closeModals"
-        @save="onSave(closeModals)"
-      />
-    </template>
-  </TableWrapper>
+  <div class="work-plan-page">
+    <TableWrapper
+      ref="tableWrapperRef"
+      title="План работ"
+      :columns="columns"
+      :actions="tableActions"
+      :limit="limit"
+      :loadFn="loadWorkPlanWrapper"
+      :datePickerConfig="datePickerConfig"
+      :dropdownConfig="dropdownConfig"
+      :showFilters="true"
+      :filters="filters"
+      :getRowClassFn="getRowClass"
+      @update:filters="filters = $event"
+      @row-dblclick="onRowDoubleClick"
+    >
+      <template #modals="{ selectedRow, showEditModal, closeModals, onSave }">
+        <ModalEditPlan
+          v-if="showEditModal"
+          :rowData="selectedRow"
+          @close="closeModals"
+          @save="onSave"
+        />
+      </template>
+    </TableWrapper>
+  </div>
 
   <ModalPlanWork
     v-if="isPlanWorkModalOpen"
@@ -119,7 +122,7 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
   const finishPart = createCoordPart(finishKm, finishPk, finishZv);
 
   if (startPart && finishPart) {
-    return `${startPart} - ${finishPart}`;
+    return `${startPart} – ${finishPart}`;
   } else if (startPart) {
     return startPart;
   }
@@ -142,7 +145,7 @@ const loadWorkPlanWrapper = async ({ page, limit, filters: filterValues }) => {
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    const sliced = records.slice(start, end).map((r, index) => ({
+    const sliced = records.map((r, index) => ({ // map all data for local processing in TableWrapper
       index: null,
       id: r.id,
       name: r.nameLocationClsSection,
@@ -162,6 +165,7 @@ const loadWorkPlanWrapper = async ({ page, limit, filters: filterValues }) => {
       objLocationClsSection: r.objLocationClsSection
     }));
 
+    // The loadFn no longer needs to slice the data since TableWrapper is now handling full data loading
     return {
       total: totalRecords,
       data: sliced,
@@ -173,6 +177,13 @@ const loadWorkPlanWrapper = async ({ page, limit, filters: filterValues }) => {
 };
 
 const onRowDoubleClick = (row) => {
+  // This function is still needed to receive the event, 
+  // though the main logic for modal opening is in TableWrapper
+};
+
+// Example implementation for getRowClassFn, though not strictly required by the prompt
+const getRowClass = (row) => {
+  return {}; // No custom class for now
 };
 
 const columns = [
@@ -185,19 +196,37 @@ const columns = [
   { key: 'planDate', label: 'Плановая дата' },
 ];
 
-const tableActions = computed(() => [
-  {
-    label: 'Запланировать новую работу',
-    icon: 'Plus',
-    onClick: () => {
-      isPlanWorkModalOpen.value = true;
+const tableActions = computed(() => {
+  // Mapping icons to match the screenshot (Plus/Download)
+  const baseActions = [
+    {
+      label: 'Запланировать новую работу',
+      icon: 'Plus', // Plus for add
+      onClick: () => {
+        isPlanWorkModalOpen.value = true;
+      },
+      hidden: !hasPermission('plan:ins'),
     },
-    hidden: !hasPermission('plan:ins'),
-  },
-  {
-    label: 'Экспорт',
-    icon: 'Download',
-    onClick: () => console.log('Экспортирование...'),
-  }
-].filter(action => !action.hidden));
+    {
+      label: 'Экспорт',
+      icon: 'Printer', // Printer for print/export (like the screenshot)
+      onClick: () => console.log('Экспортирование...'),
+    }
+  ];
+
+  // Reordering for mobile view to match the screenshot (Plus, then Print)
+  const plusAction = baseActions.find(a => a.icon === 'Plus');
+  const exportAction = baseActions.find(a => a.icon === 'Printer');
+
+  return [plusAction, exportAction].filter(action => action && !action.hidden);
+});
 </script>
+
+<style scoped>
+.work-plan-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+</style>
