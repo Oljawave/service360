@@ -61,8 +61,8 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { loadWorkPlan } from '@/api/planApi';
 
-const currentDate = ref(new Date(2025, 9, 15)); // October 2025
-const selectedDate = ref(new Date(2025, 9, 15));
+const currentDate = ref(new Date());
+const selectedDate = ref(new Date());
 const workPlanEvents = ref({});
 
 const emit = defineEmits(['date-selected']);
@@ -133,7 +133,7 @@ const calendarDays = computed(() => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const event = workPlanEvents.value[dateStr];
     const dotColor = event && event.length > 0 ? colors[event[0].type] : null;
-    const today = new Date(2025, 9, 15);
+    const today = new Date();
     const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
     const dayOfWeek = (adjustedStartDay + day - 1) % 7;
     const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;

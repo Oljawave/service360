@@ -21,7 +21,6 @@ defineProps({
   },
   iconColor: {
     type: String,
-    // Основной синий цвет из макета: #2B6CB0
     default: '#2b6cb0', 
   }
 });

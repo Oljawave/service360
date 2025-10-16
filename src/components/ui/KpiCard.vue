@@ -17,7 +17,7 @@ defineProps({
   },
   variant: {
     type: String,
-    default: '', // e.g., 'overdue'
+    default: '',
   },
 });
 </script>

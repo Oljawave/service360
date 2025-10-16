@@ -41,7 +41,7 @@
       <div class="widget-card">
         <h2 class="section-title">{{ activityTitle }}</h2>
         <ul class="activity-feed">
-          <li v-for="event in dayEvents" :key="event.id" class="feed-item">
+          <li v-for="event in dayEvents" :key="event.id" class="feed-item" @dblclick.prevent="handleEventDoubleClick(event)">
             <div class="feed-icon work">
               <UiIcon name="ClipboardList" color="#2b6cb0" style="margin-right: 1px;" />
             </div>
@@ -65,17 +65,22 @@
       @close="isPlanWorkModalOpen = false"
       @update-table="refreshData"
     />
+    <ModalEditPlan
+      v-if="isEditPlanModalOpen"
+      :rowData="selectedEvent"
+      @close="isEditPlanModalOpen = false"
+      @save="handlePlanUpdated" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-// import MainButton from '@/components/ui/MainButton.vue'; // MainButton удален
-import DashboardButton from '@/components/ui/DashboardButton.vue'; // ActionButton заменен на DashboardButton
+import DashboardButton from '@/components/ui/DashboardButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import ModalAddIncident from '@/modals/ModalAddIncident.vue';
 import ModalPlanWork from '@/modals/ModalPlanWork.vue';
+import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import KpiCard from '@/components/ui/KpiCard.vue';
 import { loadIncidents } from '@/api/incidentApi.js';
 import { loadWorkPlan } from '@/api/planApi.js';
@@ -85,6 +90,8 @@ const router = useRouter();
 
 const isAddIncidentModalOpen = ref(false);
 const isPlanWorkModalOpen = ref(false);
+const isEditPlanModalOpen = ref(false);
+const selectedEvent = ref(null);
 
 const kpi = ref({
   newIncidents: 0,
@@ -201,6 +208,27 @@ const refreshData = () => {
   handleDateSelected(todayStr);
 };
 
+const handleEventDoubleClick = (event) => {
+  selectedEvent.value = {
+    id: event.id,
+    objWork: event.objWork,
+    objObject: event.objObject,
+    objLocationClsSection: event.objLocationClsSection,
+    planDate: event.PlanDateEnd,
+    StartKm: event.StartKm,
+    StartPicket: event.StartPicket,
+    FinishKm: event.FinishKm,
+    FinishPicket: event.FinishPicket,
+    rawData: event,
+  };
+  isEditPlanModalOpen.value = true;
+};
+
+const handlePlanUpdated = () => {
+  isEditPlanModalOpen.value = false;
+  refreshData();
+};
+
 onMounted(() => {
   loadKpiData();
 });
@@ -214,38 +242,105 @@ onMounted(() => {
   overflow-y: auto;
   font-family: system-ui;
 }
-.page-title { font-size: 24px; font-weight: 600; color: #1a202c; margin-bottom: 24px; }
-.section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin-bottom: 16px; }
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 24px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
 
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px; }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
 
-.quick-actions { margin-bottom: 32px; }
-.actions-container { display: flex; gap: 16px; }
+.quick-actions {
+  margin-bottom: 32px;
+}
+.actions-container {
+  display: flex;
+  gap: 16px;
+}
 
-.main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
-.widget-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-
+.main-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+}
+.widget-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
 .widget-card.no-padding {
   padding: 0;
 }
 
-.activity-feed { list-style: none; padding: 0; margin: 0; }
-.feed-item { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; }
-.feed-item:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
-.feed-icon { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.feed-icon.incident { background-color: #fed7d7; color: #c53030; }
-.feed-icon.work { background-color: #c3dafe; color: #2c5282; }
+.activity-feed {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 12px;
+}
+.feed-item:not(:last-child) {
+  border-bottom: 1px solid #e2e8f0;
+}
+.feed-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.feed-icon.incident {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+.feed-icon.work {
+  background-color: #c3dafe;
+  color: #2c5282;
+}
 .feed-icon .icon {
   width: 18px;
   height: 18px;
-  margin-right: 0; /* Убираем margin-right чтобы иконка была по центру */
+  margin-right: 0;
 }
-.feed-content { flex-grow: 1; }
-.feed-description { font-size: 14px; color: #2d3748; margin: 0 0 4px; }
-.feed-time { font-size: 12px; color: #a0aec0; margin: 0; }
+.feed-item:hover {
+  background-color: #f7fafc;
+  border-radius: 8px;
+}
 
+.feed-content {
+  flex-grow: 1;
+}
+.feed-description {
+  font-size: 14px;
+  color: #2d3748;
+  margin: 0 0 4px;
+}
+.feed-time {
+  font-size: 12px;
+  color: #a0aec0;
+  margin: 0;
+}
 .feed-time.overdue {
-  color: #c53030; /* Красный цвет для просроченных задач */
+  color: #c53030;
 }
 
 .feed-item-empty {
