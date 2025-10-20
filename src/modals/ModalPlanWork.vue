@@ -20,7 +20,7 @@
           <span v-if="index > 0" class="remove-object" @click="removeObject(index)">×</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AppDropdown
             class="col-span-1"
             :id="'place-' + object.id"
@@ -573,12 +573,6 @@ onMounted(async () => {
 
 .col-span-2 {
   grid-column: span 2;
-}
-
-.grid-cols-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
 }
 
 .divider {

@@ -8,16 +8,43 @@
 
       <div class="tree-node" :style="{ paddingLeft: `${level * 24}px` }">
         <div class="node-card" :class="{ expanded: isExpanded(node.id) }">
+          
           <div class="node-header" @click="hasChildren(node) && toggleExpand(node.id)">
-            <UiIcon
-              v-if="hasChildren(node)"
-              :name="isExpanded(node.id) ? 'ChevronDown' : 'ChevronRight'"
-              class="chevron-icon"
-            />
-            <span class="node-title">{{ node.name }}</span>
+            
+            <div class="header-main-info-mobile">
+              <UiIcon
+                v-if="hasChildren(node)"
+                :name="isExpanded(node.id) ? 'ChevronDown' : 'ChevronRight'"
+                class="chevron-icon"
+              />
+              <span class="node-type-mobile">{{ node.nameCls }}</span>
+              <span 
+                :class="['status-pill', node.nameIsActive === 'да' ? 'active' : 'inactive', 'status-pill-mobile']"
+              >
+                {{ node.nameIsActive === 'да' ? 'активен' : 'неактивен' }}
+              </span>
+            </div>
+            <div class="node-creation-date-mobile">{{ node.CreatedAt }}</div>
+
+            <div class="header-desktop">
+              <UiIcon
+                v-if="hasChildren(node)"
+                :name="isExpanded(node.id) ? 'ChevronDown' : 'ChevronRight'"
+                class="chevron-icon"
+              />
+              <span class="node-title">{{ node.name }}</span>
+            </div>
+
+          </div>
+          
+          <div class="node-title-main-mobile">{{ node.name }}</div>
+
+          <div class="node-location-mobile">
+            <UiIcon name="MapPin" class="location-icon" />
+            <span>{{ node.nameRegion }}</span>
           </div>
 
-          <div class="node-details">
+          <div class="node-details-desktop">
             <div><span>Тип:</span> {{ node.nameCls }}</div>
             <div><span>Регион:</span> {{ node.nameRegion }}</div>
             <div>
@@ -68,10 +95,14 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
 </script>
 
 <style scoped>
+/* ======================================================= */
+/* 1. BASE / DESKTOP STYLES (Applies by default) */
+/* ======================================================= */
+
 .tree-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 4px; /* Desktop gap */
 }
 
 .tree-node-wrapper {
@@ -84,6 +115,7 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
   position: relative;
 }
 
+/* Tree connection line (Desktop style) */
 .tree-children {
   margin-left: 24px;
   padding-left: 12px;
@@ -103,7 +135,9 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
   background-color: #f0f8ff;
 }
 
+/* DESKTOP HEADER */
 .node-header {
+  /* Desktop style: Header contains ONLY the chevron and the main node name (.node-title) */
   display: flex;
   align-items: center;
   margin-bottom: 12px;
@@ -112,15 +146,24 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
   cursor: pointer;
 }
 
-.chevron-icon {
-  margin-right: 8px;
+/* HIDE MOBILE ELEMENTS BY DEFAULT (Desktop view) */
+.header-main-info-mobile,
+.node-creation-date-mobile,
+.node-title-main-mobile,
+.node-location-mobile {
+  display: none;
 }
 
+/* SHOW DESKTOP ELEMENTS BY DEFAULT */
+.header-desktop {
+  display: flex;
+  align-items: center;
+}
 .node-title {
   font-weight: 600;
 }
-
-.node-details {
+.node-details-desktop {
+  /* DESKTOP DETAILS GRID */
   display: grid;
   grid-template-columns: repeat(4, auto);
   gap: 8px 24px;
@@ -128,12 +171,15 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
   color: #374151;
 }
 
-.node-details span:first-child {
+/* Common Styles (Desktop & Mobile) */
+.chevron-icon {
+  margin-right: 8px;
+}
+.node-details-desktop span:first-child {
   font-weight: 500;
   margin-right: 4px;
   color: #6b7280;
 }
-
 .status-pill {
   padding: 2px 8px;
   border-radius: 999px;
@@ -141,14 +187,104 @@ const hasChildren = (node) => props.childrenMap[node.id]?.length > 0
   font-weight: 500;
   white-space: nowrap;
 }
-
 .status-pill.active {
   background-color: #d1fae5;
   color: #065f46;
 }
-
 .status-pill.inactive {
   background-color: #f3f4f6;
   color: #6b7280;
+}
+
+/* ======================================================= */
+/* 2. MOBILE STYLES (Overrides for screens <= 768px) */
+/* ======================================================= */
+
+@media (max-width: 768px) {
+  
+  /* HIDE DESKTOP ELEMENTS ON MOBILE */
+  .header-desktop {
+    display: none;
+  }
+  .node-details-desktop {
+    display: none;
+  }
+  
+  /* SHOW MOBILE ELEMENTS ON MOBILE */
+  .header-main-info-mobile,
+  .node-title-main-mobile,
+  .node-location-mobile {
+    display: flex;
+  }
+  .node-header {
+    /* Mobile Header: Contains the two elements (main info and date) */
+    justify-content: space-between;
+    margin-bottom: 8px; /* Reduced margin */
+    font-weight: 400;
+    font-size: 14px;
+    color: #374151;
+  }
+  .header-main-info-mobile {
+    align-items: center;
+  }
+  .node-creation-date-mobile {
+    display: flex;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  /* MOBILE NODE CARD STYLES */
+  .tree-container {
+    gap: 8px; /* Mobile gap */
+  }
+  .tree-node {
+    /* Remove explicit padding on the node itself; indentation will come from the children margin */
+    padding-left: 0 !important;
+  }
+  .tree-children {
+    /* Mobile tree connection line style */
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 2px solid #e5e7eb;
+    margin-top: 0px;
+  }
+
+  /* MOBILE CONTENT STYLES */
+  .chevron-icon {
+    /* Adjust chevron margin for mobile header */
+    margin-right: 4px;
+    color: #6b7280;
+    width: 16px;
+    height: 16px;
+  }
+  .node-type-mobile {
+    font-weight: 500;
+    margin-right: 8px;
+    color: #6b7280;
+    font-size: 12px;
+  }
+  .status-pill-mobile {
+    font-size: 12px; /* Smaller font for mobile pill */
+    text-transform: lowercase; /* as in the image */
+  }
+
+  .node-title-main-mobile {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: #1a202c;
+  }
+
+  .node-location-mobile {
+    align-items: center;
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .location-icon {
+    margin-right: 4px;
+    color: #6b7280;
+    width: 14px;
+    height: 14px;
+  }
 }
 </style>

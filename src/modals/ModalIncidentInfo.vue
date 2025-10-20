@@ -263,9 +263,15 @@ const onConfirmDelete = async () => {
 .form-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  padding: 32px;
+  gap: 1rem; /* 16px */
+  padding: 2rem 1rem; /* 32px 16px */
   background-color: #f9fafb;
+}
+
+@media (min-width: 768px) {
+  .form-section {
+    padding: 2rem; /* 32px */
+  }
 }
 
 .section-title {

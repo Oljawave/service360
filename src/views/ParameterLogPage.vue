@@ -134,6 +134,7 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
       }
 
       return {
+        id: r.id,
         index: start + index + 1,
         objInspection: r.objInspection,
         FactDateEnd: r.FactDateEnd,
@@ -147,8 +148,8 @@ const loadParameterLogWrapper = async ({ page, limit, filters: filterValues }) =
         ParamsLimitMax: r.ParamsLimitMax,
         ParamsLimit: r.ParamsLimit,
         nameOutOfNorm: r.nameOutOfNorm,
-        Description: r.Description,
-        CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+        Description: r.Description, 
+        date: r.CreationDateTime,
         CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
         rawData: r,
         hasDeviation: r.pvOutOfNorm !== 1300,

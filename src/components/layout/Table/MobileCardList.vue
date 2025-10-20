@@ -8,15 +8,28 @@
     >
       <div class="card-header">
         <div class="card-title">
-          <span class="card-id">№ {{ row.id }}</span>
-          <span v-if="row.name" class="card-section">{{ row.name }}</span>
+          <span class="card-id">№ {{ row.id || row.index || 'б/н' }}</span>
+          <span v-if="row.nameLocationClsSection" class="card-section">{{ row.nameLocationClsSection }}</span>
+          <span v-else-if="row.name && row.work" class="card-section">{{ row.name }}</span>
         </div>
-        <div class="card-date">{{ row.planDate }}</div>
+        <div class="card-date">{{ formatDate(row.planDate || row.date) }}</div>
       </div>
 
       <div class="card-body">
-        <div class="card-main-work">{{ row.work }}</div>
-        <div class="card-full-work">{{ row.fullNameWork }}</div>
+        <!-- Основная информация -->
+        <div v-if="row.nameDefect" class="card-main-work">{{ row.nameDefect }}</div>
+        <div v-else-if="row.nameComponentParams" class="card-main-work">{{ row.nameComponentParams }}</div>
+        <div v-else-if="row.work" class="card-main-work">{{ row.work }}</div>
+        <div v-else-if="row.name" class="card-main-work">{{ row.name }}</div>
+
+        <!-- Дополнительная информация -->
+        <div v-if="row.nameDefectsComponent" class="card-full-work">{{ row.nameDefectsComponent }}</div>
+        <div v-else-if="row.nameComponent" class="card-full-work">{{ row.nameComponent }}</div>
+        <div v-if="row.nameObject" class="card-full-work">{{ row.nameObject }}</div>
+        <div v-else-if="row.object" class="card-full-work">{{ row.object }}</div>
+        <div v-else-if="row.nameComponent" class="card-full-work">{{ row.nameComponent }}</div>
+        <div v-else-if="row.description" class="card-full-work">{{ row.description }}</div>
+        <div v-else-if="row.fullNameWork" class="card-full-work">{{ row.fullNameWork }}</div>
       </div>
       
       <div class="card-footer">
@@ -45,6 +58,17 @@ const emit = defineEmits(['row-dblclick'])
 const handleCardClick = (row) => {
   // Simulating the double-click behavior on a single tap for mobile
   emit('row-dblclick', row) 
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return dateString
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0') // Месяцы начинаются с 0
+  const year = date.getFullYear()
+  return `${day}.${month}.${year}`
 }
 </script>
 
@@ -126,14 +150,14 @@ const handleCardClick = (row) => {
 }
 
 .card-main-work {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #2d3748;
   margin-bottom: 2px;
 }
 
 .card-full-work {
-  font-size: 14px;
+  font-size: 12px;
   color: #4a5568;
 }
 

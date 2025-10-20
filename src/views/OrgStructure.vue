@@ -1,8 +1,8 @@
 <template>
   <div class="org-structure-container">
     <div class="org-structure-header">
-      <h2 class="org-structure-title">{{ title }}</h2>
-      <TableActions :actions="tableActions" />
+      <h2 class="org-structure-title" :class="{ 'mobile-title': isMobile }">{{ title }}</h2>
+      <TableActions :actions="tableActions" :isMobile="isMobile" />
     </div>
 
     <div class="org-structure-content">
@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { usePermissions } from '@/api/usePermissions'
 import TableActions from '@/components/layout/Table/TableActions.vue'
 import ModalOrgStructure from '@/modals/ModalOrgStructure.vue'
@@ -32,6 +32,14 @@ const organizationData = ref([])
 const expandedRows = ref([])
 const childrenMap = ref({})
 const isCreateModalOpen = ref(false)
+
+const isMobile = ref(window.innerWidth <= 768)
+const updateIsMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => window.addEventListener('resize', updateIsMobile))
+onUnmounted(() => window.removeEventListener('resize', updateIsMobile))
 
 const { hasPermission } = usePermissions()
 const canInsert = computed(() => hasPermission('org:ins'))
@@ -141,11 +149,7 @@ onMounted(() => {
 
 <style scoped>
 .org-structure-container {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
   margin: 24px;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -169,5 +173,17 @@ onMounted(() => {
   overflow-y: auto;
   max-height: 70vh;
   padding-right: 8px;
+}
+
+@media (max-width: 768px) {
+  .org-structure-container {
+    margin: 16px;
+  }
+  .org-structure-header {
+    flex-direction: row; /* Keep it row for mobile title/actions */
+  }
+  .mobile-title {
+    font-size: 20px;
+  }
 }
 </style>

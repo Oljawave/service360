@@ -139,6 +139,7 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
       }
 
       return {
+        id: r.id,
         index: start + index + 1,
         objInspection: r.objInspection,
         nameSection: r.nameSection,
@@ -150,7 +151,7 @@ const loadFaultsWrapper = async ({ page, limit, filters: filterValues }) => {
         nameDefectsComponent: r.nameDefectsComponent,
         nameDefectsCategory: r.nameDefectsCategory,
         nameLocationClsSection: r.nameLocationClsSection,
-        CreationDate: r.CreationDateTime ? r.CreationDateTime.split('T')[0] : null,
+        date: r.CreationDateTime,
         CreationTime: r.CreationDateTime ? r.CreationDateTime.split('T')[1].substring(0, 8) : null,
         rawData: r, 
       };

@@ -262,7 +262,7 @@ const tableActions = computed(() => [
     label: 'Экспорт',
     icon: 'Download',
     onClick: () => console.log('Экспортирование инцидентов...'),
-    show: true, // Всегда показывать
+    show: true,
   },
 ].filter(action => action.show));
 </script>
