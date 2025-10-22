@@ -282,7 +282,7 @@ const loadExistingData = async (record) => {
       task: item.fullNameTask || '—',
       startDatePlan: item.PlanDateStart ? formatDate(item.PlanDateStart) : '—',
       endDatePlan: item.PlanDateEnd ? formatDate(item.PlanDateEnd) : '—',
-      volumePlan: item.Value ? `${item.Value} ед.` : '—',
+      volumePlan: item.Value ? `${item.Value}` : '—',
       
       // Старые поля, которые могут понадобиться для других dataType
       date: '—',

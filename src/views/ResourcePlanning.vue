@@ -178,7 +178,7 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
       work: r.nameClsWork,
       fullNameWork: r.fullNameWork,
       fullNameTask: r.fullNameTask,
-      valuePlan: r.Value,
+      valuePlan: r.ValuePlan,
       dateRange: formatDateRange(r.PlanDateStart, r.PlanDateEnd),
       planDateStart: r.PlanDateStart,
       planDateEnd: r.PlanDateEnd,
