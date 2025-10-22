@@ -84,7 +84,7 @@ import ExistingDataBlock from '@/components/ui/ExistingDataBlock.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { fetchUserData } from '@/api/inspectionsApi.js'; 
-import { loadTasks, saveTaskLog, loadTaskLogEntriesForWorkPlan } from '@/api/repairApi.js';
+import { loadTasks, saveTaskLogPlan, loadTaskLogEntriesForWorkPlan } from '@/api/repairApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -143,10 +143,8 @@ const closeModal = () => {
 };
 
 const getButtonLabel = () => {
-  return 'Добавить запись в журнал';
+  return 'Добавить в план выполнения работы';
 };
-
-// ... handleTabChange остается без изменений
 
 const saveWork = async () => {
   if (isSaving.value) return;
@@ -167,39 +165,34 @@ const saveWork = async () => {
     isSaving.value = true;
     try {
       const user = await fetchUserData();
+      const today = formatDateToISO(new Date());
 
       // Подготовка данных для сохранения
       const dataToSave = {
-        // Обязательные поля для связи с планом/секцией
-        objLocationClsSection: props.sectionId,
-        pvLocationClsSection: parseInt(props.sectionPv),
+        name: `${props.record.id}-${new Date().getTime()}`, // Уникальное имя
         objWorkPlan: props.record.id,
         pvWorkPlan: props.record.pv,
-        
-        // Информация о пользователе
+        objTask: newRecord.value.task.value, 
+        pvTask: newRecord.value.task.pv,
         objUser: user.id,
         pvUser: user.pv,
-        
-        // НОВЫЕ ПОЛЯ ДЛЯ ПЛАНИРОВАНИЯ
-        // Предполагаем, что value из AppDropdown - это ID задачи
-        objTask: newRecord.value.task.value, 
-        pvTask: props.record.pv, // Предполагаем, что pv задачи совпадает с pv работы
-        
-        PlannedVolume: newRecord.value.plannedVolume ? Number(newRecord.value.plannedVolume) : null,
+        Value: newRecord.value.plannedVolume ? Number(newRecord.value.plannedVolume) : null,
         PlanDateStart: newRecord.value.dateStartPlan ? formatDateToISO(newRecord.value.dateStartPlan) : null,
         PlanDateEnd: newRecord.value.dateEndPlan ? formatDateToISO(newRecord.value.dateEndPlan) : null,
-        
-        // Служебные поля
-        name: `${props.record.id}-${new Date().getTime()}`, // Уникальное имя
-        CreatedAt: new Date().toISOString().split('T')[0],
-        UpdatedAt: new Date().toISOString().split('T')[0],
-        
-        // УДАЛЕНЫ поля: StartKm, FinishKm, StartPicket, FinishPicket, StartLink, FinishLink, FactDateEnd, ReasonDeviation
+        CreatedAt: today,
+        UpdatedAt: today,
+        objLocationClsSection: props.sectionId,
+        pvLocationClsSection: parseInt(props.sectionPv),
       };
 
-      const response = await saveTaskLog(dataToSave);
+      const response = await saveTaskLogPlan(dataToSave);
       
-      if (response?.result?.id) {
+      // Обработка ответа
+      if (response.error) {
+        throw new Error(response.error.message || JSON.stringify(response.error));
+      }
+
+      if (response?.result?.id || response?.result?.records?.[0]?.id) {
         savedInspectionId.value = response.result.id;
       } else if (response?.id) {
         savedInspectionId.value = response.id;
@@ -207,17 +200,10 @@ const saveWork = async () => {
         savedInspectionId.value = response.result.records[0].id;
       }
       
-      notificationStore.showNotification('Информация по работе успешно сохранена!', 'success');
+      notificationStore.showNotification('Запись в журнал успешно добавлена!', 'success');
       isInfoSaved.value = true;
       
       await loadExistingData(props.record);
-      
-      if (!savedInspectionId.value && existingData && existingData.length > 0) {
-        const lastRecord = existingData[existingData.length - 1];
-        if (lastRecord.id) {
-          savedInspectionId.value = lastRecord.id;
-        }
-      }
       
     } catch (error) {
       
@@ -293,10 +279,10 @@ const loadExistingData = async (record) => {
     existingRecords.value = data.map(item => ({
       id: item.id,
       // Новые поля для отображения в ExistingDataBlock
-      taskName: item.fullNameTask || '—',
+      task: item.fullNameTask || '—',
       startDatePlan: item.PlanDateStart ? formatDate(item.PlanDateStart) : '—',
       endDatePlan: item.PlanDateEnd ? formatDate(item.PlanDateEnd) : '—',
-      volumePlan: item.ValuePlan ? `${item.ValuePlan} ед.` : '—',
+      volumePlan: item.Value ? `${item.Value} ед.` : '—',
       
       // Старые поля, которые могут понадобиться для других dataType
       date: '—',

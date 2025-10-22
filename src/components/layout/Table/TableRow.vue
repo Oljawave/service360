@@ -11,6 +11,7 @@
       :class="{
         'date-overdue': isFactDateOverdue(col.key),
         'date-ontime': isFactDateOnTime(col.key),
+        'multiline-cell': col.key === 'generalInfo'
       }"
     >
       <template v-if="col.component">
@@ -30,6 +31,12 @@
         <span class="cell-content" v-if="row[col.key] != fullIndex">
           {{ formatValue(row[col.key]) }}
         </span>
+      </template>
+      <template v-else-if="['generalInfo', 'dateRange'].includes(col.key)">
+        <div 
+          class="cell-content preserve-newlines" 
+          v-html="formatValue(row[col.key])"
+        ></div>
       </template>
       <template v-else>
         <span class="cell-content">{{ formatValue(row[col.key]) }}</span>
@@ -108,7 +115,6 @@ const formatValue = (value) => {
   return value;
 };
 
-// Добавленная логика для проверки дат
 const isFactDateOverdue = (key) => {
   if (key !== 'factDate') return false;
   
@@ -140,7 +146,6 @@ const isFactDateOnTime = (key) => {
 </script>
 
 <style scoped>
-
 .index-icon-wrap {
   display: flex;
   align-items: center;
@@ -158,8 +163,14 @@ const isFactDateOnTime = (key) => {
   padding: 14px 16px;
   font-size: 14px;
   color: #1a202c;
-  vertical-align: middle;
+  vertical-align: top;
 }
+
+.cell.multiline-cell {
+  min-width: 400px;
+  max-width: 600px;
+}
+
 .index-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -190,9 +201,14 @@ const isFactDateOnTime = (key) => {
 }
 
 .data-row.row-has-deviation {
-  background-color: #FFF5F5; /* Светло-красный фон */
+  background-color: #FFF5F5;
 }
 .data-row.row-has-deviation:hover {
-  background-color: #ffe6e6; /* Более темный красный при наведении */
+  background-color: #ffe6e6;
+}
+
+.cell-content.preserve-newlines {
+  white-space: pre-line;
+  line-height: 1.8; /* Увеличено для большего расстояния между строками */
 }
 </style>

@@ -190,4 +190,9 @@ th, td {
   padding: 20px 0;
   color: #718096;
 }
+
+.styled-table :deep(.label-strong) {
+  font-weight: 600;
+  color: #374151;
+}
 </style>

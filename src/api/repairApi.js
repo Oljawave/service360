@@ -150,6 +150,25 @@ export async function saveTaskLog(payload) {
   }
 }
 
+export async function saveTaskLogPlan(payload) {
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveTaskLogPlan",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при сохранении записи в журнал задач:", error);
+    throw error;
+  }
+}
+
 export async function loadTaskLog(workPlanId, workPlanPv) {
   try {
     const response = await axios.post(

@@ -11,9 +11,10 @@
           <!-- НОВЫЕ КОЛОНКИ ДЛЯ ПЛАНИРОВАНИЯ -->
           <template v-if="dataType === 'planning'">
             <span class="data-cell task-cell">ЗАДАЧА</span> 
-            <span class="data-cell start-date-plan-cell">НАЧАЛО (план)</span>
-            <span class="data-cell end-date-plan-cell">КОНЕЦ (план)</span>
-            <span class="data-cell volume-plan-cell">ОБЪЕМ (план)</span>
+            <span class="data-cell volume-plan-cell">ОБЪЕМ</span>
+            <span class="data-cell start-date-plan-cell">НАЧАЛО</span>
+            <span class="data-cell end-date-plan-cell">КОНЕЦ</span>
+
           </template>
           
           <!-- СТАНДАРТНЫЕ КОЛОНКИ (INFO) -->
@@ -35,9 +36,9 @@
           <!-- НОВЫЕ ЯЧЕЙКИ ДЛЯ ПЛАНИРОВАНИЯ -->
           <template v-if="dataType === 'planning'">
             <span class="data-cell task-cell">{{ item.task || '—' }}</span> <!-- ДОБАВЛЕНО: Ячейка "ЗАДАЧА" -->
+            <span class="data-cell volume-plan-cell">{{ item.volumePlan || '—' }}</span>
             <span class="data-cell start-date-plan-cell">{{ item.startDatePlan || '—' }}</span>
             <span class="data-cell end-date-plan-cell">{{ item.endDatePlan || '—' }}</span>
-            <span class="data-cell volume-plan-cell">{{ item.volumePlan || '—' }}</span>
           </template>
 
           <!-- СТАНДАРТНЫЕ ЯЧЕЙКИ (INFO) -->
@@ -177,7 +178,7 @@ const getColspan = () => {
 
 /* Стили для заголовка планирования (НОВОЕ: ДОБАВЛЕНА ЗАДАЧА) */
 .data-row.planning-header {
-  grid-template-columns: 60px 200px 140px 140px 100px; /* № | ЗАДАЧА | Начало | Конец | Объем */
+  grid-template-columns: 60px 200px 100px 140px 140px; /* № | ЗАДАЧА | Объем | Начало | Конец */
 }
 
 /* Для строк данных с дефектами */
@@ -202,7 +203,7 @@ const getColspan = () => {
 
 /* Для строк данных с планированием (НОВОЕ: ДОБАВЛЕНА ЗАДАЧА) */
 .data-row:not(.header-row):not(.empty-row):has(.task-cell) {
-  grid-template-columns: 60px 200px 140px 140px 100px; /* № | ЗАДАЧА | Начало | Конец | Объем */
+  grid-template-columns: 60px 200px 100px 140px 140px; /* № | ЗАДАЧА | Объем | Начало | Конец */
 }
 
 .data-row.header-row {

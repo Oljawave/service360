@@ -81,6 +81,31 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatDateRange = (startDate, endDate) => {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    // Если дата в формате YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}.${month}.${year}`;
+    }
+    return dateStr;
+  };
+
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+
+  if (start && end) {
+    return `<span class="label-strong">Начало:</span> ${start}\n<span class="label-strong">Конец:</span> ${end}`;
+  } else if (start) {
+    return `<span class="label-strong">Начало:</span> ${start}`;
+  } else if (end) {
+    return `<span class="label-strong">Конец:</span> ${end}`;
+  }
+  
+  return '—';
+};
+
 const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
   const isPresent = (val) => val !== null && val !== undefined && val !== '';
 
@@ -96,11 +121,38 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
   const finishPart = createCoordPart(finishKm, finishPk, finishZv);
 
   if (startPart && finishPart) {
-    return `${startPart} - ${finishPart}`;
-  } else if (startPart) {
-    return startPart;
-  }
+    return `${startPart} - ${finishPart}`;
+  } else if (startPart) {
+    return `${startPart}`;
+  }
   return 'Координаты отсутствуют';
+};
+
+const formatGeneralInfo = (row) => {
+  const parts = [];
+  
+  if (row.fullNameWork) {
+    parts.push(`<span class="label-strong">Работа:</span> ${row.fullNameWork}`);
+  }
+  
+  if (row.nameLocationClsSection) {
+    parts.push(`<span class="label-strong">Участок:</span> ${row.nameLocationClsSection}`);
+  }
+  
+  if (row.nameSection) {
+    parts.push(`<span class="label-strong">Место:</span> ${row.nameSection}`);
+  }
+  
+  if (row.fullNameObject) {
+    parts.push(`<span class="label-strong">Объект:</span> ${row.fullNameObject}`);
+  }
+  
+  if (row.StartKm !== null || row.StartPicket !== null || row.FinishKm !== null || row.FinishPicket !== null) {
+    const coords = formatCoordinates(row.StartKm, row.StartPicket, null, row.FinishKm, row.FinishPicket, null);
+    parts.push(`<span class="label-strong">Координаты:</span> ${coords}`);
+  }
+  
+  return parts.join('\n');
 };
 
 const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) => {
@@ -125,15 +177,14 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
       name: r.nameLocationClsSection,
       work: r.nameClsWork,
       fullNameWork: r.fullNameWork,
-      coordinates: formatCoordinates(r.StartKm, r.StartPicket, null, r.FinishKm, r.FinishPicket, null),
-      object: r.fullNameObject,
+      fullNameTask: r.fullNameTask,
+      valuePlan: r.Value,
+      dateRange: formatDateRange(r.PlanDateStart, r.PlanDateEnd),
       planDateStart: r.PlanDateStart,
       planDateEnd: r.PlanDateEnd,
-      location: r.nameSection,
-      description: r.description,
+      generalInfo: formatGeneralInfo(r),
+      description: r.description || '—',
       rawData: r,
-      fullNameTask: r.fullNameTask,
-      valuePlan: r.ValuePlan,
       objWork: r.objWork,
       objObject: r.objObject,
       StartKm: r.StartKm,
@@ -141,7 +192,9 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
       FinishKm: r.FinishKm,
       FinishPicket: r.FinishPicket,
       nameLocationClsSection: r.nameLocationClsSection,
-      objLocationClsSection: r.objLocationClsSection
+      objLocationClsSection: r.objLocationClsSection,
+      nameSection: r.nameSection,
+      fullNameObject: r.fullNameObject
     }));
 
     return {
@@ -154,7 +207,6 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
   }
 };
 
-// Функция для условного форматирования строки
 const getRowClassFn = (row) => {
   return {
     'row-has-defects': row.hasDefects,
@@ -162,18 +214,12 @@ const getRowClassFn = (row) => {
 };
 
 const columns = [
-  { key: 'id', label: '№', hide: true },
-  { key: 'objWorkPlan', label: 'ссылка на план' },
-  { key: 'fullNameWork', label: 'Наименование работы' },
-  { key: 'name', label: 'Участок' },
-  { key: 'location', label: 'Место' },
-  { key: 'object', label: 'Объект' },
-  { key: 'coordinates', label: 'Координаты' },
+  { key: 'id', label: '№' },
   { key: 'fullNameTask', label: 'Задача' },
-  { key: 'valuePlan', label: 'Объем (план)' },
-  { key: 'planDateStart', label: 'Начало (план)' },
-  { key: 'planDateEnd', label: 'Конец (план)' },
-  { key: 'description', label: 'Причина отклонения от плана' },
+  { key: 'valuePlan', label: 'Объем' },
+  { key: 'dateRange', label: 'Дата' },
+  { key: 'generalInfo', label: 'Общая информация' },
+  { key: 'objWorkPlan', label: 'ссылка на план' },
 ];
 
 const tableActions = computed(() => [
