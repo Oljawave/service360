@@ -8,16 +8,19 @@
         <div class="data-row header-row" :class="getHeaderClass()">
           <span class="data-cell number-cell">№</span>
 
-          <!-- НОВЫЕ КОЛОНКИ ДЛЯ ПЛАНИРОВАНИЯ -->
           <template v-if="dataType === 'planning'">
             <span class="data-cell task-cell">ЗАДАЧА</span> 
             <span class="data-cell volume-plan-cell">ОБЪЕМ</span>
             <span class="data-cell start-date-plan-cell">НАЧАЛО</span>
             <span class="data-cell end-date-plan-cell">КОНЕЦ</span>
-
           </template>
           
-          <!-- СТАНДАРТНЫЕ КОЛОНКИ (INFO) -->
+          <template v-else-if="dataType === 'materials'">
+            <span class="data-cell material-cell">МАТЕРИАЛ</span>
+            <span class="data-cell unit-cell">ЕД. ИЗМ.</span>
+            <span class="data-cell volume-material-cell">ОБЪЕМ</span>
+          </template>
+
           <template v-else>
             <span class="data-cell date-cell">ДАТА</span>
             <span class="data-cell coords-cell">КООРДИНАТЫ</span>
@@ -33,15 +36,19 @@
         <div v-else v-for="(item, index) in sortedRecords" :key="item.id || index" class="data-row">
           <span class="data-cell number-cell">{{ index + 1 }}</span>
 
-          <!-- НОВЫЕ ЯЧЕЙКИ ДЛЯ ПЛАНИРОВАНИЯ -->
           <template v-if="dataType === 'planning'">
-            <span class="data-cell task-cell">{{ item.task || '—' }}</span> <!-- ДОБАВЛЕНО: Ячейка "ЗАДАЧА" -->
+            <span class="data-cell task-cell">{{ item.task || '—' }}</span>
             <span class="data-cell volume-plan-cell">{{ item.volumePlan || '—' }}</span>
             <span class="data-cell start-date-plan-cell">{{ item.startDatePlan || '—' }}</span>
             <span class="data-cell end-date-plan-cell">{{ item.endDatePlan || '—' }}</span>
           </template>
 
-          <!-- СТАНДАРТНЫЕ ЯЧЕЙКИ (INFO) -->
+          <template v-else-if="dataType === 'materials'">
+            <span class="data-cell material-cell">{{ item.material || '—' }}</span>
+            <span class="data-cell unit-cell">{{ item.unit || '—' }}</span>
+            <span class="data-cell volume-material-cell">{{ item.volume || '—' }}</span>
+          </template>
+
           <template v-else>
             <span class="data-cell date-cell">{{ item.date }}</span>
             <span class="data-cell coords-cell">{{ item.coordinates }}</span>
@@ -67,16 +74,13 @@ const props = defineProps({
   },
   dataType: {
     type: String,
-    default: 'info', // 'info', 'defects', 'parameters', 'planning'
-    validator: (value) => ['info', 'defects', 'parameters', 'planning'].includes(value)
+    default: 'info', 
+    validator: (value) => ['info', 'defects', 'parameters', 'planning', 'materials'].includes(value)
   }
 });
 
-// Вычисляемое свойство для сортировки данных по id
 const sortedRecords = computed(() => {
-  // Создаем копию массива перед сортировкой, чтобы не мутировать проп
   return [...props.existingRecords].sort((a, b) => {
-    // Сортировка по возрастанию (a.id - b.id)
     const idA = a.id || 0;
     const idB = b.id || 0;
     return idA - idB;
@@ -90,7 +94,9 @@ const getWarningText = () => {
     case 'parameters':
       return 'Внесенные параметры';
     case 'planning':
-      return 'Внесенные плановые записи'; // Новый текст
+      return 'Внесенные плановые записи';
+    case 'materials':
+      return 'Внесенные плановые материалы';
     default:
       return 'Внесенные осмотры/проверки';
   }
@@ -103,7 +109,9 @@ const getHeaderClass = () => {
     case 'parameters':
       return 'parameters-header';
     case 'planning':
-      return 'planning-header'; // Новый класс для стилей планирования
+      return 'planning-header';
+    case 'materials':
+      return 'materials-header';
     default:
       return '';
   } 
@@ -112,13 +120,15 @@ const getHeaderClass = () => {
 const getColspan = () => {
   switch (props.dataType) {
     case 'defects':
-      return 4; // №, ДАТА, КООРДИНАТЫ, ДЕФЕКТ
+      return 4; 
     case 'parameters':
-      return 6; // №, ДАТА, КООРДИНАТЫ, КОМПОНЕНТ, ПАРАМЕТР, ЗНАЧЕНИЕ
+      return 6;
     case 'planning':
-      return 5; // УВЕЛИЧЕНО на 1: №, ЗАДАЧА, Начало (план), Конец (план), Объем (план)
+      return 5;
+    case 'materials':
+      return 4;
     default:
-      return 3; // №, ДАТА, КООРДИНАТЫ
+      return 3;
   }
 };
 </script>
@@ -153,7 +163,6 @@ const getColspan = () => {
 
 .data-row {
   display: grid;
-  /* Расстояние между столбцами уменьшено до 4px */
   gap: 4px;
   padding: 8px 0;
   border-bottom: 1px solid #e8d5b7;
@@ -161,51 +170,34 @@ const getColspan = () => {
   min-width: fit-content;
 }
 
-/* Стили по умолчанию (для info) */
-.data-row:not(.defects-header):not(.parameters-header):not(.planning-header) {
-  grid-template-columns: 60px 140px 200px;
+
+/* --- СТИЛИ ДЛЯ ЗАГОЛОВКОВ (HEADER ROW STYLES) --- */
+/* INFO Header (Default) - Для заголовка без специального класса */
+.data-row.header-row:not(.defects-header):not(.parameters-header):not(.planning-header):not(.materials-header) {
+  grid-template-columns: 60px 140px 200px; /* № | ДАТА | КООРДИНАТЫ */
 }
 
-/* Стили для заголовка дефектов */
+/* DEFECTS Header */
 .data-row.defects-header {
   grid-template-columns: 60px 140px 200px 200px;
 }
 
-/* Стили для заголовка параметров */
+/* PARAMETERS Header */
 .data-row.parameters-header {
   grid-template-columns: 60px 140px 200px 150px 150px 100px;
 }
 
-/* Стили для заголовка планирования (НОВОЕ: ДОБАВЛЕНА ЗАДАЧА) */
+/* PLANNING Header */
 .data-row.planning-header {
   grid-template-columns: 60px 200px 100px 140px 140px; /* № | ЗАДАЧА | Объем | Начало | Конец */
 }
 
-/* Для строк данных с дефектами */
-.data-row:not(.header-row):not(.empty-row) .defect-cell {
-  display: block;
+/* MATERIALS Header */
+.data-row.materials-header {
+  grid-template-columns: 60px 250px 150px 100px; /* № | МАТЕРИАЛ | ЕД. ИЗМ. | ОБЪЕМ */
 }
 
-.data-row:not(.header-row):not(.empty-row):has(.defect-cell) {
-  grid-template-columns: 60px 140px 200px 200px;
-}
-
-/* Для строк данных с параметрами */
-.data-row:not(.header-row):not(.empty-row) .component-cell,
-.data-row:not(.header-row):not(.empty-row) .parameter-cell,
-.data-row:not(.header-row):not(.empty-row) .value-cell {
-  display: block;
-}
-
-.data-row:not(.header-row):not(.empty-row):has(.component-cell) {
-  grid-template-columns: 60px 140px 200px 150px 150px 100px;
-}
-
-/* Для строк данных с планированием (НОВОЕ: ДОБАВЛЕНА ЗАДАЧА) */
-.data-row:not(.header-row):not(.empty-row):has(.task-cell) {
-  grid-template-columns: 60px 200px 100px 140px 140px; /* № | ЗАДАЧА | Объем | Начало | Конец */
-}
-
+/* --- ОБЩИЕ СТИЛИ ЗАГОЛОВКОВ --- */
 .data-row.header-row {
   position: sticky;
   top: 0;
@@ -218,6 +210,48 @@ const getColspan = () => {
   margin-bottom: 4px;
 }
 
+/* --- СТИЛИ ДЛЯ СТРОК ДАННЫХ (DATA ROW STYLES) --- */
+
+/* INFO Data Row - Определяется наличием date-cell, но отсутствием специфичных ячеек */
+.data-row:not(.header-row):not(.empty-row):has(.date-cell):not(:has(.defect-cell)):not(:has(.component-cell)) {
+    grid-template-columns: 60px 140px 200px; /* № | ДАТА | КООРДИНАТЫ */
+}
+
+/* DEFECTS Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.defect-cell) {
+  /* Важно: эти строки содержат и date-cell, и defect-cell, но этот селектор более специфичен */
+  grid-template-columns: 60px 140px 200px 200px;
+  
+  /* Отображаем скрытые ячейки для этого типа */
+  .date-cell, .coords-cell, .defect-cell { display: block; }
+}
+
+/* PARAMETERS Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.component-cell) {
+  /* Важно: эти строки содержат и date-cell, и component-cell, но этот селектор более специфичен */
+  grid-template-columns: 60px 140px 200px 150px 150px 100px;
+
+  /* Отображаем скрытые ячейки для этого типа */
+  .date-cell, .coords-cell, .component-cell, .parameter-cell, .value-cell { display: block; }
+}
+
+/* PLANNING Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.task-cell) {
+  grid-template-columns: 60px 200px 100px 140px 140px; /* № | ЗАДАЧА | Объем | Начало | Конец */
+
+  /* Отображаем скрытые ячейки для этого типа */
+  .task-cell, .volume-plan-cell, .start-date-plan-cell, .end-date-plan-cell { display: block; }
+}
+
+/* MATERIALS Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.material-cell) {
+  grid-template-columns: 60px 250px 150px 100px; /* № | МАТЕРИАЛ | ЕД. ИЗМ. | ОБЪЕМ */
+
+  /* Отображаем скрытые ячейки для этого типа */
+  .material-cell, .unit-cell, .volume-material-cell { display: block; }
+}
+
+/* --- ОБЩИЕ СТИЛИ ЯЧЕЕК --- */
 .data-row:not(.header-row) {
   color: #2d3748;
 }
@@ -237,10 +271,6 @@ const getColspan = () => {
 .number-cell {
   text-align: left;
   font-weight: 500;
-}
-
-.date-cell, .coords-cell, .task-cell, .start-date-plan-cell, .end-date-plan-cell, .volume-plan-cell {
-  text-align: left;
 }
 
 .empty-row {
