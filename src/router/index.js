@@ -9,6 +9,8 @@ import FaultJournalPage from '@/views/FaultJournalPage.vue';
 import ParameterLogPage from '@/views/ParameterLogPage.vue';
 import Incidents from '@/views/Incidents.vue';
 import WorkPlanForm from '@/views/WorkPlanForm.vue';
+import ResourcePlanning from '@/views/ResourcePlanning.vue';
+import ResourcePlanningForm from '@/views/ResourcePlanningForm.vue';
 
 const routes = [
   {
@@ -29,6 +31,16 @@ const routes = [
     path: '/work-plan',
     name: 'WorkPlan',
     component: WorkPlan
+  },
+  {
+    path: '/resource-planning',
+    name: 'ResourcePlanning',
+    component: ResourcePlanning
+  },
+  {
+    path: '/resource-planning/record',
+    name: 'ResourcePlanningRecord',
+    component: ResourcePlanningForm
   },
   {
     path: '/inspections',

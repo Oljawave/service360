@@ -10,10 +10,11 @@
     <nav class="nav-links">
       <SidebarItem
         v-for="item in filteredItems"
-        :key="item.path"
+        :key="item.path || item.label"
         :icon="item.icon"
         :label="item.label"
         :to="item.path"
+        :children="item.children"
         :is-collapsed="isCollapsed"
         @clicked="handleItemClick"
       />
@@ -32,7 +33,6 @@ const sidebar = useSidebarStore()
 const isMobile = ref(window.innerWidth < 768);
 
 const isCollapsed = computed(() => {
-  // На мобильных устройствах сайдбар никогда не должен быть collapsed
   return isMobile.value ? false : sidebar.collapsed;
 });
 
@@ -56,14 +56,50 @@ onBeforeUnmount(() => {
 })
 
 const allItems = [
-  { label: 'Главная', path: '/main', icon: 'Home' },
-  { label: 'План работ', path: '/work-plan', icon: 'ClipboardList', permission: 'plan' },
-  { label: 'Журнал осмотров и проверок', path: '/inspections', icon: 'BookOpen', permission: 'ins' },
-  { label: 'Журнал параметров', path: '/parameters', icon: 'Ruler', permission: 'par' },
-  { label: 'Журнал неисправностей', path: '/defects', icon: 'AlertTriangle', permission: 'def' },
-  { label: 'Журнал событий и запросов на работы', path: '/incidents', icon: 'Cog', permission: 'inc' },
-  { label: 'Обслуживаемые объекты', path: '/objects', icon: 'Folder', permission: 'obj' },
-  { label: 'Организационная структура', path: '/organization', icon: 'FolderTree', permission: 'org' },
+  { 
+    label: 'Главная', 
+    path: '/main', 
+    icon: 'Home' 
+  },
+  { 
+    label: 'Обслуживаемые объекты', 
+    path: '/objects', 
+    icon: 'Folder', 
+    permission: 'obj' 
+  },
+  { 
+    label: 'Планирование', 
+    icon: 'ClipboardList',
+    children: [
+      { label: 'План работ', path: '/work-plan', permission: 'plan' },
+      { label: 'Планирование ресурсов', path: '/resource-planning', permission: 'plan' }
+    ]
+  },
+  { 
+    label: 'Исполнение', 
+    icon: 'CheckSquare',
+    children: [
+      { label: 'Журнал осмотров и проверок', path: '/inspections', permission: 'ins' },
+      { label: 'Журнал параметров', path: '/parameters', permission: 'par' },
+      { label: 'Журнал неисправностей', path: '/defects', permission: 'def' },
+      { label: 'Журнал событий и запросов на работы', path: '/incidents', permission: 'inc' }
+    ]
+  },
+  { 
+    label: 'Отчеты', 
+    icon: 'FileText',
+    children: [
+      { label: 'Отчеты по объектам', path: '/reports/objects', permission: 'rep' },
+      { label: 'Отчеты по работам', path: '/reports/work', permission: 'rep' }
+    ]
+  },
+  { 
+    label: 'Организация', 
+    icon: 'FolderTree',
+    children: [
+      { label: 'Организационная структура', path: '/organization', permission: 'org' }
+    ]
+  }
 ]
 
 const getUserPermissions = () => {
@@ -82,9 +118,26 @@ const getUserPermissions = () => {
 }
 
 const userPermissions = getUserPermissions()
-const filteredItems = computed(() => 
-  allItems.filter(item => !item.permission || userPermissions.has(item.permission))
-)
+
+const filterItems = (items) => {
+  return items.filter(item => {
+    // Проверяем разрешение для самого пункта
+    if (item.permission && !userPermissions.has(item.permission)) {
+      return false
+    }
+    
+    // Если есть дочерние элементы, фильтруем их
+    if (item.children) {
+      item.children = filterItems(item.children)
+      // Показываем родительский элемент только если есть доступные дочерние
+      return item.children.length > 0
+    }
+    
+    return true
+  })
+}
+
+const filteredItems = computed(() => filterItems(JSON.parse(JSON.stringify(allItems))))
 </script>
 
 <style scoped>
@@ -97,8 +150,8 @@ const filteredItems = computed(() =>
   border-right: 1px solid #e2e8f0;
   min-height: 100vh;
   transition: width 0.3s ease, padding 0.3s ease;
-
 }
+
 .desktop-only {
   display: flex;
 }
@@ -111,7 +164,7 @@ const filteredItems = computed(() =>
     height: 100%;
     z-index: 1000;
     transition: left 0.3s ease;
-    width: 250px; /* Ensure it's not collapsed on mobile when open */
+    width: 250px;
   }
 
   .sidebar:not(.mobile-open) {
@@ -123,7 +176,6 @@ const filteredItems = computed(() =>
   width: 60px;
   padding: 16px 4px;
 }
-
 
 @media (max-width: 768px) {
   .sidebar.mobile-open {
@@ -175,28 +227,4 @@ const filteredItems = computed(() =>
   flex-direction: column;
   gap: 10px;
 }
-
-.sidebar.collapsed .sidebar-item {
-  justify-content: center;
-  padding: 12px 0;
-}
-
-.sidebar.collapsed .sidebar-item .label {
-  display: none;
-}
-
-.sidebar-item .icon {
-  width: 20px;
-  height: 20px;
-  color: #4a5568;
-}
-
-.sidebar-item:hover .icon {
-  color: #2b6cb0;
-}
-
-.sidebar-item.active .icon {
-  color: #2b6cb0;
-}
-
 </style>

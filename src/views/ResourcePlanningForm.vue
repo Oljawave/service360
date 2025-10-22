@@ -2,7 +2,7 @@
   <div class="plan-form-page">
     <div class="header">
       <BackButton @click="goToInspections" />
-      <h1>Запись в Журнал осмотров и проверок</h1>
+      <h1>Запись в Журнал выполнения работ</h1>
     </div>
     <div class="filters-section">
       <div class="filter-row">
@@ -69,7 +69,7 @@
       />
     </div>
 
-    <WorkCardModal
+    <ResourcePlanningModal
       v-if="isWorkCardModalOpen"
       :record="selectedRecord"
       :section="selectedSectionName"
@@ -92,15 +92,16 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNotificationStore } from '@/stores/notificationStore'; 
-import { loadSections, loadWorkPlanDates, loadWorkPlanUnfinishedByDate } from '@/api/inspectionsApi.js'; 
+import { useNotificationStore } from '@/stores/notificationStore';
+import { loadSections } from '@/api/inspectionsApi.js';
+import { loadDateWorkPlanCorrectional, loadObjClsWorkPlanCorrectionalUnfinishedByDate } from '@/api/repairApi.js';
 import { completeThePlanWork } from '@/api/planWorkApi.js'; 
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
 import BaseTable from '@/components/layout/Table/BaseTable.vue';
 import BackButton from '@/components/ui/BackButton.vue';
 import MainButton from '@/components/ui/MainButton.vue';
-import UiButton from '@/components/ui/UiButton.vue';
-import WorkCardModal from '@/modals/WorkCardModal.vue';
+import UiButton from '@/components/ui/UiButton.vue'; 
+import ResourcePlanningModal from '@/modals/ResourcePlanningModal.vue';
 import ConfirmationModal from '@/modals/ConfirmationModal.vue';
 
 const selectedSection = ref(null);
@@ -265,7 +266,7 @@ const loadWorkPlanForDate = async () => {
       throw new Error('PV участка не найден');
     }
 
-    const records = await loadWorkPlanUnfinishedByDate(sectionData.id, sectionData.pv, selectedDate.value);
+    const records = await loadObjClsWorkPlanCorrectionalUnfinishedByDate(sectionData.id, sectionData.pv, selectedDate.value);
 
     tableData.value = records.map((record) => ({
       id: record.id,
@@ -319,7 +320,7 @@ const loadWorkPlanDatesData = async () => {
   }
 
   try {
-    const dates = await loadWorkPlanDates(sectionData.id, sectionData.pv);
+    const dates = await loadDateWorkPlanCorrectional(sectionData.id, sectionData.pv);
     
     // Сохраняем все даты для последующей фильтрации
     allDatesData.value = dates;

@@ -24,17 +24,17 @@
             <!-- <ExistingDataBlock :existingRecords="existingRecords" dataType="info" /> -->
             <div class="new-info-content">
               <div class="section-heading spaced-heading info-heading">Местоположение работы (disabled)</div>
-              <div class="coordinates-input-group info-coords">
-                <FullCoordinates
-                  v-model="newRecord.coordinates"
-                  label="Координаты начала"
-                  class="coord-start"
-                  :isInspection="true"
-                  :objectBounds="objectBounds"
-                  :disabled="true" 
-                />
-              </div>
-              <div class="form-grid">
+               <div class="coordinates-input-group info-coords">
+                 <FullCoordinates
+                   v-model="newRecord.coordinates"
+                   label="Координаты начала"
+                   class="coord-start"
+                   :isInspection="true"
+                   :objectBounds="objectBounds"
+                   :disabled="true"
+                 />
+               </div>
+               <div class="form-grid">
                 <AppDatePicker
                   label="Дата"
                   placeholder="Выберите дату"
@@ -43,22 +43,25 @@
                   class="col-span-1"
                   :disabled="true"
                 />
-              </div>
-              <AppInput
-                label="Причина отклонения от плана"
-                id="deviation-reason"
-                v-model="newRecord.deviationReason"
-                placeholder="Введите причину отклонения от плана..."
-                class="full-width-input text-area"
-                multiline
-                :disabled="true"
-              />
+               </div>
+               <AppInput
+                 label="Причина отклонения от плана"
+                 id="deviation-reason"
+                 v-model="newRecord.deviationReason"
+                 placeholder="Введите причину отклонения от плана..."
+                 class="full-width-input text-area"
+                 multiline
+                 :disabled="true"
+               />
             </div>
           </div>
 
           <div v-else-if="activeTab === 'defects'">
             <ExistingDataBlock :existingRecords="existingDefects" dataType="defects" />
-            <div class="defects-content">
+            <div v-if="isWorkCompleted" class="completed-work-notice">
+              Работа завершена. Добавление новых неисправностей невозможно
+            </div>
+            <div v-else class="defects-content">
               <div class="section-heading spaced-heading defect-heading">Местоположение неисправности</div>
               <div class="coordinates-input-group defect-coords">
                 <FullCoordinates
@@ -102,7 +105,10 @@
 
           <div v-else-if="activeTab === 'parameters'">
             <ExistingDataBlock :existingRecords="existingParameters" dataType="parameters" />
-            <div class="parameters-content">
+            <div v-if="isWorkCompleted" class="completed-work-notice">
+              Работа завершена. Добавление новых параметров невозможно
+            </div>
+            <div v-else class="parameters-content">
               <div class="section-heading spaced-heading parameters-heading">Местоположение параметра</div>
               <div class="coordinates-input-group parameter-coords">
                 <FullCoordinates
@@ -235,14 +241,21 @@ const canDelete = computed(() => hasPermission('ins:del'));
 const canInsertDefect = computed(() => hasPermission('def:ins'));
 const canInsertParameter = computed(() => hasPermission('par:ins'));
 
+const isWorkCompleted = computed(() => {
+  return props.record?.rawData?.ActualDateEnd && props.record.rawData.ActualDateEnd !== '0000-01-01' && props.record.rawData.ActualDateEnd !== null;
+});
+
 const canSaveChanges = computed(() => {
+  if (isWorkCompleted.value) {
+    return false;
+  }
   if (activeTab.value === 'defects') {
     return canInsertDefect.value;
   }
   if (activeTab.value === 'parameters') {
     return canInsertParameter.value;
   }
-  return false;
+  return false; // По умолчанию кнопка не показывается
 });
 
 const isSaving = ref(false);
@@ -725,5 +738,13 @@ watch(() => props.inspectionId, (newId) => {
   .main-actions { width: 100%; justify-content: center; }
   .defect-info-group, .parameter-info-group { grid-template-columns: 1fr; gap: 12px; }
   .value-input { width: 100%; }
+}
+
+.completed-work-notice {
+  padding: 16px;
+  border-radius: 8px;
+  color: #718096;
+  text-align: center;
+  font-size: 14px;
 }
 </style>
