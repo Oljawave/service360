@@ -108,6 +108,41 @@
 
             </div>
           </div>
+
+          <div v-if="activeTab === 'externalServices'">
+            <ExistingDataBlock :existingRecords="existingRecordsServices" dataType="externalServices" />
+            
+            <div class="new-info-content">
+              <div v-for="(service, index) in serviceRecords" :key="index" class="material-record-block">
+                  <div class="material-record-header">
+                    <span v-if="index > 0" class="remove-object" @click="removeServiceRecord(index)">×</span>
+                  </div>
+                  
+                  <div class="form-line-services">
+                    <AppDropdown
+                      label="Сервис"
+                      placeholder="Выберите сервис"
+                      :id="`service-dropdown-${index}`"
+                      v-model="service.service"
+                      :options="serviceOptions"
+                      :required="true" />
+                      
+                    <AppNumberInput
+                      label="Объем"
+                      :id="`service-volume-input-${index}`"
+                      v-model.number="service.volume"
+                      placeholder="Введите объем"
+                      type="number" 
+                      :min="0" />
+                  </div>
+              </div>
+              
+              <div class="col-span-2 add-object-btn-wrapper">
+                <UiButton text="Добавить услугу" icon="Plus" :loading="isAddingObject" @click="addNewServiceRecord" />
+              </div>
+
+            </div>
+          </div>
           
         </div>
       </div>
@@ -139,7 +174,17 @@ import UiButton from '@/components/ui/UiButton.vue';
 
 import { useNotificationStore } from '@/stores/notificationStore';
 import { fetchUserData } from '@/api/inspectionsApi.js'; 
-import { loadTasks, saveTaskLogPlan, loadTaskLogEntriesForWorkPlan, loadMaterials, loadUnits, saveResourceMaterial, loadResourceMaterialsForTaskLog } from '@/api/repairApi.js';
+import { 
+  loadTasks, 
+  saveTaskLogPlan, 
+  loadTaskLogEntriesForWorkPlan, 
+  loadMaterials, 
+  loadUnits, 
+  saveResourceMaterial, 
+  loadResourceMaterialsForTaskLog,
+  loadExternalServices,
+  saveResourceExternalService,
+  loadResourceExternalServicesForTaskLog } from '@/api/repairApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -173,11 +218,12 @@ const activeTab = ref('info');
 const isInfoSaved = ref(false);
 const savedTaskLogId = ref(null);
 const savedTaskLogCls = ref(null);
-const disabledTabs = computed(() => isInfoSaved.value ? [] : ['materials']);
+const disabledTabs = computed(() => isInfoSaved.value ? [] : ['materials', 'externalServices']);
 
 const tabs = ref([
   { name: 'info', label: 'Новая информация по задаче', icon: 'Info' },
   { name: 'materials', label: 'Материалы', icon: 'Box' },
+  { name: 'externalServices', label: 'Услуги сторонних организаций', icon: 'Truck' },
 ]);
 
 const notificationStore = useNotificationStore();
@@ -190,22 +236,25 @@ const newRecord = ref({
   dateEndPlan: null,
 });
 
-// Функция для создания нового объекта материала по умолчанию
 const createNewMaterialObject = () => ({
   material: null,
   unit: null,
   volume: null,
 });
 
-// Массив для хранения записей материалов. Инициализируем с одной пустой формой.
+const createNewServiceObject = () => ({ service: null, volume: null });
+
 const materialRecords = ref([createNewMaterialObject()]); 
+const serviceRecords = ref([createNewServiceObject()]);
 
 const taskOptions = ref([]);
-const materialOptions = ref([]); // <- Инициализация для материалов
-const unitOptions = ref([]); // <- Инициализация для единиц измерения
+const materialOptions = ref([]);
+const unitOptions = ref([]);
+const serviceOptions = ref([]);
 
 const existingRecords = ref([]); // Для планов работ
 const existingRecordsMaterials = ref([]); // Для материалов
+const existingRecordsServices = ref([]); // Для услуг
 
 const closeModal = () => {
   emit('close');
@@ -218,6 +267,9 @@ const getButtonLabel = () => {
   if (activeTab.value === 'materials') {
     return 'Сохранить материалы';
   }
+  if (activeTab.value === 'externalServices') {
+    return 'Сохранить услуги';
+  }
   return 'Сохранить';
 };
 
@@ -226,9 +278,17 @@ const addNewMaterialRecord = () => {
   materialRecords.value.push(createNewMaterialObject());
 };
 
-// Метод для удаления формы материала по индексу
-const removeObject = (index) => {
-  materialRecords.value.splice(index, 1);
+const addNewServiceRecord = () => {
+  serviceRecords.value.push(createNewServiceObject());
+};
+
+const removeServiceRecord = (index) => {
+  serviceRecords.value.splice(index, 1);
+};
+
+
+const removeMaterialRecord = (index) => {
+  if (materialRecords.value.length > 1) materialRecords.value.splice(index, 1);
 };
 
 const saveData = async () => {
@@ -274,16 +334,13 @@ const saveData = async () => {
         throw new Error(response.error.message || JSON.stringify(response.error));
       }
       
-      const resultRecord = response?.result?.records?.[0];
+      const resultRecord = response?.result?.store?.records?.[0];
 
       if (resultRecord?.id) {
         savedTaskLogId.value = resultRecord.id;
-        savedTaskLogCls.value = resultRecord.cls;
-      } else if (response?.result?.id) { // Fallback for direct result ID
-        savedTaskLogId.value = response.result.id;
-        savedTaskLogCls.value = response.result.cls; // Assuming cls is also directly available
-      } else if (response?.id) {
-        savedTaskLogId.value = response.id;
+        savedTaskLogCls.value = resultRecord.cls || resultRecord.linkCls;
+      } else {
+        console.error("Не удалось получить ID и CLS из ответа:", response);
       }
 
       isInfoSaved.value = true;
@@ -337,7 +394,7 @@ const saveData = async () => {
       const user = await fetchUserData();
       const today = formatDateToISO(new Date());
 
-      const savePromises = validRecords.map(material => {
+      const savePromises = validRecords.map(async (material) => {
         const payload = {
           name: `${savedTaskLogId.value}-${today}`,
           objMaterial: material.material.value,
@@ -352,7 +409,6 @@ const saveData = async () => {
           objUser: user.id,
           pvUser: user.pv,
         };
-        console.log('Отправка данных для сохранения материала:', JSON.stringify(payload, null, 2));
         return saveResourceMaterial(payload);
       });
 
@@ -393,6 +449,78 @@ const saveData = async () => {
     } finally {
       isSaving.value = false;
     }
+  } else if (activeTab.value === 'externalServices') {
+    if (isSaving.value) return;
+
+    const validRecords = serviceRecords.value.filter(s => s.service && s.volume != null && s.volume > 0);
+    
+    if (validRecords.length === 0) {
+      notificationStore.showNotification('Нет данных для сохранения. Заполните обязательные поля (Сервис, Объем) хотя бы для одной записи.', 'error');
+      return;
+    }
+
+    if (validRecords.some(s => s.volume < 0)) {
+      notificationStore.showNotification('Объем услуги не может быть отрицательным.', 'error');
+      return;
+    }
+
+    if (!savedTaskLogId.value || !savedTaskLogCls.value) {
+      notificationStore.showNotification('Не найден ID или CLS родительской задачи. Пожалуйста, пересохраните информацию по задаче.', 'error');
+      return;
+    }
+
+    isSaving.value = true;
+    try {
+      const user = await fetchUserData();
+      const today = formatDateToISO(new Date());
+
+      const savePromises = validRecords.map(async (service) => {
+        const payload = {
+          name: `${savedTaskLogId.value}-${today}`,
+          objTpService: service.service.value,
+          pvTpService: service.service.pv,
+          Value: Number(service.volume),
+          objTaskLog: savedTaskLogId.value,
+          linkCls: savedTaskLogCls.value,
+          CreatedAt: today,
+          UpdatedAt: today,
+          objUser: user.id,
+          pvUser: user.pv,
+        };
+        return saveResourceExternalService(payload);
+      });
+
+      const results = await Promise.allSettled(savePromises);
+
+      const successfulSaves = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+      const failedSaves = results.length - successfulSaves;
+
+      if (failedSaves > 0) {
+        console.error('Не удалось сохранить следующие услуги:', results.filter(r => r.status === 'rejected' || r.value.error));
+        notificationStore.showNotification(`Не удалось сохранить ${failedSaves} из ${results.length} услуг. Успешно: ${successfulSaves}.`, 'warning');
+      } else {
+        notificationStore.showNotification(`Успешно сохранено ${successfulSaves} записей услуг!`, 'success');
+      }
+      
+      if (successfulSaves > 0) {
+        serviceRecords.value = [createNewServiceObject()];
+        await loadExistingServices(savedTaskLogId.value);
+      }
+    } catch (error) {
+      let errorMessage = 'Не удалось сохранить информацию по услугам.';
+      if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Ошибка сервера. Попробуйте еще раз.';
+      }
+      
+      console.error('Ошибка сохранения услуг:', error);
+      notificationStore.showNotification(errorMessage, 'error');
+    } finally {
+      isSaving.value = false;
+    }
   }
 };
 
@@ -428,7 +556,6 @@ const loadExistingMaterials = async (taskLogId) => {
     return;
   }
   try {
-    // Предполагаем, что есть API-метод для загрузки материалов по ID задачи
     const data = await loadResourceMaterialsForTaskLog(taskLogId);
     
     existingRecordsMaterials.value = data.map(item => {
@@ -447,6 +574,29 @@ const loadExistingMaterials = async (taskLogId) => {
   }
 };
 
+const loadExistingServices = async (taskLogId) => {
+  if (!taskLogId) {
+    existingRecordsServices.value = [];
+    return;
+  }
+  try {
+    const data = await loadResourceExternalServicesForTaskLog(taskLogId);
+    
+    existingRecordsServices.value = data.map(item => {
+      return {
+        id: item.id,
+        service: item.nameTpService || item.name || '—',
+        volume: item.Value !== null && item.Value !== undefined ? `${item.Value}` : '—',
+      };
+    });
+    
+  } catch (error) {
+    console.error('Ошибка загрузки услуг:', error);
+    notificationStore.showNotification('Не удалось загрузить ранее внесенные услуги.', 'error');
+    existingRecordsServices.value = [];
+  }
+};
+
 const loadTaskOptions = async () => {
   try {
     taskOptions.value = await loadTasks();
@@ -455,7 +605,6 @@ const loadTaskOptions = async () => {
   }
 };
 
-// Функция для загрузки материалов
 const loadMaterialOptions = async () => {
   try {
     materialOptions.value = await loadMaterials();
@@ -464,7 +613,6 @@ const loadMaterialOptions = async () => {
   }
 };
 
-// Функция для загрузки единиц измерения
 const loadUnitOptions = async () => {
   try {
     unitOptions.value = await loadUnits();
@@ -473,23 +621,35 @@ const loadUnitOptions = async () => {
   }
 };
 
+const loadServiceOptions = async () => {
+  try {
+    serviceOptions.value = await loadExternalServices();
+  } catch (error) {
+    notificationStore.showNotification('Не удалось загрузить список услуг.', 'error');
+  }
+};
+
 const handleTabChange = (newTab) => {
-  if (newTab === 'materials' && !isInfoSaved.value) {
+  if ((newTab === 'materials' || newTab === 'externalServices') && !isInfoSaved.value) {
     notificationStore.showNotification('Сначала необходимо сохранить информацию по задаче!', 'error');
     return;
   }
   activeTab.value = newTab;
 
   if (newTab === 'materials' && isInfoSaved.value) {
-    // Загружаем материалы при переходе на вкладку
     loadExistingMaterials(savedTaskLogId.value);
+  }
+  
+  if (newTab === 'externalServices' && isInfoSaved.value) {
+    loadExistingServices(savedTaskLogId.value);
   }
 };
 
 onMounted(() => {
   loadTaskOptions();
-  loadMaterialOptions(); // <- Вызов загрузки материалов
-  loadUnitOptions();    // <- Вызов загрузки единиц измерения
+  loadMaterialOptions();
+  loadUnitOptions();
+  loadServiceOptions();
 });
 
 watch(
@@ -512,11 +672,11 @@ watch(
       // Сброс и инициализация массива материалов при смене записи
       materialRecords.value = [createNewMaterialObject()];
       existingRecordsMaterials.value = [];
+
+      serviceRecords.value = [createNewServiceObject()];
+      existingRecordsServices.value = [];
       
       loadExistingData(newRecordData);
-      // При смене записи также можно обновить списки опций, если они зависят от контекста
-      // loadMaterialOptions(); 
-      // loadUnitOptions();    
     }
   },
   { immediate: true } 
@@ -595,6 +755,12 @@ watch(
   gap: 16px;
 }
 
+.form-line-services {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
 .col-span-1 {
   grid-column: span 1 / span 1;
 }
@@ -617,7 +783,8 @@ watch(
 
 @media (max-width: 768px) {
   .form-grid-planning,
-  .form-line-materials {
+  .form-line-materials,
+  .form-line-services {
     grid-template-columns: 1fr;
   }
   

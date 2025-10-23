@@ -34,7 +34,13 @@ export async function loadPlanCorrectional(date = "2025-07-30", periodType = 11)
     }
   );
 
-  return response.data.result?.records || [];
+  const result = response.data.result;
+
+  if (result && result.store && Array.isArray(result.store.records)) {
+    return result.store.records;
+  }
+
+  return [];
 }
 
 export async function loadDateWorkPlanCorrectional(selectedSectionId, pv) {
@@ -278,6 +284,74 @@ export async function loadResourceMaterialsForTaskLog(taskLogId) {
     return response.data.result?.records || [];
   } catch (error) {
     console.error("Ошибка при загрузке материалов для записи журнала задач:", error);
+    throw error;
+  }
+}
+
+export async function loadExternalServices() {
+  try {
+    const response = await axios.post(
+      API_OBJECT_URL,
+      {
+        method: "data/loadObjList",
+        params: ["Cls_TpService", "Prop_TpService", "resourcedata"],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    const records = response.data.result?.records || [];
+    return records.map((record) => ({
+      label: record.fullName, 
+      value: record.id,      
+      cls: record.cls,      
+      pv: record.pv,        
+    }));
+  } catch (error) {
+    console.error("Ошибка при загрузке услуг сторонних организаций:", error);
+    throw error;
+  }
+}
+
+export async function saveResourceExternalService(payload) {
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourceTpService",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при сохранении услуги для задачи:", error);
+    throw error;
+  }
+}
+
+export async function loadResourceExternalServicesForTaskLog(taskLogId) {
+  if (!taskLogId) {
+    console.warn("loadResourceExternalServicesForTaskLog вызван без taskLogId");
+    return [];
+  }
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/loadResourceTpService",
+        params: [taskLogId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке услуг для записи журнала задач:", error);
     throw error;
   }
 }
