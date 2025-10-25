@@ -11,10 +11,17 @@
 
       <div class="tabs-block">
         <TabsHeader
-          :tabs="tabs" 
+          :tabs="tabsRow1"
           :modelValue="activeTab" 
           @update:modelValue="handleTabChange"
           :disabledTabs="disabledTabs"
+        />
+        <TabsHeader
+          :tabs="tabsRow2"
+          :modelValue="activeTab"
+          @update:modelValue="handleTabChange"
+          :disabledTabs="disabledTabs"
+          class="second-row-tabs"
         />
 
         <div class="tab-content">
@@ -65,9 +72,9 @@
             <ExistingDataBlock :existingRecords="existingRecordsMaterials" dataType="materials" />
             
             <div class="new-info-content">
-              <div v-for="(material, index) in materialRecords" :key="index" class="material-record-block">
-                  <div class="material-record-header">
-                    <span v-if="index > 0" class="remove-object" @click="removeObject(index)">×</span>
+              <div v-for="(material, index) in materialRecords" :key="index" class="resource-record-block">
+                  <div class="resource-record-header">
+                    <span v-if="index > 0" class="remove-object" @click="removeMaterialRecord(index)">×</span>
                   </div>
                   
                   <div class="form-line-materials">
@@ -113,8 +120,8 @@
             <ExistingDataBlock :existingRecords="existingRecordsServices" dataType="externalServices" />
             
             <div class="new-info-content">
-              <div v-for="(service, index) in serviceRecords" :key="index" class="material-record-block">
-                  <div class="material-record-header">
+              <div v-for="(service, index) in serviceRecords" :key="index" class="resource-record-block">
+                  <div class="resource-record-header">
                     <span v-if="index > 0" class="remove-object" @click="removeServiceRecord(index)">×</span>
                   </div>
                   
@@ -139,6 +146,94 @@
               
               <div class="col-span-2 add-object-btn-wrapper">
                 <UiButton text="Добавить услугу" icon="Plus" :loading="isAddingObject" @click="addNewServiceRecord" />
+              </div>
+
+            </div>
+          </div>
+          
+          <div v-if="activeTab === 'personnel'">
+            <ExistingDataBlock :existingRecords="existingRecordsPersonnel" dataType="personnel" />
+            
+            <div class="new-info-content">
+              <div v-for="(personnel, index) in personnelRecords" :key="index" class="resource-record-block">
+                  <div class="resource-record-header">
+                    <span v-if="index > 0" class="remove-object" @click="removePersonnelRecord(index)">×</span>
+                  </div>
+                  
+                  <div class="form-line-personnel">
+                    <AppDropdown
+                      label="Должность"
+                      placeholder="Выберите должность"
+                      :id="`position-dropdown-${index}`"
+                      v-model="personnel.position"
+                      :options="positionOptions"
+                      :required="true" />
+                      
+                    <AppNumberInput
+                      label="Количество человек"
+                      :id="`personnel-count-input-${index}`"
+                      v-model.number="personnel.count"
+                      placeholder="Кол-во"
+                      type="number" 
+                      :min="0"
+                      :required="true" />
+                      
+                    <AppNumberInput
+                      label="Часы"
+                      :id="`personnel-hours-input-${index}`"
+                      v-model.number="personnel.hours"
+                      placeholder="Введите часы"
+                      type="number" 
+                      :min="0" />
+                  </div>
+              </div>
+              
+              <div class="col-span-2 add-object-btn-wrapper">
+                <UiButton text="Добавить еще Должность" icon="Plus" :loading="isAddingObject" @click="addNewPersonnelRecord" />
+              </div>
+
+            </div>
+          </div>
+          
+          <div v-if="activeTab === 'equipment'">
+            <ExistingDataBlock :existingRecords="existingRecordsEquipment" dataType="equipment" />
+            
+            <div class="new-info-content">
+              <div v-for="(equipment, index) in equipmentRecords" :key="index" class="resource-record-block">
+                  <div class="resource-record-header">
+                    <span v-if="index > 0" class="remove-object" @click="removeEquipmentRecord(index)">×</span>
+                  </div>
+                  
+                  <div class="form-line-equipment">
+                    <AppDropdown
+                      label="Тип Техники"
+                      placeholder="Выберите тип техники"
+                      :id="`equipment-type-dropdown-${index}`"
+                      v-model="equipment.equipmentType"
+                      :options="equipmentTypeOptions"
+                      :required="true" />
+                      
+                    <AppNumberInput
+                      label="Количество"
+                      :id="`equipment-count-input-${index}`"
+                      v-model.number="equipment.count"
+                      placeholder="Кол-во"
+                      type="number" 
+                      :min="0"
+                      :required="true" />
+                      
+                    <AppNumberInput
+                      label="Часы"
+                      :id="`equipment-hours-input-${index}`"
+                      v-model.number="equipment.hours"
+                      placeholder="Введите часы"
+                      type="number" 
+                      :min="0" />
+                  </div>
+              </div>
+              
+              <div class="col-span-2 add-object-btn-wrapper">
+                <UiButton text="Добавить еще Технику" icon="Plus" :loading="isAddingObject" @click="addNewEquipmentRecord" />
               </div>
 
             </div>
@@ -184,7 +279,15 @@ import {
   loadResourceMaterialsForTaskLog,
   loadExternalServices,
   saveResourceExternalService,
-  loadResourceExternalServicesForTaskLog } from '@/api/repairApi.js';
+  loadResourceExternalServicesForTaskLog,
+  // НОВЫЕ ИМПОРТЫ
+  loadPositions,
+  loadEquipmentTypes,
+  saveResourcePersonnel,
+  saveResourceEquipment,
+  loadResourcePersonnelForTaskLog,
+  loadResourceEquipmentForTaskLog
+} from '@/api/repairApi.js';
 import { formatDate, formatDateToISO } from '@/stores/date.js';
 
 const props = defineProps({
@@ -218,12 +321,18 @@ const activeTab = ref('info');
 const isInfoSaved = ref(false);
 const savedTaskLogId = ref(null);
 const savedTaskLogCls = ref(null);
-const disabledTabs = computed(() => isInfoSaved.value ? [] : ['materials', 'externalServices']);
+const disabledTabs = computed(() => isInfoSaved.value ? [] : ['materials', 'externalServices', 'personnel', 'equipment']); // ДОБАВЛЕНЫ НОВЫЕ ВКЛАДКИ
 
-const tabs = ref([
+const tabsRow1 = ref([
   { name: 'info', label: 'Новая информация по задаче', icon: 'Info' },
+  { name: 'externalServices', label: 'Услуги сторонних организаций', icon: 'HardHat' },
+]);
+
+const tabsRow2 = ref([
   { name: 'materials', label: 'Материалы', icon: 'Box' },
-  { name: 'externalServices', label: 'Услуги сторонних организаций', icon: 'Truck' },
+  { name: 'personnel', label: 'Исполнители', icon: 'Users' }, 
+  { name: 'equipment', label: 'Техника', icon: 'Truck' },
+  { name: 'tools', label: 'Инструменты', icon: 'Hammer' },
 ]);
 
 const notificationStore = useNotificationStore();
@@ -244,17 +353,33 @@ const createNewMaterialObject = () => ({
 
 const createNewServiceObject = () => ({ service: null, volume: null });
 
+// НОВЫЕ ФУНКЦИИ ДЛЯ СОЗДАНИЯ ОБЪЕКТОВ
+const createNewPersonnelObject = () => ({ position: null, count: null, hours: null });
+const createNewEquipmentObject = () => ({ equipmentType: null, count: null, hours: null });
+
 const materialRecords = ref([createNewMaterialObject()]); 
 const serviceRecords = ref([createNewServiceObject()]);
+
+// НОВЫЕ МАССИВЫ ДЛЯ ЗАПИСЕЙ
+const personnelRecords = ref([createNewPersonnelObject()]);
+const equipmentRecords = ref([createNewEquipmentObject()]);
 
 const taskOptions = ref([]);
 const materialOptions = ref([]);
 const unitOptions = ref([]);
 const serviceOptions = ref([]);
 
+// НОВЫЕ МАССИВЫ ДЛЯ СПРАВОЧНИКОВ
+const positionOptions = ref([]);
+const equipmentTypeOptions = ref([]);
+
 const existingRecords = ref([]); // Для планов работ
 const existingRecordsMaterials = ref([]); // Для материалов
 const existingRecordsServices = ref([]); // Для услуг
+
+// НОВЫЕ МАССИВЫ ДЛЯ СУЩЕСТВУЮЩИХ ДАННЫХ
+const existingRecordsPersonnel = ref([]);
+const existingRecordsEquipment = ref([]);
 
 const closeModal = () => {
   emit('close');
@@ -270,6 +395,13 @@ const getButtonLabel = () => {
   if (activeTab.value === 'externalServices') {
     return 'Сохранить услуги';
   }
+  // НОВЫЕ МЕТКИ ДЛЯ КНОПОК
+  if (activeTab.value === 'personnel') {
+    return 'Сохранить исполнителей';
+  }
+  if (activeTab.value === 'equipment') {
+    return 'Сохранить технику';
+  }
   return 'Сохранить';
 };
 
@@ -282,8 +414,16 @@ const addNewServiceRecord = () => {
   serviceRecords.value.push(createNewServiceObject());
 };
 
+// НОВЫЕ МЕТОДЫ ДОБАВЛЕНИЯ
+const addNewPersonnelRecord = () => {
+  personnelRecords.value.push(createNewPersonnelObject());
+};
+const addNewEquipmentRecord = () => {
+  equipmentRecords.value.push(createNewEquipmentObject());
+};
+
 const removeServiceRecord = (index) => {
-  serviceRecords.value.splice(index, 1);
+  if (serviceRecords.value.length > 1) serviceRecords.value.splice(index, 1);
 };
 
 
@@ -291,9 +431,18 @@ const removeMaterialRecord = (index) => {
   if (materialRecords.value.length > 1) materialRecords.value.splice(index, 1);
 };
 
+// НОВЫЕ МЕТОДЫ УДАЛЕНИЯ
+const removePersonnelRecord = (index) => {
+  if (personnelRecords.value.length > 1) personnelRecords.value.splice(index, 1);
+};
+const removeEquipmentRecord = (index) => {
+  if (equipmentRecords.value.length > 1) equipmentRecords.value.splice(index, 1);
+};
+
+
 const saveData = async () => {
   if (activeTab.value === 'info') {
-    // ... (Логика сохранения плана работ) ...
+    // ... (Логика сохранения плана работ, без изменений) ...
     if (isSaving.value) return;
 
     if (!newRecord.value.task || !newRecord.value.dateStartPlan || !newRecord.value.dateEndPlan) {
@@ -370,7 +519,8 @@ const saveData = async () => {
     }
 
   } else if (activeTab.value === 'materials') {
-    if (isSaving.value) return; // Добавляем эту проверку здесь
+    // ... (Логика сохранения материалов, без изменений) ...
+    if (isSaving.value) return; 
 
     const validRecords = materialRecords.value.filter(m => m.material && m.unit && m.volume != null && m.volume > 0);
     
@@ -450,6 +600,7 @@ const saveData = async () => {
       isSaving.value = false;
     }
   } else if (activeTab.value === 'externalServices') {
+    // ... (Логика сохранения услуг, без изменений) ...
     if (isSaving.value) return;
 
     const validRecords = serviceRecords.value.filter(s => s.service && s.volume != null && s.volume > 0);
@@ -517,6 +668,152 @@ const saveData = async () => {
       }
       
       console.error('Ошибка сохранения услуг:', error);
+      notificationStore.showNotification(errorMessage, 'error');
+    } finally {
+      isSaving.value = false;
+    }
+  } else if (activeTab.value === 'personnel') { // НОВАЯ ЛОГИКА СОХРАНЕНИЯ: Исполнители
+    if (isSaving.value) return;
+
+    const validRecords = personnelRecords.value.filter(p => p.position && p.count != null && p.count > 0);
+    
+    if (validRecords.length === 0) {
+      notificationStore.showNotification('Нет данных для сохранения. Заполните обязательные поля (Должность, Количество человек) хотя бы для одной записи.', 'error');
+      return;
+    }
+
+    if (validRecords.some(p => p.count < 0 || (p.hours !== null && p.hours < 0))) {
+      notificationStore.showNotification('Количество человек и часы не могут быть отрицательными.', 'error');
+      return;
+    }
+
+    if (!savedTaskLogId.value || !savedTaskLogCls.value) {
+      notificationStore.showNotification('Не найден ID или CLS родительской задачи. Пожалуйста, пересохраните информацию по задаче.', 'error');
+      return;
+    }
+
+    isSaving.value = true;
+    try {
+      const user = await fetchUserData();
+      const today = formatDateToISO(new Date());
+
+      const savePromises = validRecords.map(async (personnel) => {
+        const payload = {
+          name: `${savedTaskLogId.value}-${personnel.position.label}-${today}`,
+          objPersonnel: personnel.position.value, // Идентификатор должности
+          pvPersonnel: personnel.position.pv,     // PV должности
+          Value: Number(personnel.count),        // Количество человек
+          Hours: personnel.hours ? Number(personnel.hours) : null, // Часы
+          objTaskLog: savedTaskLogId.value,
+          linkCls: savedTaskLogCls.value,
+          CreatedAt: today,
+          UpdatedAt: today,
+          objUser: user.id,
+          pvUser: user.pv,
+        };
+        return saveResourcePersonnel(payload);
+      });
+
+      const results = await Promise.allSettled(savePromises);
+
+      const successfulSaves = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+      const failedSaves = results.length - successfulSaves;
+
+      if (failedSaves > 0) {
+        console.error('Не удалось сохранить следующих исполнителей:', results.filter(r => r.status === 'rejected' || r.value.error));
+        notificationStore.showNotification(`Не удалось сохранить ${failedSaves} из ${results.length} исполнителей. Успешно: ${successfulSaves}.`, 'warning');
+      } else {
+        notificationStore.showNotification(`Успешно сохранено ${successfulSaves} записей исполнителей!`, 'success');
+      }
+      
+      if (successfulSaves > 0) {
+        personnelRecords.value = [createNewPersonnelObject()];
+        await loadExistingPersonnel(savedTaskLogId.value);
+      }
+    } catch (error) {
+      let errorMessage = 'Не удалось сохранить информацию по исполнителям.';
+      if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Ошибка сервера. Попробуйте еще раз.';
+      }
+      
+      console.error('Ошибка сохранения исполнителей:', error);
+      notificationStore.showNotification(errorMessage, 'error');
+    } finally {
+      isSaving.value = false;
+    }
+  } else if (activeTab.value === 'equipment') { // НОВАЯ ЛОГИКА СОХРАНЕНИЯ: Техника
+    if (isSaving.value) return;
+
+    const validRecords = equipmentRecords.value.filter(e => e.equipmentType && e.count != null && e.count > 0);
+    
+    if (validRecords.length === 0) {
+      notificationStore.showNotification('Нет данных для сохранения. Заполните обязательные поля (Тип Техники, Количество) хотя бы для одной записи.', 'error');
+      return;
+    }
+
+    if (validRecords.some(e => e.count < 0 || (e.hours !== null && e.hours < 0))) {
+      notificationStore.showNotification('Количество техники и часы не могут быть отрицательными.', 'error');
+      return;
+    }
+
+    if (!savedTaskLogId.value || !savedTaskLogCls.value) {
+      notificationStore.showNotification('Не найден ID или CLS родительской задачи. Пожалуйста, пересохраните информацию по задаче.', 'error');
+      return;
+    }
+
+    isSaving.value = true;
+    try {
+      const user = await fetchUserData();
+      const today = formatDateToISO(new Date());
+
+      const savePromises = validRecords.map(async (equipment) => {
+        const payload = {
+          name: `${savedTaskLogId.value}-${equipment.equipmentType.label}-${today}`,
+          objEquipment: equipment.equipmentType.value, // Идентификатор типа техники
+          pvEquipment: equipment.equipmentType.pv,     // PV типа техники
+          Value: Number(equipment.count),            // Количество техники
+          Hours: equipment.hours ? Number(equipment.hours) : null, // Часы
+          objTaskLog: savedTaskLogId.value,
+          linkCls: savedTaskLogCls.value,
+          CreatedAt: today,
+          UpdatedAt: today,
+          objUser: user.id,
+          pvUser: user.pv,
+        };
+        return saveResourceEquipment(payload);
+      });
+
+      const results = await Promise.allSettled(savePromises);
+
+      const successfulSaves = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+      const failedSaves = results.length - successfulSaves;
+
+      if (failedSaves > 0) {
+        console.error('Не удалось сохранить следующую технику:', results.filter(r => r.status === 'rejected' || r.value.error));
+        notificationStore.showNotification(`Не удалось сохранить ${failedSaves} из ${results.length} записей техники. Успешно: ${successfulSaves}.`, 'warning');
+      } else {
+        notificationStore.showNotification(`Успешно сохранено ${successfulSaves} записей техники!`, 'success');
+      }
+      
+      if (successfulSaves > 0) {
+        equipmentRecords.value = [createNewEquipmentObject()];
+        await loadExistingEquipment(savedTaskLogId.value);
+      }
+    } catch (error) {
+      let errorMessage = 'Не удалось сохранить информацию по технике.';
+      if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Ошибка сервера. Попробуйте еще раз.';
+      }
+      
+      console.error('Ошибка сохранения техники:', error);
       notificationStore.showNotification(errorMessage, 'error');
     } finally {
       isSaving.value = false;
@@ -597,6 +894,55 @@ const loadExistingServices = async (taskLogId) => {
   }
 };
 
+// НОВЫЙ МЕТОД: Загрузка существующих исполнителей
+const loadExistingPersonnel = async (taskLogId) => {
+  if (!taskLogId) {
+    existingRecordsPersonnel.value = [];
+    return;
+  }
+  try {
+    const data = await loadResourcePersonnelForTaskLog(taskLogId);
+    
+    existingRecordsPersonnel.value = data.map(item => {
+      return {
+        id: item.id,
+        position: item.namePersonnel || '—',
+        count: item.Value !== null && item.Value !== undefined ? `${item.Value}` : '—',
+        hours: item.Hours !== null && item.Hours !== undefined ? `${item.Hours}` : '—',
+      };
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки исполнителей:', error);
+    notificationStore.showNotification('Не удалось загрузить ранее внесенных исполнителей.', 'error');
+    existingRecordsPersonnel.value = [];
+  }
+};
+
+// НОВЫЙ МЕТОД: Загрузка существующей техники
+const loadExistingEquipment = async (taskLogId) => {
+  if (!taskLogId) {
+    existingRecordsEquipment.value = [];
+    return;
+  }
+  try {
+    const data = await loadResourceEquipmentForTaskLog(taskLogId);
+    
+    existingRecordsEquipment.value = data.map(item => {
+      return {
+        id: item.id,
+        equipmentType: item.nameEquipment || '—',
+        count: item.Value !== null && item.Value !== undefined ? `${item.Value}` : '—',
+        hours: item.Hours !== null && item.Hours !== undefined ? `${item.Hours}` : '—',
+      };
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки техники:', error);
+    notificationStore.showNotification('Не удалось загрузить ранее внесенную технику.', 'error');
+    existingRecordsEquipment.value = [];
+  }
+};
+
+
 const loadTaskOptions = async () => {
   try {
     taskOptions.value = await loadTasks();
@@ -629,8 +975,27 @@ const loadServiceOptions = async () => {
   }
 };
 
+// НОВЫЕ МЕТОДЫ: Загрузка справочников
+const loadPositionOptions = async () => {
+  try {
+    positionOptions.value = await loadPositions();
+  } catch (error) {
+    notificationStore.showNotification('Не удалось загрузить список должностей.', 'error');
+  }
+};
+
+const loadEquipmentTypeOptions = async () => {
+  try {
+    equipmentTypeOptions.value = await loadEquipmentTypes();
+  } catch (error) {
+    notificationStore.showNotification('Не удалось загрузить список типов техники.', 'error');
+  }
+};
+
+
 const handleTabChange = (newTab) => {
-  if ((newTab === 'materials' || newTab === 'externalServices') && !isInfoSaved.value) {
+  const resourceTabs = ['materials', 'externalServices', 'personnel', 'equipment']; // ДОБАВЛЕНЫ НОВЫЕ ВКЛАДКИ
+  if (resourceTabs.includes(newTab) && !isInfoSaved.value) {
     notificationStore.showNotification('Сначала необходимо сохранить информацию по задаче!', 'error');
     return;
   }
@@ -643,6 +1008,15 @@ const handleTabChange = (newTab) => {
   if (newTab === 'externalServices' && isInfoSaved.value) {
     loadExistingServices(savedTaskLogId.value);
   }
+  
+  // НОВАЯ ЛОГИКА ДЛЯ СМЕНЫ ВКЛАДОК
+  if (newTab === 'personnel' && isInfoSaved.value) {
+    loadExistingPersonnel(savedTaskLogId.value);
+  }
+  
+  if (newTab === 'equipment' && isInfoSaved.value) {
+    loadExistingEquipment(savedTaskLogId.value);
+  }
 };
 
 onMounted(() => {
@@ -650,6 +1024,8 @@ onMounted(() => {
   loadMaterialOptions();
   loadUnitOptions();
   loadServiceOptions();
+  loadPositionOptions();    // Загрузка должностей
+  loadEquipmentTypeOptions(); // Загрузка типов техники
 });
 
 watch(
@@ -669,12 +1045,18 @@ watch(
       savedTaskLogCls.value = null;
       activeTab.value = 'info';
       
-      // Сброс и инициализация массива материалов при смене записи
+      // Сброс и инициализация массивов ресурсов
       materialRecords.value = [createNewMaterialObject()];
       existingRecordsMaterials.value = [];
 
       serviceRecords.value = [createNewServiceObject()];
       existingRecordsServices.value = [];
+      
+      personnelRecords.value = [createNewPersonnelObject()];
+      existingRecordsPersonnel.value = [];
+      
+      equipmentRecords.value = [createNewEquipmentObject()];
+      existingRecordsEquipment.value = [];
       
       loadExistingData(newRecordData);
     }
@@ -705,18 +1087,19 @@ watch(
   gap: 16px;
 }
 
-.material-record-block {
+/* Общий класс для блоков ресурсов */
+.resource-record-block {
   padding-bottom: 16px; 
   border-bottom: 1px solid #eee;
   position: relative; /* Для позиционирования крестика */
 }
 
-.material-record-block:last-child {
+.resource-record-block:last-child {
   border-bottom: none;
   padding-bottom: 0;
 }
 
-.material-record-header {
+.resource-record-header {
   height: 20px; /* Фиксированная высота для заголовка, чтобы крестик не "прыгал" */
 }
 
@@ -761,6 +1144,14 @@ watch(
   gap: 16px;
 }
 
+/* НОВЫЕ СТИЛИ ДЛЯ ИСПОЛНИТЕЛЕЙ И ТЕХНИКИ */
+.form-line-personnel,
+.form-line-equipment {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr; /* Должность/Тип Техники, Количество, Часы */
+  gap: 16px;
+}
+
 .col-span-1 {
   grid-column: span 1 / span 1;
 }
@@ -784,7 +1175,10 @@ watch(
 @media (max-width: 768px) {
   .form-grid-planning,
   .form-line-materials,
-  .form-line-services {
+  .form-line-services,
+  .form-line-personnel, /* АДАПТИВНОСТЬ */
+  .form-line-equipment /* АДАПТИВНОСТЬ */
+  {
     grid-template-columns: 1fr;
   }
   
@@ -806,6 +1200,11 @@ watch(
   .remove-object {
     right: auto;
     left: 0;
+  }
+
+  .tabs-block .second-row-tabs {
+    border-top: none;
+    margin-bottom: 16px;
   }
 }
 </style>

@@ -37,7 +37,11 @@ const selectTab = (tabName) => {
 
 <style scoped>
 .tabs-header {
-  display: flex;
+  display: grid;
+  /* Создаем до 3-х колонок, каждая занимает равное пространство */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  justify-items: center; /* Центрируем содержимое (кнопки) внутри ячеек грида */
+  gap: 8px; /* Добавляем небольшой отступ между вкладками */
   border-bottom: 1px solid #e0e6ed;
   margin-bottom: 16px;
 }

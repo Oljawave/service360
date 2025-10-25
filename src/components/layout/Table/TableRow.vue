@@ -11,7 +11,7 @@
       :class="{
         'date-overdue': isFactDateOverdue(col.key),
         'date-ontime': isFactDateOnTime(col.key),
-        'multiline-cell': col.key === 'generalInfo'
+        'multiline-cell': ['generalInfo', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers'].includes(col.key)
       }"
     >
       <template v-if="col.component">
@@ -32,7 +32,7 @@
           {{ formatValue(row[col.key]) }}
         </span>
       </template>
-      <template v-else-if="['generalInfo', 'dateRange'].includes(col.key)">
+      <template v-else-if="['generalInfo', 'dateRange', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers'].includes(col.key)">
         <div 
           class="cell-content preserve-newlines" 
           v-html="formatValue(row[col.key])"
@@ -166,11 +166,6 @@ const isFactDateOnTime = (key) => {
   vertical-align: top;
 }
 
-.cell.multiline-cell {
-  min-width: 400px;
-  max-width: 600px;
-}
-
 .index-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -209,6 +204,6 @@ const isFactDateOnTime = (key) => {
 
 .cell-content.preserve-newlines {
   white-space: pre-line;
-  line-height: 1.8; /* Увеличено для большего расстояния между строками */
+  line-height: 1.5; /* Немного уменьшено для более компактного вида */
 }
 </style>

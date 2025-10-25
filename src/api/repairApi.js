@@ -36,11 +36,7 @@ export async function loadPlanCorrectional(date = "2025-07-30", periodType = 11)
 
   const result = response.data.result;
 
-  if (result && result.store && Array.isArray(result.store.records)) {
-    return result.store.records;
-  }
-
-  return [];
+  return result || { store: { records: [] }, resource: { records: [] } };
 }
 
 export async function loadDateWorkPlanCorrectional(selectedSectionId, pv) {
@@ -172,7 +168,7 @@ export async function loadMaterials() {
 
     const records = response.data.result?.records || [];
     return records.map((record) => ({
-      label: record.fullName, 
+      label: record.name, 
       value: record.id,      
       cls: record.cls,      
       pv: record.pv,        
@@ -303,7 +299,7 @@ export async function loadExternalServices() {
 
     const records = response.data.result?.records || [];
     return records.map((record) => ({
-      label: record.fullName, 
+      label: record.fullName,
       value: record.id,      
       cls: record.cls,      
       pv: record.pv,        
@@ -352,6 +348,138 @@ export async function loadResourceExternalServicesForTaskLog(taskLogId) {
     return response.data.result?.records || [];
   } catch (error) {
     console.error("Ошибка при загрузке услуг для записи журнала задач:", error);
+    throw error;
+  }
+}
+
+export async function loadPositions() {
+  try {
+    const response = await axios.post(
+      API_OBJECT_URL,
+      {
+        method: "data/loadFactorValForSelect",
+        params: ["Prop_Position"],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    const records = response.data.result?.records || [];
+    return records.map((record) => ({
+      label: record.name,
+      value: record.id,
+      pv: record.pv,
+    }));
+  } catch (error) {
+    console.error("Ошибка при загрузке должностей:", error);
+    throw error;
+  }
+}
+
+export async function loadEquipmentTypes() {
+  try {
+    const response = await axios.post(
+      API_OBJECT_URL,
+      {
+        method: "data/loadFactorValForSelect",
+        params: ["Prop_TypEquipment"],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    const records = response.data.result?.records || [];
+    return records.map((record) => ({
+      label: record.name,
+      value: record.id,
+      pv: record.pv,
+    }));
+  } catch (error) {
+    console.error("Ошибка при загрузке типов техники:", error);
+    throw error;
+  }
+}
+
+export async function saveResourcePersonnel(payload) {
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourcePersonnel",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при сохранении исполнителя для задачи:", error);
+    throw error;
+  }
+}
+
+export async function saveResourceEquipment(payload) {
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourceEquipment",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Ошибка при сохранении техники для задачи:", error);
+    throw error;
+  }
+}
+
+export async function loadResourcePersonnelForTaskLog(taskLogId) {
+  if (!taskLogId) {
+    return [];
+  }
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/loadResourcePersonnel",
+        params: [taskLogId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке исполнителей для задачи:", error);
+    throw error;
+  }
+}
+
+export async function loadResourceEquipmentForTaskLog(taskLogId) {
+  if (!taskLogId) {
+    return [];
+  }
+  try {
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/loadResourceEquipment",
+        params: [taskLogId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result?.records || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке техники для задачи:", error);
     throw error;
   }
 }

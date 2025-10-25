@@ -26,6 +26,18 @@
             <span class="data-cell volume-service-cell">ОБЪЕМ</span>
           </template>
 
+          <template v-else-if="dataType === 'personal' || dataType === 'personnel'">
+            <span class="data-cell position-cell">ДОЛЖНОСТЬ</span>
+            <span class="data-cell quantity-cell">КОЛИЧЕСТВО</span>
+            <span class="data-cell hours-cell">ЧАСЫ</span>
+          </template>
+
+          <template v-else-if="dataType === 'equipment'">
+            <span class="data-cell equipment-type-cell">ТИП ТЕХНИКИ</span>
+            <span class="data-cell quantity-cell">КОЛИЧЕСТВО</span>
+            <span class="data-cell hours-cell">ЧАСЫ</span>
+          </template>
+
           <template v-else>
             <span class="data-cell date-cell">ДАТА</span>
             <span class="data-cell coords-cell">КООРДИНАТЫ</span>
@@ -59,6 +71,18 @@
             <span class="data-cell volume-service-cell">{{ item.volume || '—' }}</span>
           </template>
 
+          <template v-else-if="dataType === 'personal' || dataType === 'personnel'">
+            <span class="data-cell position-cell">{{ item.position || '—' }}</span>
+            <span class="data-cell quantity-cell">{{ item.count || '—' }}</span>
+            <span class="data-cell hours-cell">{{ item.hours || '—' }}</span>
+          </template>
+
+          <template v-else-if="dataType === 'equipment'">
+            <span class="data-cell equipment-type-cell">{{ item.equipmentType || '—' }}</span>
+            <span class="data-cell quantity-cell">{{ item.count || '—' }}</span>
+            <span class="data-cell hours-cell">{{ item.hours || '—' }}</span>
+          </template>
+
           <template v-else>
             <span class="data-cell date-cell">{{ item.date }}</span>
             <span class="data-cell coords-cell">{{ item.coordinates }}</span>
@@ -85,7 +109,7 @@ const props = defineProps({
   dataType: {
     type: String,
     default: 'info', 
-    validator: (value) => ['info', 'defects', 'parameters', 'planning', 'materials', 'externalServices'].includes(value)
+    validator: (value) => ['info', 'defects', 'parameters', 'planning', 'materials', 'externalServices', 'personal', 'personnel', 'equipment'].includes(value)
   }
 });
 
@@ -109,6 +133,10 @@ const getWarningText = () => {
       return 'Внесенные плановые материалы';
     case 'externalServices':
       return 'Внесенные услуги сторонних организаций';
+    case 'personnel':
+      return 'Внесенные исполнители';
+    case 'equipment':
+      return 'Внесенная техника';
     default:
       return 'Внесенные осмотры/проверки';
   }
@@ -126,6 +154,10 @@ const getHeaderClass = () => {
       return 'materials-header';
     case 'externalServices':
       return 'external-services-header';
+    case 'personnel':
+      return 'personal-header';
+    case 'equipment':
+      return 'equipment-header';
     default:
       return '';
   } 
@@ -143,6 +175,10 @@ const getColspan = () => {
       return 4;
     case 'externalServices':
       return 3;
+    case 'personnel':
+      return 4;
+    case 'equipment':
+      return 4;
     default:
       return 3;
   }
@@ -218,6 +254,16 @@ const getColspan = () => {
   grid-template-columns: 60px 300px 100px; /* № | СЕРВИС | ОБЪЕМ */
 }
 
+/* PERSONAL Header */
+.data-row.personal-header, .data-row.personnel-header {
+  grid-template-columns: 60px 250px 100px 100px; /* № | ДОЛЖНОСТЬ | КОЛ-ВО | ЧАСЫ */
+}
+
+/* EQUIPMENT Header */
+.data-row.equipment-header, .data-row.personnel-header {
+  grid-template-columns: 60px 250px 100px 100px; /* № | ТИП ТЕХНИКИ | КОЛ-ВО | ЧАСЫ */
+}
+
 /* --- ОБЩИЕ СТИЛИ ЗАГОЛОВКОВ --- */
 .data-row.header-row {
   position: sticky;
@@ -279,6 +325,19 @@ const getColspan = () => {
   /* Отображаем скрытые ячейки для этого типа */
   .service-cell, .volume-service-cell { display: block; }
 }
+
+/* PERSONAL Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.position-cell) {
+  grid-template-columns: 60px 250px 100px 100px; /* № | ДОЛЖНОСТЬ | КОЛИЧЕСТВО | ЧАСЫ */
+  .position-cell, .quantity-cell, .hours-cell { display: block; }
+}
+
+/* EQUIPMENT Data Row */
+.data-row:not(.header-row):not(.empty-row):has(.equipment-type-cell) {
+  grid-template-columns: 60px 250px 100px 100px; /* № | ТИП ТЕХНИКИ | КОЛИЧЕСТВО | ЧАСЫ */
+  .equipment-type-cell, .quantity-cell, .hours-cell { display: block; }
+}
+
 
 /* --- ОБЩИЕ СТИЛИ ЯЧЕЕК --- */
 .data-row:not(.header-row) {

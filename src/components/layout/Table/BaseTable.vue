@@ -80,8 +80,9 @@ const props = defineProps({
 
 const emit = defineEmits(['row-dblclick', 'toggle-filter', 'sort'])
 
+// Уменьшаем условие для wide-table и дефолтное значение
 const tableWidthClass = computed(() => {
-  return props.columns && props.columns.length > 10 ? 'wide-table' : 'default-table';
+  return props.columns && props.columns.length >= 5 ? 'wide-table' : 'default-table';
 });
 </script>
 
@@ -103,12 +104,14 @@ const tableWidthClass = computed(() => {
   color: #2d3748;
 }
 
+/* ИЗМЕНЕНИЕ: Сильно уменьшена минимальная ширина */
 .styled-table.default-table {
-  min-width: 1500px; 
+  min-width: 900px; 
 }
 
+/* ИЗМЕНЕНИЕ: Сильно уменьшена минимальная ширина */
 .styled-table.wide-table {
-  min-width: 2000px;
+  min-width: 1500px;
 }
 
 th, td {

@@ -155,6 +155,73 @@ const formatGeneralInfo = (row) => {
   return parts.join('\n');
 };
 
+const formatTaskInfo = (row) => {
+  const parts = [];
+  
+  if (row.fullNameTask) {
+    parts.push(`<span class="label-strong">Задача:</span> ${row.fullNameTask}`);
+  }
+  
+  if (row.ValuePlan !== null && row.ValuePlan !== undefined) {
+    parts.push(`<span class="label-strong">Объем:</span> ${row.ValuePlan}`);
+  }
+  
+  const dateRange = formatDateRange(row.PlanDateStart, row.PlanDateEnd);
+  if (dateRange && dateRange !== '—') {
+    parts.push(dateRange);
+  }
+  
+  return parts.join('\n');
+};
+
+const formatResources = (taskLogId, resourceRecords) => {
+  if (!taskLogId || !resourceRecords || resourceRecords.length === 0) {
+    return { materials: '—', services: '—', tools: '—', equipment: '—', performers: '—' };
+  }
+
+  const materials = [];
+  const services = [];
+  const tools = [];
+  const equipment = [];
+  const performers = [];
+
+  for (const resource of resourceRecords) {
+    if (resource.objTaskLog === taskLogId) {
+      if (resource.objMaterial) {
+        materials.push(`${resource.nameMaterial}, ${resource.Value} ${resource.nameMeasure}`);
+      } else if (resource.objTpService) { // Услуги
+        services.push(`${resource.nameTpService}, ${resource.Value} ед.`);
+      } else if (resource.objTool) { // Инструменты
+        tools.push(`${resource.nameTool}, ${resource.Value} ед.`);
+      } else if (resource.fvTypEquipment) {
+        const quantity = resource.Quantity || 0;
+        const value = resource.Value || 0;
+        equipment.push(`${resource.nameTypEquipment}, ${quantity} ед., ${value} час;`);
+      } else if (resource.fvPosition) {
+        const quantity = resource.Quantity || 0;
+        const value = resource.Value || 0;
+        performers.push(`${resource.namePosition}, ${quantity} чел., ${value} час;`);
+      }
+    }
+  }
+
+  const formatWithEllipsis = (items) => {
+    if (items.length === 0) return '—';
+    if (items.length > 5) {
+      return items.slice(0, 5).join('\n') + '\n...';
+    }
+    return items.join('\n');
+  };
+
+  return {
+    materials: formatWithEllipsis(materials),
+    services: formatWithEllipsis(services),
+    tools: formatWithEllipsis(tools),
+    equipment: formatWithEllipsis(equipment),
+    performers: formatWithEllipsis(performers),
+  };
+};
+
 const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) => {
   try {
     const objLocation = localStorage.getItem('objLocation');
@@ -165,21 +232,25 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
     const selectedDate = filterValues.date ? formatDateToString(filterValues.date) : formatDateToString(new Date());
     const periodTypeId = filterValues.periodType?.value ?? 41;
 
-    const records = await loadPlanCorrectional(selectedDate, periodTypeId);
-    const totalRecords = records.length;
+    const result = await loadPlanCorrectional(selectedDate, periodTypeId);
+    const storeRecords = result?.store?.records || [];
+    const resourceRecords = result?.resource?.records || [];
+
+    const totalRecords = storeRecords.length;
     const start = (page - 1) * limit;
     const end = page * limit;
 
-    const sliced = records.slice(start, end).map((r, index) => ({
+    const sliced = storeRecords.slice(start, end).map((r, index) => {
+      const resources = formatResources(r.id, resourceRecords);
+      return {
       index: null,
       id: r.id,
       objWorkPlan: r.objWorkPlan,
-      name: r.nameLocationClsSection,
-      work: r.nameClsWork,
-      fullNameWork: r.fullNameWork,
-      fullNameTask: r.fullNameTask,
-      valuePlan: r.ValuePlan,
-      dateRange: formatDateRange(r.PlanDateStart, r.PlanDateEnd),
+      taskInfo: formatTaskInfo(r),      materials: resources.materials,
+      services: resources.services,
+      tools: resources.tools,
+      equipment: resources.equipment,
+      performers: resources.performers,
       planDateStart: r.PlanDateStart,
       planDateEnd: r.PlanDateEnd,
       generalInfo: formatGeneralInfo(r),
@@ -194,8 +265,8 @@ const loadInspectionsWrapper = async ({ page, limit, filters: filterValues }) =>
       nameLocationClsSection: r.nameLocationClsSection,
       objLocationClsSection: r.objLocationClsSection,
       nameSection: r.nameSection,
-      fullNameObject: r.fullNameObject
-    }));
+      fullNameObject: r.fullNameObject,
+    }});
 
     return {
       total: totalRecords,
@@ -215,10 +286,13 @@ const getRowClassFn = (row) => {
 
 const columns = [
   { key: 'id', label: '№' },
-  { key: 'fullNameTask', label: 'Задача' },
-  { key: 'valuePlan', label: 'Объем' },
-  { key: 'dateRange', label: 'Дата' },
+  { key: 'taskInfo', label: 'Задача' },
   { key: 'generalInfo', label: 'Общая информация' },
+  { key: 'materials', label: 'Материалы' },
+  { key: 'services', label: 'Услуги' },
+  { key: 'tools', label: 'Инструменты' },
+  { key: 'equipment', label: 'Техника' },
+  { key: 'performers', label: 'Исполнители' },
   { key: 'objWorkPlan', label: 'ссылка на план' },
 ];
 
