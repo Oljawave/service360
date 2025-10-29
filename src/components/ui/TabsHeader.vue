@@ -37,13 +37,11 @@ const selectTab = (tabName) => {
 
 <style scoped>
 .tabs-header {
-  display: grid;
-  /* Создаем до 3-х колонок, каждая занимает равное пространство */
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  justify-items: center; /* Центрируем содержимое (кнопки) внутри ячеек грида */
+  display: flex; /* Изменено: Используем flex для горизонтального расположения */
+  flex-wrap: nowrap; /* Изменено: Предотвращаем перенос на мобильных */
   gap: 8px; /* Добавляем небольшой отступ между вкладками */
-  border-bottom: 1px solid #e0e6ed;
-  margin-bottom: 16px;
+  border-bottom: 1px solid #e0e6ed; /* Оставлено для первого ряда (будет переопределено в ResourcePlanningModal) */
+  margin-bottom: 16px; /* Оставлено для первого ряда (будет переопределено в ResourcePlanningModal) */
 }
 
 .tab {
@@ -59,6 +57,8 @@ const selectTab = (tabName) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0; /* Добавлено, чтобы предотвратить сжатие */
+  justify-content: center; /* Центрируем содержимое таба */
 }
 
 .tab:hover {
@@ -70,6 +70,7 @@ const selectTab = (tabName) => {
   border-bottom-color: #3182ce;
 }
 
+/* Стиль для иконки внутри таба (если он определен в UiIcon.vue) */
 .tab .icon {
   margin-right: 8px;
 }

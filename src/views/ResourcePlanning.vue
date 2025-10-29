@@ -1,7 +1,7 @@
 <template>
   <TableWrapper
     ref="tableWrapperRef"
-    title="Планирование ресурсов"
+    title="Журнал планирования ресурсов"
     :columns="columns"
     :actions="tableActions"
     :limit="limit"
@@ -11,7 +11,16 @@
     :showFilters="true"
     :filters="filters"
     :getRowClassFn="getRowClassFn"
-    @update:filters="filters = $event"
+    @update:filters="filters = $event"    
+    @row-dblclick="onRowDoubleClick"
+  />
+  <ResourceEditingModal
+    v-if="isModalOpen"
+    :record="selectedRecordForModal"
+    :section="selectedRecordForModal?.name"
+    :date="selectedRecordForModal?.planDateEnd"
+    @close="isModalOpen = false"
+    @saved="handleTableUpdate"
   />
 </template>
 
@@ -22,6 +31,7 @@ import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
 import { loadPlanCorrectional } from '@/api/repairApi';
 import { loadPeriodTypes } from '@/api/periodApi';
 import { usePermissions } from '@/api/usePermissions';
+import ResourceEditingModal from '@/modals/ResourceEditingModal.vue';
 
 const { hasPermission } = usePermissions();
 const canInsert = computed(() => hasPermission('ins:ins'));
@@ -30,6 +40,10 @@ const router = useRouter();
 
 const limit = 10;
 const tableWrapperRef = ref(null);
+const isModalOpen = ref(false);
+const selectedRecord = ref(null);
+const selectedRecordForModal = ref(null);
+
 
 const filters = ref({
   date: new Date(),
@@ -65,6 +79,32 @@ onMounted(async () => {
     dropdownConfig.value.options = [];
   }
 });
+
+const onRowDoubleClick = (row) => {
+  // `row` - это объект, который мы создаем в `loadInspectionsWrapper`
+  selectedRecord.value = row;
+
+  // `row.rawData` содержит исходный объект с бэкенда
+  const rawData = row.rawData;
+
+  if (rawData) {
+    // Формируем объект для WorkHeaderInfo согласно вашему запросу
+    selectedRecordForModal.value = {
+      id: rawData.id,
+      work: rawData.fullNameWork,
+      name: rawData.nameLocationClsSection, // Участок
+      location: rawData.nameSection, // Место
+      objectType: 'нет данных', // Тип объекта
+      object: rawData.fullNameObject, // Объект
+      coordinates: formatCoordinates(rawData.StartKm, rawData.StartPicket, null, rawData.FinishKm, rawData.FinishPicket, null),
+      planDateEnd: rawData.PlanDateEnd,
+      rawData: rawData, // Сохраняем исходные данные на всякий случай
+    };
+    isModalOpen.value = true;
+  } else {
+    console.error("rawData отсутствует в выбранной строке. Невозможно открыть модальное окно.", row);
+  }
+};
 
 const handleTableUpdate = () => {
   if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
@@ -189,10 +229,10 @@ const formatResources = (taskLogId, resourceRecords) => {
     if (resource.objTaskLog === taskLogId) {
       if (resource.objMaterial) {
         materials.push(`${resource.nameMaterial}, ${resource.Value} ${resource.nameMeasure}`);
-      } else if (resource.objTpService) { // Услуги
+      } else if (resource.objTpService) {
         services.push(`${resource.nameTpService}, ${resource.Value} ед.`);
-      } else if (resource.objTool) { // Инструменты
-        tools.push(`${resource.nameTool}, ${resource.Value} ед.`);
+      } else if (resource.idTypTool) { 
+        tools.push(`${resource.nameTypTool}, ${resource.Value} ед.`);
       } else if (resource.fvTypEquipment) {
         const quantity = resource.Quantity || 0;
         const value = resource.Value || 0;
