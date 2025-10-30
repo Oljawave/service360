@@ -11,6 +11,7 @@ import Incidents from '@/views/Incidents.vue';
 import WorkPlanForm from '@/views/WorkPlanForm.vue';
 import ResourcePlanning from '@/views/ResourcePlanning.vue';
 import ResourcePlanningForm from '@/views/ResourcePlanningForm.vue';
+import WorkLog from '@/views/WorkLog.vue';
 
 const routes = [
   {
@@ -31,6 +32,11 @@ const routes = [
     path: '/work-plan',
     name: 'WorkPlan',
     component: WorkPlan
+  },
+  {
+    path: '/work-log',
+    name: 'WorkLog',
+    component: WorkLog
   },
   {
     path: '/resource-planning',

@@ -79,6 +79,7 @@ const allItems = [
     label: 'Исполнение', 
     icon: 'CheckSquare',
     children: [
+      { label: 'Журнал работ', path: '/work-log', permission: '' },
       { label: 'Журнал осмотров и проверок', path: '/inspections', permission: 'ins' },
       { label: 'Журнал параметров', path: '/parameters', permission: 'par' },
       { label: 'Журнал неисправностей', path: '/defects', permission: 'def' },
