@@ -33,66 +33,11 @@
       </div>
     </div>
 
-    <div class="railway-section">
-      <h2 class="railway-title">Железнодорожная линия</h2>
-      <p class="railway-subtitle">Нажмите на маркер инцидента для просмотра подробной информации</p>
-      
-      <div class="railway-container">
-        <div class="stations-row">
-          <div class="station-info">
-            <div class="station-name">Станция Шар</div>
-            <div class="station-km">0 км</div>
-          </div>
-          <div class="station-info">
-            <div class="station-name">Станция НУК</div>
-            <div class="station-km">151 км</div>
-          </div>
-        </div>
-        
-        <div class="railway-slider">
-          <div class="railway-track">
-            <div class="track-marker start-point" :style="{ left: '0%' }"></div>
-            
-            <div 
-              v-for="station in intermediateStations" 
-              :key="station.id"
-              class="track-marker intermediate-station" 
-              :style="{ left: station.position + '%' }"
-              @mouseenter="hoveredStationId = station.id"
-              @mouseleave="hoveredStationId = null"
-            >
-              <div class="station-marker"></div>
-              <div class="station-label">{{ station.name }}</div>
-              <Transition name="tooltip-fade">
-                <div v-if="hoveredStationId === station.id" class="station-tooltip">{{ formatStationCoords(station.km) }}</div>
-              </Transition>
-            </div>
-            
-            <div 
-              v-for="incident in railwayIncidents" 
-              :key="incident.id"
-              class="track-marker incident-point"
-              :class="incident.color"
-              :style="{ left: incident.position + '%' }"
-              :title="incident.title"
-              @click="handleIncidentClick(incident)"
-            ></div>
-            
-            <div class="track-marker end-point" :style="{ left: '100%' }"></div>
-          </div>
-        </div>
-        
-        <div class="distance-labels">
-          <span class="distance-label">0км</span>
-          <span class="distance-label">25км</span>
-          <span class="distance-label">50км</span>
-          <span class="distance-label">75км</span>
-          <span class="distance-label">100км</span>
-          <span class="distance-label">125км</span>
-          <span class="distance-label">151км</span>
-        </div>
-      </div>
-    </div>
+    <RailwaySection 
+      :intermediate-stations="intermediateStations"
+      :railway-incidents="railwayIncidents"
+      @incident-click="handleIncidentClick"
+    />
 
     <div class="main-grid">
       <div class="widget-card no-padding">
@@ -146,14 +91,16 @@ import KpiCard from '@/components/ui/KpiCard.vue';
 import { loadIncidents } from '@/api/incidentApi.js';
 import { loadWorkPlan } from '@/api/planApi.js';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
+import RailwaySection from '@/components/ui/RailwaySection.vue';
 
 const router = useRouter();
 
 const isAddIncidentModalOpen = ref(false);
 const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
-const hoveredStationId = ref(null);
 const selectedEvent = ref(null);
+
+const RAILWAY_TOTAL_KM = 151;
 
 const kpi = ref({
   newIncidents: 0,
@@ -174,22 +121,10 @@ const intermediateStations = ref([
   { id: 's6', name: 'Улан', position: 88.41, km: 133.7 },
 ]);
 
-const railwayIncidents = ref([
-  { id: 1, position: 16.5, color: 'red-marker', title: 'Инцидент на 25км', km: 25 },
-  { id: 2, position: 33, color: 'yellow-marker', title: 'Инцидент на 50км', km: 50 },
-  { id: 3, position: 49.5, color: 'green-marker', title: 'Инцидент на 75км', km: 75 },
-  { id: 4, position: 82.5, color: 'red-marker', title: 'Инцидент на 125км', km: 125 },
-]);
+const railwayIncidents = ref([]); 
 
 const goToWorkPlan = () => {
   router.push({ name: 'Inspections' });
-};
-
-const formatStationCoords = (kmValue) => {
-  if (kmValue === null || kmValue === undefined) return '';
-  const km = Math.floor(kmValue);
-  const pk = Math.round((kmValue - km) * 10);
-  return `${km}км ${pk}пк`;
 };
 
 const formatDateToString = (date) => {
@@ -236,6 +171,9 @@ const isOverdue = (planDateEnd) => {
   return diffTime < 0;
 };
 
+// =========================================================
+// ВОССТАНОВЛЕННАЯ ЛОГИКА KPI
+// =========================================================
 const loadKpiData = async () => {
   try {
     const today = new Date();
@@ -244,17 +182,19 @@ const loadKpiData = async () => {
     const periodTypeToday = 71;
     const periodTypeAll = 11;
 
+    // Загружаем данные для всех KPI
     const [incidentsToday, worksToday, allWorks, allIncidents] = await Promise.all([
-      loadIncidents(todayStr, periodTypeToday),
-      loadWorkPlan(todayStr, periodTypeToday),
-      loadWorkPlan(todayStr, periodTypeAll),
-      loadIncidents(todayStr, periodTypeAll)
+      loadIncidents(todayStr, periodTypeToday), // Новые инциденты сегодня
+      loadWorkPlan(todayStr, periodTypeToday),   // Работы на сегодня
+      loadWorkPlan(todayStr, periodTypeAll),      // Все работы для overdue
+      loadIncidents(todayStr, periodTypeAll)      // Все инциденты для open
     ]);
 
     kpi.value.newIncidents = incidentsToday.length;
     kpi.value.worksToday = worksToday.length;
     kpi.value.openIncidents = allIncidents.length;
 
+    // Расчет просроченных работ
     const overdue = allWorks.filter(work => {
       const planDate = new Date(work.PlanDateEnd.split('T')[0]);
       return planDate < today;
@@ -265,6 +205,53 @@ const loadKpiData = async () => {
     console.error("Ошибка при загрузке данных для KPI:", error);
   }
 };
+
+const processIncidents = (rawIncidents) => {
+    return rawIncidents.map(incident => {
+        // Расчет координаты
+        const startKmValue = (incident.StartKm || 0) + (incident.StartPicket / 10 || 0);
+        
+        // Позиция на слайдере в процентах
+        const position = (startKmValue / RAILWAY_TOTAL_KM) * 100;
+
+        // Определение цвета маркера по статусу
+        let color = 'red-marker'; // По умолчанию
+        const statusName = incident.nameStatus ? incident.nameStatus.toLowerCase() : '';
+
+        if (statusName.includes('зарегистрирован')) {
+             color = 'red-marker'; 
+        } else if (statusName.includes('в работе')) {
+             color = 'yellow-marker'; 
+        } else if (statusName.includes('завершен') || statusName.includes('закрыт')) {
+             color = 'green-marker'; 
+        }
+
+        const description = incident.Description || incident.name;
+        const title = `${incident.nameCls}: ${description} (${startKmValue.toFixed(2)}км)`;
+
+        return {
+            id: incident.id,
+            position: position,
+            color: color,
+            title: title,
+            km: startKmValue,
+            rawData: incident,
+        };
+    });
+};
+
+const loadRailwayIncidents = async () => {
+    try {
+        const todayStr = formatDateToString(new Date()); 
+        const rawIncidents = await loadIncidents(todayStr, 11); 
+        railwayIncidents.value = processIncidents(rawIncidents);
+    } catch (error) {
+        console.error("Ошибка при загрузке инцидентов для ЖД линии:", error);
+        railwayIncidents.value = [];
+    }
+};
+
+// =========================================================
 
 const handleDateSelected = async (dateStr) => {
   const date = new Date(dateStr);
@@ -278,7 +265,7 @@ const handleDateSelected = async (dateStr) => {
   }
 
   try {
-    const works = await loadWorkPlan(dateStr, 71);
+    const works = await loadWorkPlan(dateStr, 71); // Загрузка работ на выбранную дату
     dayEvents.value = works;
   } catch (error) {
     console.error(`Ошибка при загрузке работ на ${dateStr}:`, error);
@@ -289,7 +276,8 @@ const handleDateSelected = async (dateStr) => {
 const refreshData = () => {
   loadKpiData();
   const todayStr = formatDateToString(new Date());
-  handleDateSelected(todayStr);
+  handleDateSelected(todayStr); // Обновляем ленту активности
+  loadRailwayIncidents();
 };
 
 const handleEventDoubleClick = (event) => {
@@ -315,10 +303,11 @@ const handlePlanUpdated = () => {
 
 const handleIncidentClick = (incident) => {
   console.log('Clicked incident:', incident);
+  // Здесь будет логика открытия модального окна с деталями инцидента
 };
 
 onMounted(() => {
-  loadKpiData();
+  refreshData(); // Загружаем все данные (KPI, инциденты, работы на сегодня)
 });
 </script>
 
@@ -328,6 +317,7 @@ onMounted(() => {
   background: #f7fafc;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden; 
   font-family: system-ui;
 }
 .page-title {
@@ -356,195 +346,6 @@ onMounted(() => {
 .actions-container {
   display: flex;
   gap: 16px;
-}
-
-.railway-section {
-  background: white;
-  border-radius: 12px;
-  padding: 40px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  margin-bottom: 32px;
-}
-
-.railway-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 8px;
-}
-
-.railway-subtitle {
-  font-size: 14px;
-  color: #718096;
-  margin-bottom: 48px;
-}
-
-.railway-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.stations-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 0 8px;
-}
-
-.stations-row .station-info:first-child {
-  text-align: left;
-}
-
-.stations-row .station-info:last-child {
-  text-align: right;
-}
-
-.station-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 4px;
-}
-
-.station-km {
-  font-size: 12px;
-  color: #a0aec0;
-}
-
-.railway-slider {
-  background: #e8edf2;
-  border-radius: 50px;
-  padding: 20px 24px;
-  margin-bottom: 12px;
-}
-
-.railway-track {
-  position: relative;
-  height: 4px;
-  background: #94a3b8;
-  border-radius: 4px;
-}
-
-.track-marker {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.start-point, .end-point {
-  width: 8px;
-  height: 8px;
-  background-color: #475569;
-  cursor: default;
-}
-
-.start-point {
-  left: 0;
-}
-
-.end-point {
-  left: 100%;
-}
-
-.intermediate-station {
-  cursor: pointer;
-  z-index: 5;
-  position: relative;
-}
-
-.station-marker {
-  width: 8px;
-  height: 8px;
-  background-color: #475569;
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.station-label {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: #64748b;
-  white-space: nowrap;
-  font-weight: 500;
-}
-.station-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 8px;
-  background-color: #2d3748;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  z-index: 20;
-  pointer-events: none;
-}
-
-.station-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: #2d3748 transparent transparent transparent;
-}
-
-.tooltip-fade-enter-active, .tooltip-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.tooltip-fade-enter-from, .tooltip-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(5px); }
-.tooltip-fade-enter-to, .tooltip-fade-leave-from { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-.incident-point {
-  width: 10px;
-  height: 10px;
-  border: 3px solid white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-  z-index: 10;
-}
-
-.incident-point:hover {
-  transform: translate(-50%, -50%) scale(1.25);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 15;
-}
-
-.red-marker {
-  background-color: #ef4444;
-}
-
-.yellow-marker {
-  background-color: #eab308;
-}
-
-.green-marker {
-  background-color: #22c55e;
-}
-
-.distance-labels {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 12px;
-}
-
-.distance-label {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
 }
 
 .main-grid {
@@ -630,54 +431,5 @@ onMounted(() => {
   font-size: 14px;
   color: #718096;
   padding: 16px 0;
-}
-
-@media (max-width: 768px) {
-  .railway-section {
-    padding: 24px;
-  }
-  
-  .railway-slider {
-    padding: 16px 20px;
-  }
-  
-  .distance-labels {
-    font-size: 10px;
-  }
-  
-  .station-name {
-    font-size: 13px;
-  }
-  
-  .station-label {
-    font-size: 9px;
-  }
-}
-
-@media (max-width: 480px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .railway-section {
-    padding: 20px 16px;
-  }
-  
-  .railway-slider {
-    padding: 14px 16px;
-  }
-  
-  .track-marker.incident-point {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .distance-labels {
-    padding: 0 8px;
-  }
-  
-  .station-label {
-    font-size: 8px;
-  }
 }
 </style>
