@@ -2,29 +2,34 @@ import axios from "axios";
 
 const API_REPAIR_URL = import.meta.env.VITE_REPAIR_URL;
 
-export async function loadTaskLogFact(date, periodType) {
+export async function loadTaskLog(date, periodType) {
   const objLocation = localStorage.getItem("objLocation");
 
   if (!objLocation) {
     throw new Error("objLocation не найден в localStorage");
   }
 
-  console.log('Вызов метода data/loadTaskLogFact', {
+  const params = {
     date,
     periodType,
-    objLocation: parseInt(objLocation)
-  });
+    objLocation: parseInt(objLocation),
+    notResource: 1
+  };
+
+  console.log('Вызов метода data/loadTaskLog', params);
 
   const response = await axios.post(
     API_REPAIR_URL,
     {
-      method: "data/loadTaskLogFact",
-      params: [{ date, periodType, objLocation: parseInt(objLocation) }]
+      method: "data/loadTaskLog",
+      params: [params]
     },
     {
       withCredentials: true
     }
   );
 
-  return response.data.result || [];
+  // В ответе от data/loadTaskLog данные могут быть в result.store.records
+  const result = response.data.result;
+  return result?.store?.records || result || [];
 }

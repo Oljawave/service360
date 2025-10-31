@@ -28,7 +28,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadTaskLogFact } from '@/api/executionApi'; // Используем новый API
+import { loadTaskLog } from '@/api/executionApi';
 import { loadPeriodTypes } from '@/api/periodApi';
 import { usePermissions } from '@/api/usePermissions';
 import ResourceEditingModal from '@/modals/ResourceEditingModal.vue';
@@ -170,6 +170,10 @@ const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finish
 const formatGeneralInfo = (row) => {
   const parts = [];
   
+  if (row.fullNameTask) {
+    parts.push(`<span class="label-strong">Задача:</span> ${row.fullNameTask}`);
+  }
+
   if (row.fullNameWork) {
     parts.push(`<span class="label-strong">Работа:</span> ${row.fullNameWork}`);
   }
@@ -196,11 +200,7 @@ const formatGeneralInfo = (row) => {
 
 const formatTaskInfo = (row) => {
   const parts = [];
-  
-  if (row.fullNameTask) {
-    parts.push(`<span class="label-strong">Задача:</span> ${row.fullNameTask}`);
-  }
-  
+    
   if (row.ValuePlan !== null && row.ValuePlan !== undefined) {
     parts.push(`<span class="label-strong">Объем (план):</span> ${row.ValuePlan}`);
   }
@@ -213,72 +213,23 @@ const formatTaskInfo = (row) => {
   return parts.join('\n');
 };
 
-const formatResources = (record) => {
-  const formatWithEllipsis = (items) => {
-    if (!items || items.length === 0) return '—';
-    if (items.length > 5) {
-      return items.slice(0, 5).join('\n') + '\n...';
-    }
-    return items.join('\n');
-  };
-
-  const materials = (record.material || []).map(r => {
-    if (r.Value !== null && r.Value !== undefined) {
-      return `${r.nameMaterial}, ${r.Value} ${r.nameMeasure || 'ед.'}`;
-    }
-    return r.nameMaterial;
-  });
-
-  const services = (record.tpService || []).map(r => {
-    if (r.Value !== null && r.Value !== undefined) {
-      return `${r.nameTpService}, ${r.Value} ед.`;
-    }
-    return r.nameTpService;
-  });
-
-  const tools = (record.tool || []).map(r => `${r.nameTypTool}, ${r.Value || 0} ед.`);
-  const equipment = (record.equipment || []).map(r => `${r.nameTypEquipment}, ${r.Quantity || 0} ед., ${r.Value || 0} час;`);
-  
-  const performers = (record.personnel || [])
-    .filter(p => p.complex && p.complex.length > 0)
-    .flatMap(p => 
-      p.complex.map(c => 
-        `${c.fullNamePerformer}, ${p.namePosition} - ${c.PerformerValue || 0} часов;`
-      )
-    );
-
-  return {
-    materials: formatWithEllipsis(materials),
-    services: formatWithEllipsis(services),
-    tools: formatWithEllipsis(tools),
-    equipment: formatWithEllipsis(equipment),
-    performers: formatWithEllipsis(performers),
-  };
-};
-
 const loadWorkLogWrapper = async ({ page, limit, filters: filterValues }) => {
   try {
     const selectedDate = filterValues.date ? formatDateToString(filterValues.date) : formatDateToString(new Date());
     const periodTypeId = filterValues.periodType?.value ?? 11;
 
-    const records = await loadTaskLogFact(selectedDate, periodTypeId);
+    const records = await loadTaskLog(selectedDate, periodTypeId);
 
     const totalRecords = records.length;
     const start = (page - 1) * limit;
     const end = page * limit;
 
     const sliced = records.slice(start, end).map((r) => {
-      const resources = formatResources(r);
       return {
         index: null,
         id: r.id,
         objWorkPlan: r.objWorkPlan,
         taskInfo: formatTaskInfo(r),
-        materials: resources.materials,
-        services: resources.services,
-        tools: resources.tools,
-        equipment: resources.equipment,
-        performers: resources.performers,
         planDateStart: r.PlanDateStart,
         planDateEnd: r.PlanDateEnd,
         generalInfo: formatGeneralInfo(r),
@@ -313,13 +264,8 @@ const getRowClassFn = (row) => {
 
 const columns = [
   { key: 'id', label: '№' },
-  { key: 'taskInfo', label: 'Задача' },
   { key: 'generalInfo', label: 'Общая информация' },
-  { key: 'materials', label: 'Материалы' },
-  { key: 'services', label: 'Услуги' },
-  { key: 'tools', label: 'Инструменты' },
-  { key: 'equipment', label: 'Техника' },
-  { key: 'performers', label: 'Исполнители' },
+  { key: 'taskInfo', label: 'Задача' },
   { key: 'objWorkPlan', label: 'Ссылка на план' },
 ];
 
