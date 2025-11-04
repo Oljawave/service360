@@ -14,24 +14,16 @@
     @update:filters="filters = $event"    
     @row-dblclick="onRowDoubleClick"
   />
-  <ResourceEditingModal
-    v-if="isModalOpen"
-    :record="selectedRecordForModal"
-    :section="selectedRecordForModal?.name"
-    :date="selectedRecordForModal?.planDateEnd"
-    @close="isModalOpen = false"
-    @saved="handleTableUpdate"
-  />
-</template>
+  </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadTaskLog } from '@/api/executionApi';
+import { loadTaskLog, loadObjTaskLog } from '@/api/executionApi';
 import { loadPeriodTypes } from '@/api/periodApi';
 import { usePermissions } from '@/api/usePermissions';
-import ResourceEditingModal from '@/modals/ResourceEditingModal.vue';
+// ResourceEditingModal больше не импортируется
 
 const { hasPermission } = usePermissions();
 const canInsert = computed(() => hasPermission('ins:ins'));
@@ -40,9 +32,7 @@ const router = useRouter();
 
 const limit = 10;
 const tableWrapperRef = ref(null);
-const isModalOpen = ref(false);
-const selectedRecord = ref(null);
-const selectedRecordForModal = ref(null);
+// Состояния модального окна удалены: isModalOpen, selectedRecord, selectedRecordForModal
 
 
 const filters = ref({
@@ -80,37 +70,36 @@ onMounted(async () => {
   }
 });
 
-const onRowDoubleClick = (row) => {
-  // `row` - это объект, который мы создаем в `loadWorkLogWrapper`
-  selectedRecord.value = row;
+const onRowDoubleClick = async (row) => {
+  const workLogId = row.id;
+  if (!workLogId) {
+    console.error("ID записи журнала работ отсутствует.", row);
+    return;
+  }
+  
+  try {
+    // Сначала вызываем API, как вы и просили
+    const data = await loadObjTaskLog(workLogId); 
+    console.log(`Данные для записи с ID ${workLogId}:`, data); 
 
-  // `row.rawData` содержит исходный объект с бэкенда
-  const rawData = row.rawData;
-
-  if (rawData) {
-    // Формируем объект для WorkHeaderInfo
-    selectedRecordForModal.value = {
-      id: rawData.id,
-      work: rawData.fullNameWork,
-      name: rawData.nameLocationClsSection, // Участок
-      location: rawData.nameSection, // Место
-      objectType: 'нет данных', // Тип объекта
-      object: rawData.fullNameObject, // Объект
-      coordinates: formatCoordinates(rawData.StartKm, rawData.StartPicket, null, rawData.FinishKm, rawData.FinishPicket, null),
-      planDateEnd: rawData.PlanDateEnd,
-      rawData: rawData, // Сохраняем исходные данные
-    };
-    isModalOpen.value = true;
-  } else {
-    console.error("rawData отсутствует в выбранной строке. Невозможно открыть модальное окно.", row);
+    // Затем выполняем переход на страницу формы
+    router.push({ 
+      name: 'WorkLogForm', 
+      params: { id: workLogId } 
+    });
+  } catch (error) {
+    console.error('Ошибка при загрузке данных записи журнала работ:', error);
   }
 };
 
+// Функция handleTableUpdate больше не нужна, так как модальное окно не вызывает событие 'saved'.
+// Но оставим ее на случай, если вы захотите вызывать refreshTable в другом месте:
 const handleTableUpdate = () => {
   if (tableWrapperRef.value && tableWrapperRef.value.refreshTable) {
     tableWrapperRef.value.refreshTable();
   }
 };
+
 
 const formatDateToString = (date) => {
   if (!date) return null;
@@ -121,29 +110,40 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const formatDateRange = (startDate, endDate) => {
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      const [year, month, day] = dateStr.split('-');
-      return `${day}.${month}.${year}`;
-    }
-    return dateStr;
-  };
-
-  const start = formatDate(startDate);
-  const end = formatDate(endDate);
-
-  if (start && end) {
-    return `<span class="label-strong">Начало:</span> ${start}\n<span class="label-strong">Конец:</span> ${end}`;
-  } else if (start) {
-    return `<span class="label-strong">Начало:</span> ${start}`;
-  } else if (end) {
-    return `<span class="label-strong">Конец:</span> ${end}`;
+/**
+ * Преобразует строку даты (YYYY-MM-DD) в формат DD.MM.YYYY.
+ * @param {string} dateStr - Строка даты.
+ * @returns {string} Отформатированная дата или прочерк.
+ */
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  // Проверяем формат YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}.${month}.${year}`;
   }
-  
-  return '—';
+  return dateStr;
 };
+
+/**
+ * Формирует информацию о датах (Начало и Конец) для ячейки таблицы.
+ * @param {object} row - Объект с данными строки.
+ * @returns {string} HTML-строка с датами.
+ */
+const formatDateInfo = (row) => {
+  const startDate = formatDate(row.PlanDateStart);
+  const endDate = formatDate(row.PlanDateEnd);
+  
+  return `<span class="label-strong">Начало:</span> ${startDate}<br><span class="label-strong">Конец:</span> ${endDate}`;
+};
+
+const formatVolumeInfo = (row) => {
+  const plan = row.ValuePlan !== null && row.ValuePlan !== undefined ? row.ValuePlan : '-';
+  const fact = row.ValueFact !== null && row.ValueFact !== undefined ? row.ValueFact : '-';
+
+  return `<span class="label-strong">план:</span> ${plan}<br><span class="label-strong">факт:</span> ${fact}`;
+};
+
 
 const formatCoordinates = (startKm, startPk, startZv, finishKm, finishPk, finishZv) => {
   const isPresent = (val) => val !== null && val !== undefined && val !== '';
@@ -198,21 +198,6 @@ const formatGeneralInfo = (row) => {
   return parts.join('\n');
 };
 
-const formatTaskInfo = (row) => {
-  const parts = [];
-    
-  if (row.ValuePlan !== null && row.ValuePlan !== undefined) {
-    parts.push(`<span class="label-strong">Объем (план):</span> ${row.ValuePlan}`);
-  }
-  
-  const dateRange = formatDateRange(row.PlanDateStart, row.PlanDateEnd);
-  if (dateRange && dateRange !== '—') {
-    parts.push(dateRange);
-  }
-  
-  return parts.join('\n');
-};
-
 const loadWorkLogWrapper = async ({ page, limit, filters: filterValues }) => {
   try {
     const selectedDate = filterValues.date ? formatDateToString(filterValues.date) : formatDateToString(new Date());
@@ -229,11 +214,13 @@ const loadWorkLogWrapper = async ({ page, limit, filters: filterValues }) => {
         index: null,
         id: r.id,
         objWorkPlan: r.objWorkPlan,
-        taskInfo: formatTaskInfo(r),
+        dateInfo: formatDateInfo(r),
+        volumeInfo: formatVolumeInfo(r),
+        
         planDateStart: r.PlanDateStart,
         planDateEnd: r.PlanDateEnd,
         generalInfo: formatGeneralInfo(r),
-        description: r.description || '—',
+        description: r.description || '-',
         rawData: r,
         objWork: r.objWork,
         objObject: r.objObject,
@@ -262,10 +249,12 @@ const getRowClassFn = (row) => {
   return {};
 };
 
+// Обновленный массив столбцов с объединенными полями
 const columns = [
   { key: 'id', label: '№' },
   { key: 'generalInfo', label: 'Общая информация' },
-  { key: 'taskInfo', label: 'Задача' },
+  { key: 'dateInfo', label: 'Дата', width: 150 }, // Колонка "Дата"
+  { key: 'volumeInfo', label: 'Объем', width: 100 }, // Колонка "Объем"
   { key: 'objWorkPlan', label: 'Ссылка на план' },
 ];
 

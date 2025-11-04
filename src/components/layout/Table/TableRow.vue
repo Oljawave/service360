@@ -11,7 +11,8 @@
       :class="{
         'date-overdue': isFactDateOverdue(col.key),
         'date-ontime': isFactDateOnTime(col.key),
-        'multiline-cell': ['generalInfo', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers'].includes(col.key)
+        // ДОБАВЛЕНЫ: 'dateInfo', 'volumeInfo'
+        'multiline-cell': ['generalInfo', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers', 'dateInfo', 'volumeInfo'].includes(col.key)
       }"
     >
       <template v-if="col.component">
@@ -32,7 +33,7 @@
           {{ formatValue(row[col.key]) }}
         </span>
       </template>
-      <template v-else-if="['generalInfo', 'dateRange', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers'].includes(col.key)">
+      <template v-else-if="['generalInfo', 'dateRange', 'taskInfo', 'materials', 'services', 'tools', 'equipment', 'performers', 'dateInfo', 'volumeInfo'].includes(col.key)">
         <div 
           class="cell-content preserve-newlines" 
           v-html="formatValue(row[col.key])"

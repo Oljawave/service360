@@ -35,68 +35,39 @@
             </Transition>
           </div>
           
+          <!-- Отрисовка маркеров инцидентов -->
           <template v-for="incident in railwayIncidents" :key="incident.id">
-            
-            <div 
-              v-if="isSegment(incident)"
-              class="incident-segment-wrapper"
-              :style="getSegmentStyle(incident)"
-              :title="incident.title"
-              @click="handleIncidentClick(incident)"
-            >
-              <div 
-                class="incident-segment"
-                :class="incident.color.replace('-marker', '-segment')"
-              ></div>
-              <div 
-                class="segment-start-point track-marker incident-point"
-                :class="incident.color"
-              ></div>
-              <div 
-                class="segment-end-point track-marker incident-point"
-                :class="incident.color"
-              ></div>
-
-              <Transition name="tooltip-fade">
-                <div 
-                  v-if="selectedIncident && selectedIncident.id === incident.id" 
-                  class="incident-tooltip"
-                  @click.stop
-                >
-                  <div class="tooltip-header">{{ selectedIncident.rawData.nameCls }}</div>
-                  <div class="tooltip-body">
-                    <div class="tooltip-item"><strong>Координаты:</strong> {{ formatIncidentCoords(selectedIncident.rawData) }}</div>
-                    <div class="tooltip-item description"><strong>Описание:</strong> <p>{{ selectedIncident.rawData.Description }}</p></div>
-                  </div>
-                </div>
-              </Transition>
+            <div v-if="isSegment(incident)" class="incident-segment-wrapper" :style="getSegmentStyle(incident)" :title="incident.title" @click="handleIncidentClick(incident, $event)">
+              <div class="incident-segment" :class="incident.color.replace('-marker', '-segment')"></div>
+              <div class="segment-start-point track-marker incident-point" :class="incident.color"></div>
+              <div class="segment-end-point track-marker incident-point" :class="incident.color"></div>
             </div>
-            
-            <div 
-              v-else
-              class="track-marker incident-point"
-              :class="incident.color"
-              :style="{ left: incident.position + '%' }"
-              :title="incident.title"
-              @click="handleIncidentClick(incident)"
-            >
-              <Transition name="tooltip-fade">
-                <div 
-                  v-if="selectedIncident && selectedIncident.id === incident.id" 
-                  class="incident-tooltip"
-                  @click.stop
-                >
-                  <div class="tooltip-header">{{ selectedIncident.rawData.nameCls }}</div>
-                  <div class="tooltip-body">
-                    <div class="tooltip-item"><strong>Координаты:</strong> {{ formatIncidentCoords(selectedIncident.rawData) }}</div>
-                    <div class="tooltip-item description"><strong>Описание:</strong> <p>{{ selectedIncident.rawData.Description }}</p></div>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-            
+            <div v-else class="track-marker incident-point" :class="incident.color" :style="{ left: incident.position + '%' }" :title="incident.title" @click="handleIncidentClick(incident, $event)"></div>
           </template>
-          
+
+          <!-- Единственный экземпляр тултипа, который будет отображаться поверх всего -->
+          <Transition name="tooltip-fade">
+            <div v-if="selectedIncident" class="incident-tooltip" :style="getTooltipStyle(selectedIncident)" :class="getTooltipPositionClass(selectedIncident)" @click.stop>
+                  <div class="tooltip-header">{{ selectedIncident.rawData.nameCls }}</div>
+                  <div class="tooltip-body">
+                    <div class="tooltip-item"><strong>Координаты:</strong> {{ formatIncidentCoords(selectedIncident.rawData) }}</div>
+                    <div class="tooltip-item description">
+                      <strong>Описание:</strong>
+                      <p :class="{ 'text-collapsed': !isDescriptionExpanded }">
+                        {{ selectedIncident.rawData.Description }}
+                      </p>
+                      <button 
+                        v-if="isDescriptionLong(selectedIncident.rawData.Description)"
+                        class="expand-btn"
+                        @click="toggleDescription"
+                      >
+                        {{ isDescriptionExpanded ? 'Скрыть' : 'Ещё' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+          </Transition>
+
           <div class="track-marker end-point" :style="{ left: '100%' }"></div>
         </div>
       </div>
@@ -115,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 // Общая длина линии для расчета процентов
 const TOTAL_RAIL_LENGTH_KM = 151;
@@ -137,6 +108,7 @@ const emit = defineEmits(['incident-click']);
 
 const hoveredStationId = ref(null);
 const selectedIncident = ref(null);
+const isDescriptionExpanded = ref(false);
 
 /**
  * Преобразует координаты КМ и ПК в общую длину в километрах.
@@ -188,6 +160,26 @@ const getSegmentStyle = (incident) => {
   };
 };
 
+/**
+ * Рассчитывает позиционирование для тултипа.
+ */
+const getTooltipStyle = (incident) => {
+  if (!incident) return {};
+
+  const positionClass = getTooltipPositionClass(incident);
+  const incidentPosition = incident.position;
+
+  if (positionClass === 'tooltip-center') {
+    return { left: `${incidentPosition}%` };
+  }
+  if (positionClass === 'tooltip-right') {
+    return { left: `${incidentPosition}%` };
+  }
+  if (positionClass === 'tooltip-left') {
+    return { right: `${100 - incidentPosition}%` };
+  }
+};
+
 const formatStationCoords = (kmValue) => {
   if (kmValue === null || kmValue === undefined) return '';
   const km = Math.floor(kmValue);
@@ -209,11 +201,47 @@ const formatIncidentCoords = (incidentData) => {
   }
 };
 
-const handleIncidentClick = (incident) => {
+/**
+ * Определяет, нужно ли показывать кнопку "Ещё" для описания
+ */
+const isDescriptionLong = (description) => {
+  if (!description) return false;
+  return description.length > 100;
+};
+
+/**
+ * Переключает развёрнутое/свёрнутое состояние описания
+ */
+const toggleDescription = () => {
+  isDescriptionExpanded.value = !isDescriptionExpanded.value;
+};
+
+/**
+ * Определяет позицию тултипа в зависимости от положения инцидента
+ * Возвращает класс для CSS
+ */
+const getTooltipPositionClass = (incident) => {
+  const position = incident.position;
+  
+  // Если инцидент в левой части (0-40%), показываем тултип справа
+  if (position < 40) {
+    return 'tooltip-right'; // Будет позиционироваться от left
+  }
+  // Если в правой части (60-100%), показываем слева
+  else if (position > 60) {
+    return 'tooltip-left'; // Будет позиционироваться от right
+  }
+  // В центре (40-60%) показываем сверху по центру (default)
+  return 'tooltip-center';
+};
+
+const handleIncidentClick = (incident, event) => {
   if (selectedIncident.value && selectedIncident.value.id === incident.id) {
     selectedIncident.value = null; // Закрыть тултип при повторном клике
+    isDescriptionExpanded.value = false;
   } else {
     selectedIncident.value = incident;
+    isDescriptionExpanded.value = false; // Сбрасываем состояние при открытии нового
   }
   emit('incident-click', incident);
 };
@@ -379,8 +407,8 @@ const handleIncidentClick = (incident) => {
   border: 3px solid white;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  z-index: 16; /* Увеличено для приоритета клика над сегментом (z-index: 8) */
-}
+  z-index: 16;
+} 
 
 .overlay {
   position: fixed;
@@ -394,9 +422,6 @@ const handleIncidentClick = (incident) => {
 
 .incident-tooltip {
   position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
   width: 320px;
   background-color: white;
   border-radius: 8px;
@@ -407,7 +432,14 @@ const handleIncidentClick = (incident) => {
   cursor: default;
 }
 
-.incident-tooltip::after {
+/* Позиционирование тултипа по центру (по умолчанию - сверху) */
+.incident-tooltip.tooltip-center {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.incident-tooltip.tooltip-center::after {
   content: '';
   position: absolute;
   top: 100%;
@@ -416,6 +448,42 @@ const handleIncidentClick = (incident) => {
   border-width: 8px;
   border-style: solid;
   border-color: white transparent transparent transparent;
+}
+
+/* Позиционирование тултипа справа */
+.incident-tooltip.tooltip-right {
+  bottom: 50%;
+  transform: translateY(50%); /* Центрируем по вертикали */
+  margin-left: 12px; /* Отступ от маркера */
+}
+
+.incident-tooltip.tooltip-right::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-top: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent white transparent transparent;
+}
+
+/* Позиционирование тултипа слева */
+.incident-tooltip.tooltip-left {
+  bottom: 50%;
+  transform: translateY(50%); /* Центрируем по вертикали */
+  margin-right: 12px; /* Отступ от маркера */
+}
+
+.incident-tooltip.tooltip-left::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  margin-top: -8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent transparent transparent white;
 }
 
 .tooltip-header {
@@ -448,12 +516,33 @@ const handleIncidentClick = (incident) => {
   margin: 0;
   max-height: 120px;
   overflow-y: auto;
+  transition: max-height 0.3s ease;
 }
 
-.incident-point:hover {
-  transform: translate(-50%, -50%) scale(1.25);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  /* Удалено z-index: 15, т.к. базовый z-index: 16 уже выше сегмента */
+.tooltip-item.description p.text-collapsed {
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: #2b6cb0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 4px;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.expand-btn:hover {
+  color: #1a4d8f;
 }
 
 /* --- СТИЛИ ДЛЯ ЛИНИЙ ИНЦИДЕНТОВ --- */
@@ -481,8 +570,8 @@ const handleIncidentClick = (incident) => {
 /* Точка-маркер в начале сегмента */
 .segment-start-point {
   left: 0;
-  z-index: 12; /* Должен быть выше линии (8) */
-  pointer-events: none; /* Клик обрабатывается оболочкой .incident-segment-wrapper */
+  z-index: 12;
+  pointer-events: none;
 }
 
 /* Точка-маркер в конце сегмента */
@@ -574,6 +663,10 @@ const handleIncidentClick = (incident) => {
   .station-label {
     font-size: 9px;
   }
+  
+  .incident-tooltip {
+    width: 280px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -596,6 +689,10 @@ const handleIncidentClick = (incident) => {
   
   .station-label {
     font-size: 8px;
+  }
+  
+  .incident-tooltip {
+    width: 260px;
   }
 }
 </style>
