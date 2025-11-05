@@ -12,7 +12,6 @@
           id="actualVolume"
           v-model="actualVolume"
           :min="0"
-          :max="maxVolume"
           :step="1"
           :required="true"
         />
@@ -29,7 +28,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import AppNumberInput from '@/components/ui/AppNumberInput.vue'; // Предполагаемый путь
+import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue'; // Предполагаемый путь
 
 const props = defineProps({
   isOpen: {
@@ -54,7 +53,7 @@ watch(() => props.isOpen, (newVal) => {
 
 const isVolumeValid = computed(() => {
   const val = actualVolume.value;
-  return val !== null && val >= 0 && (props.maxVolume === Infinity || val <= props.maxVolume);
+  return val !== null && val >= 0;
 });
 
 const close = () => {

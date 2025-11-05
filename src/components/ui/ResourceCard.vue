@@ -66,12 +66,12 @@ const iconComponent = computed(() => {
 
 const totalPerformers = computed(() => {
   if (!props.isPerformer) return 0;
-  return props.items.reduce((sum, item) => sum + (item.count || 0), 0);
+  return props.items.reduce((sum, item) => sum + (item.plan || 0), 0);
 });
 
 const totalQuantity = computed(() => {
   if (props.isPerformer) return 0;
-  return props.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  return props.items.reduce((sum, item) => sum + (item.plan || 0), 0);
 });
 </script>
 

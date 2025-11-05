@@ -5,7 +5,12 @@
       <h1>Журнал планирования ресурсов</h1>
     </div>
 
-    <ResourceInfoSection v-if="recordData" :recordData="recordData" />
+    <ResourceInfoSection 
+      v-if="recordData" 
+      :recordData="recordData"
+      :taskLogId="workLogId"
+      :onTaskUpdated="onTaskUpdated"
+    />
 
     <div class="cards-section" v-if="recordData">
       <ResourceCard
@@ -116,7 +121,8 @@ import BackButton from '@/components/ui/BackButton.vue';
 import ResourceCard from '@/components/ui/ResourceCard.vue';
 import ResourceEditTable from '@/components/ui/ResourceEditTable.vue';
 import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
-import { loadObjTaskLog } from '@/api/executionApi.js';
+import { loadObjTaskLog, saveResourceFact, saveServiceFact } from '@/api/executionApi.js';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter();
 const route = useRoute();
@@ -125,12 +131,48 @@ const recordData = ref(null);
 const isLoading = ref(true);
 const workLogId = ref(route.params.id);
 const activeTab = ref('materials');
+const notificationStore = useNotificationStore();
 
 const setActiveTab = (tab) => {
   activeTab.value = tab;
 };
 
-const handleSaveRow = (payload) => console.log('Saving row:', payload);
+const handleSaveRow = async ({ row }) => {
+  if (activeTab.value === 'materials') {
+    try {
+      const materialData = {
+        id: row.id,
+        idValue: row.idValue,
+        Value: row.fact,
+        idUser: row.idUser,
+        idUpdatedAt: row.idUpdatedAt,
+      };
+      await saveResourceFact(materialData);
+      notificationStore.showNotification('Факт по материалу успешно сохранен!', 'success');
+      await loadWorkLogData(workLogId.value);
+    } catch (error) {
+      notificationStore.showNotification('Ошибка при сохранении факта по материалу.', 'error');
+      console.error('Ошибка сохранения факта:', error);
+    }
+  } else if (activeTab.value === 'services') {
+    try {
+      const serviceData = {
+        id: row.id,
+        idValue: row.idValue,
+        Value: row.fact,
+        idUser: row.idUser,
+        idUpdatedAt: row.idUpdatedAt,
+      };
+      await saveServiceFact(serviceData);
+      notificationStore.showNotification('Факт по услуге успешно сохранен!', 'success');
+      await loadWorkLogData(workLogId.value);
+    } catch (error) {
+      notificationStore.showNotification('Ошибка при сохранении факта по услуге.', 'error');
+      console.error('Ошибка сохранения факта по услуге:', error);
+    }
+  }
+};
+
 const handleDeleteRow = (payload) => console.log('Deleting row:', payload);
 
 const goBack = () => {
@@ -152,6 +194,10 @@ const formatCoordinates = (startKm, startPk, finishKm, finishPk) => {
     return `${start} - ${finish}`;
   }
   return start || finish || 'Координаты отсутствуют';
+};
+
+const onTaskUpdated = () => {
+  loadWorkLogData(workLogId.value);
 };
 
 const loadWorkLogData = async (id) => {
@@ -178,28 +224,38 @@ const loadWorkLogData = async (id) => {
       endDateFact: formatDate(data.FactDateEnd),
       
       materials: (data.material || []).map(item => ({
+        id: item.id,
         name: item.nameMaterial,
-        quantity: item.ValuePlan,
+        plan: item.ValuePlan,
+        fact: item.Value,
         unit: item.nameMeasure,
+        idValue: item.idValue,
+        idUser: item.idUser,
+        idUpdatedAt: item.idUpdatedAt,
       })),
       services: (data.tpService || []).map(item => ({
+        id: item.id,
         name: item.nameTpService,
-        quantity: item.ValuePlan,
+        plan: item.ValuePlan,
+        fact: item.Value || 0,
         unit: 'ед.',
+        idValue: item.idValue,
+        idUser: item.idUser,
+        idUpdatedAt: item.idUpdatedAt,
       })),
       tools: (data.tool || []).map(item => ({
         name: item.nameTypTool,
-        quantity: item.Value,
+        plan: item.Value,
         unit: 'шт',
       })),
       equipment: (data.equipment || []).map(item => ({
         name: item.nameTypEquipment,
-        quantity: item.Quantity,
+        plan: item.Quantity,
         hours: item.Value,
       })),
       performers: (data.personnel || []).map(item => ({
         name: item.namePosition,
-        count: item.Quantity,
+        plan: item.Quantity,
         hours: item.Value,
       })),
     };
@@ -248,8 +304,6 @@ onMounted(() => {
   color: #1a202c;
   margin: 0;
 }
-
-/* Стили info-section удалены, так как они теперь в ResourceInfoSection.vue */
 
 .cards-section {
   display: flex;

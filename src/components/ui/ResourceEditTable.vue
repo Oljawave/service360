@@ -47,8 +47,8 @@
               </td>
               <td v-if="!isPerformer" class="actions-column">
                 <button
-                  :class="['icon-button', 'copy', { active: row.factMatchesPlan }]"
-                  @click.stop="copyPlanToFact(index)"
+                  :class="['icon-button', 'copy']"
+                  @click.stop="saveFact(index)"
                   title="Скопировать план в факт"
                 >
                   <Check :size="18" />
@@ -142,10 +142,8 @@ const initializeExistingRows = (rows) => {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
-      unit: row.unit,
-      plan: row.quantity !== undefined ? row.quantity : row.plan || 0,
+      ...row, // Копируем все поля, включая idValue, idUser и т.д.
       fact: row.fact || 0,
-      factMatchesPlan: row.fact === (row.quantity ?? row.plan ?? 0),
     }));
   }
 };
@@ -176,23 +174,10 @@ const toggleRow = (index) => {
 
 const updateExistingRow = (index, value) => {
   existingRows.value[index].fact = value;
-  existingRows.value[index].factMatchesPlan =
-    existingRows.value[index].fact === existingRows.value[index].plan;
-
   emit('update:rows', [...existingRows.value]);
-
-  emit('save-row', {
-    index,
-    row: existingRows.value[index],
-    isExisting: true,
-  });
 };
 
-const copyPlanToFact = (index) => {
-  existingRows.value[index].fact = existingRows.value[index].plan;
-  existingRows.value[index].factMatchesPlan = true;
-
-  emit('update:rows', [...existingRows.value]);
+const saveFact = (index) => {
   emit('save-row', {
     index,
     row: existingRows.value[index],
