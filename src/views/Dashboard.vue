@@ -1,6 +1,14 @@
 <template>
   <div class="dashboard-page">
-    <h1 class="page-title">Добро пожаловать в Service 360</h1>
+    <DashboardHeader 
+      :selected-farm="selectedFarm"
+      :farms="farms"
+      :weather-temp="weatherTemp"
+      :weather-icon-name="weatherIconName"
+      :weather-icon-color="weatherIconColor"
+      :current-date="currentDate"
+      @select-farm="selectFarm"
+    />
 
     <div class="kpi-grid">
       <KpiCard :value="kpi.newIncidents" label="Новые инциденты сегодня" />
@@ -9,29 +17,11 @@
       <KpiCard :value="kpi.openIncidents" label="Всего открытых инцидентов" />
     </div>
 
-    <div class="quick-actions">
-      <h2 class="section-title">Быстрые действия</h2>
-      <div class="actions-container">
-        <DashboardButton 
-          label="Добавить инцидент" 
-          iconName="BookOpen" 
-          iconColor="#2B6CB0"
-          @click="isAddIncidentModalOpen = true" 
-        />
-        <DashboardButton 
-          label="Запланировать работу" 
-          iconName="Calendar" 
-          iconColor="#2B6CB0"
-          @click="isPlanWorkModalOpen = true" 
-        />
-        <DashboardButton 
-          label="Журнал осмотров" 
-          iconName="ClipboardList" 
-          iconColor="#2B6CB0"
-          @click="goToWorkPlan" 
-        />
-      </div>
-    </div>
+    <QuickActions 
+      @add-incident="isAddIncidentModalOpen = true"
+      @plan-work="isPlanWorkModalOpen = true"
+      @go-to-inspections="goToWorkPlan"
+    />
 
     <RailwaySection 
       :intermediate-stations="intermediateStations"
@@ -44,21 +34,11 @@
         <CalendarWidget @date-selected="handleDateSelected" />
       </div>
 
-      <div class="widget-card">
-        <h2 class="section-title">{{ activityTitle }}</h2>
-        <ul class="activity-feed">
-          <li v-for="event in dayEvents" :key="event.id" class="feed-item" @dblclick.prevent="handleEventDoubleClick(event)">
-            <div class="feed-icon work">
-              <UiIcon name="ClipboardList" color="#2b6cb0" style="margin-right: 1px;" />
-            </div>
-            <div class="feed-content">
-              <p class="feed-description">{{ event.fullNameWork }}</p> 
-              <p class="feed-time" :class="{ 'overdue': isOverdue(event.PlanDateEnd) }">{{ getDaysRemainingText(event.PlanDateEnd) }}</p>
-            </div>
-          </li>
-          <li v-if="!dayEvents.length" class="feed-item-empty">На выбранную дату работ не запланировано.</li>
-        </ul>
-      </div>
+      <WorkPlanWidget
+        :activity-title="activityTitle"
+        :day-events="dayEvents"
+        @event-double-click="handleEventDoubleClick"
+      />
     </div>
 
     <ModalAddIncident
@@ -75,15 +55,17 @@
       v-if="isEditPlanModalOpen"
       :rowData="selectedEvent"
       @close="isEditPlanModalOpen = false"
-      @save="handlePlanUpdated" />
+      @save="handlePlanUpdated"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup>  
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import DashboardButton from '@/components/ui/DashboardButton.vue';
-import UiIcon from '@/components/ui/UiIcon.vue';
+import DashboardHeader from '@/components/ui/DashboardHeader.vue';
+import QuickActions from '@/components/ui/QuickActions.vue';
+import WorkPlanWidget from '@/components/ui/WorkPlanWidget.vue';
 import ModalAddIncident from '@/modals/ModalAddIncident.vue';
 import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
@@ -91,6 +73,7 @@ import KpiCard from '@/components/ui/KpiCard.vue';
 import { loadIncidents } from '@/api/incidentApi.js';
 import { loadWorkPlan } from '@/api/planApi.js';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
+import { loadDepartments } from '@/api/dashboardApi.js';
 import RailwaySection from '@/components/ui/RailwaySection.vue';
 
 const router = useRouter();
@@ -100,7 +83,19 @@ const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
 const selectedEvent = ref(null);
 
+const selectedFarm = ref('Все хозяйства');
+const farms = ref(['Все хозяйства']);
+
 const RAILWAY_TOTAL_KM = 151;
+
+const weatherTemp = ref('Загрузка...'); 
+const currentDate = ref('Загрузка...'); 
+const weatherIconName = ref('Sun');
+const weatherIconColor = ref('#f6ad55');
+
+const API_KEY = 'b68cfdf8a6b6640730e7fec49b793661'; 
+const ALMATY_TIMEZONE = 'Asia/Almaty';
+const UST_KAMENOGORSK_CITY_ID = '1520316'; 
 
 const kpi = ref({
   newIncidents: 0,
@@ -127,6 +122,11 @@ const goToWorkPlan = () => {
   router.push({ name: 'Inspections' });
 };
 
+const selectFarm = (farm) => {
+  selectedFarm.value = farm;
+  console.log('Выбрано хозяйство:', farm);
+};
+
 const formatDateToString = (date) => {
   if (!date) return null;
   const d = new Date(date);
@@ -136,44 +136,86 @@ const formatDateToString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const getDaysRemainingText = (planDateEnd) => {
-  if (!planDateEnd) return '';
+const mapOpenWeatherIcon = (iconCode) => {
+  const map = {
+    '01d': { name: 'Sun', color: '#f6ad55' },
+    '01n': { name: 'Moon', color: '#63b3ed' },
+    '02d': { name: 'CloudSun', color: '#ecc94b' },
+    '02n': { name: 'CloudMoon', color: '#a0aec0' },
+    '03d': { name: 'Cloud', color: '#718096' },
+    '03n': { name: 'Cloud', color: '#718096' },
+    '04d': { name: 'CloudDrizzle', color: '#4a5568' },
+    '04n': { name: 'CloudDrizzle', color: '#4a5568' },
+    '09d': { name: 'CloudRain', color: '#63b3ed' },
+    '09n': { name: 'CloudRain', color: '#63b3ed' },
+    '10d': { name: 'CloudRain', color: '#63b3ed' },
+    '10n': { name: 'CloudRain', color: '#63b3ed' },
+    '11d': { name: 'CloudLightning', color: '#9f7aea' },
+    '11n': { name: 'CloudLightning', color: '#9f7aea' },
+    '13d': { name: 'CloudSnow', color: '#e2e8f0' },
+    '13n': { name: 'CloudSnow', color: '#e2e8f0' },
+    '50d': { name: 'Mist', color: '#a0aec0' },
+    '50n': { name: 'Mist', color: '#a0aec0' },
+  };
+  return map[iconCode] || { name: 'Sun', color: '#f6ad55' };
+};
 
-  const endDate = new Date(planDateEnd.split('T')[0]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+const fetchWeather = async () => {
+  if (!API_KEY) {
+    weatherTemp.value = 'Нет API ключа';
+    weatherIconName.value = 'AlertCircle';
+    weatherIconColor.value = '#c53030';
+    return;
+  }
+  
+  const url = `https://api.openweathermap.org/data/2.5/weather?id=${UST_KAMENOGORSK_CITY_ID}&appid=${API_KEY}&units=metric&lang=ru`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    
+    const temp = Math.round(data.main.temp);
+    const iconCode = data.weather[0].icon;
 
-  const diffTime = endDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) {
-    return `Просрочено на ${Math.abs(diffDays)} дн.`;
-  } else if (diffDays === 0) {
-    return 'Завершается сегодня';
-  } else {
-    const lastDigit = diffDays % 10;
-    const lastTwoDigits = diffDays % 100;
-    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) return `Осталось ${diffDays} дней`;
-    if (lastDigit === 1) return `Осталось ${diffDays} день`;
-    if ([2, 3, 4].includes(lastDigit)) return `Осталось ${diffDays} дня`;
-    return `Осталось ${diffDays} дней`;
+    weatherTemp.value = `${temp}°C`;
+    const iconMapping = mapOpenWeatherIcon(iconCode);
+    weatherIconName.value = iconMapping.name;
+    weatherIconColor.value = iconMapping.color;
+  } catch (error) {
+    console.error("Ошибка при получении погоды:", error);
+    weatherTemp.value = '—°C';
+    weatherIconName.value = 'AlertCircle';
+    weatherIconColor.value = '#c53030';
   }
 };
 
-const isOverdue = (planDateEnd) => {
-  if (!planDateEnd) return false;
-
-  const endDate = new Date(planDateEnd.split('T')[0]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const diffTime = endDate.getTime() - today.getTime();
-  return diffTime < 0;
+const fetchAlmatyDate = () => {
+  try {
+    const options = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: ALMATY_TIMEZONE,
+    };
+    const nowInAlmaty = new Date().toLocaleDateString('ru-RU', options);
+    currentDate.value = nowInAlmaty;
+  } catch (error) {
+    console.error("Ошибка при получении даты:", error);
+    currentDate.value = 'Дата недоступна';
+  }
 };
 
-// =========================================================
-// ВОССТАНОВЛЕННАЯ ЛОГИКА KPI
-// =========================================================
+const fetchFarms = async () => {
+  try {
+    const departments = await loadDepartments();
+    // Преобразуем массив объектов в массив строк и добавляем опцию "Все хозяйства"
+    farms.value = ['Все хозяйства', ...departments.map(dep => dep.name)];
+  } catch (error) {
+    console.error("Не удалось загрузить список хозяйств:", error);
+  }
+};
+
 const loadKpiData = async () => {
   try {
     const today = new Date();
@@ -182,76 +224,63 @@ const loadKpiData = async () => {
     const periodTypeToday = 71;
     const periodTypeAll = 11;
 
-    // Загружаем данные для всех KPI
     const [incidentsToday, worksToday, allWorks, allIncidents] = await Promise.all([
-      loadIncidents(todayStr, periodTypeToday), // Новые инциденты сегодня
-      loadWorkPlan(todayStr, periodTypeToday),   // Работы на сегодня
-      loadWorkPlan(todayStr, periodTypeAll),      // Все работы для overdue
-      loadIncidents(todayStr, periodTypeAll)      // Все инциденты для open
+      loadIncidents(todayStr, periodTypeToday),
+      loadWorkPlan(todayStr, periodTypeToday),
+      loadWorkPlan(todayStr, periodTypeAll),
+      loadIncidents(todayStr, periodTypeAll)
     ]);
 
     kpi.value.newIncidents = incidentsToday.length;
     kpi.value.worksToday = worksToday.length;
     kpi.value.openIncidents = allIncidents.length;
 
-    // Расчет просроченных работ
     const overdue = allWorks.filter(work => {
       const planDate = new Date(work.PlanDateEnd.split('T')[0]);
       return planDate < today;
     });
     kpi.value.overdueWorks = overdue.length;
-
   } catch (error) {
-    console.error("Ошибка при загрузке данных для KPI:", error);
+    console.error("Ошибка при загрузке KPI:", error);
   }
 };
 
 const processIncidents = (rawIncidents) => {
-    return rawIncidents.map(incident => {
-        // Расчет координаты
-        const startKmValue = (incident.StartKm || 0) + (incident.StartPicket / 10 || 0);
-        
-        // Позиция на слайдере в процентах
-        const position = (startKmValue / RAILWAY_TOTAL_KM) * 100;
+  return rawIncidents.map(incident => {
+    const startKmValue = (incident.StartKm || 0) + (incident.StartPicket / 10 || 0);
+    const position = (startKmValue / RAILWAY_TOTAL_KM) * 100;
 
-        // Определение цвета маркера по статусу
-        let color = 'red-marker'; // По умолчанию
-        const statusName = incident.nameStatus ? incident.nameStatus.toLowerCase() : '';
+    let color = 'red-marker';
+    const statusName = incident.nameStatus ? incident.nameStatus.toLowerCase() : '';
 
-        if (statusName.includes('зарегистрирован')) {
-             color = 'red-marker'; 
-        } else if (statusName.includes('в работе')) {
-             color = 'yellow-marker'; 
-        } else if (statusName.includes('завершен') || statusName.includes('закрыт')) {
-             color = 'green-marker'; 
-        }
+    if (statusName.includes('зарегистрирован')) color = 'red-marker'; 
+    else if (statusName.includes('в работе')) color = 'yellow-marker'; 
+    else if (statusName.includes('завершен') || statusName.includes('закрыт')) color = 'green-marker';
 
-        const description = incident.Description || incident.name;
-        const title = `${incident.nameCls}: ${description} (${startKmValue.toFixed(2)}км)`;
+    const description = incident.Description || incident.name;
+    const title = `${incident.nameCls}: ${description} (${startKmValue.toFixed(2)}км)`;
 
-        return {
-            id: incident.id,
-            position: position,
-            color: color,
-            title: title,
-            km: startKmValue,
-            rawData: incident,
-        };
-    });
+    return {
+      id: incident.id,
+      position: position,
+      color: color,
+      title: title,
+      km: startKmValue,
+      rawData: incident,
+    };
+  });
 };
 
 const loadRailwayIncidents = async () => {
-    try {
-        const todayStr = formatDateToString(new Date()); 
-        const rawIncidents = await loadIncidents(todayStr, 11); 
-        railwayIncidents.value = processIncidents(rawIncidents);
-    } catch (error) {
-        console.error("Ошибка при загрузке инцидентов для ЖД линии:", error);
-        railwayIncidents.value = [];
-    }
+  try {
+    const todayStr = formatDateToString(new Date()); 
+    const rawIncidents = await loadIncidents(todayStr, 11); 
+    railwayIncidents.value = processIncidents(rawIncidents);
+  } catch (error) {
+    console.error("Ошибка при загрузке инцидентов:", error);
+    railwayIncidents.value = [];
+  }
 };
-
-// =========================================================
 
 const handleDateSelected = async (dateStr) => {
   const date = new Date(dateStr);
@@ -265,10 +294,10 @@ const handleDateSelected = async (dateStr) => {
   }
 
   try {
-    const works = await loadWorkPlan(dateStr, 71); // Загрузка работ на выбранную дату
+    const works = await loadWorkPlan(dateStr, 71);
     dayEvents.value = works;
   } catch (error) {
-    console.error(`Ошибка при загрузке работ на ${dateStr}:`, error);
+    console.error(`Ошибка при загрузке работ:`, error);
     dayEvents.value = [];
   }
 };
@@ -276,8 +305,11 @@ const handleDateSelected = async (dateStr) => {
 const refreshData = () => {
   loadKpiData();
   const todayStr = formatDateToString(new Date());
-  handleDateSelected(todayStr); // Обновляем ленту активности
+  handleDateSelected(todayStr);
   loadRailwayIncidents();
+  fetchWeather();
+  fetchAlmatyDate();
+  fetchFarms();
 };
 
 const handleEventDoubleClick = (event) => {
@@ -303,11 +335,10 @@ const handlePlanUpdated = () => {
 
 const handleIncidentClick = (incident) => {
   console.log('Clicked incident:', incident);
-  // Здесь будет логика открытия модального окна с деталями инцидента
 };
 
 onMounted(() => {
-  refreshData(); // Загружаем все данные (KPI, инциденты, работы на сегодня)
+  refreshData();
 });
 </script>
 
@@ -320,18 +351,6 @@ onMounted(() => {
   overflow-x: hidden; 
   font-family: system-ui;
 }
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 24px;
-}
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 16px;
-}
 
 .kpi-grid {
   display: grid;
@@ -340,19 +359,12 @@ onMounted(() => {
   margin-bottom: 32px;
 }
 
-.quick-actions {
-  margin-bottom: 32px;
-}
-.actions-container {
-  display: flex;
-  gap: 16px;
-}
-
 .main-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 24px;
 }
+
 .widget-card {
   background: white;
   border-radius: 12px;
@@ -361,75 +373,8 @@ onMounted(() => {
   max-width: 100%;
   overflow-x: auto;
 }
+
 .widget-card.no-padding {
   padding: 0;
-}
-
-.activity-feed {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.feed-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 12px 12px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-.feed-item:not(:last-child) {
-  border-bottom: 1px solid #e2e8f0;
-}
-.feed-icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.feed-icon.incident {
-  background-color: #fed7d7;
-  color: #c53030;
-}
-.feed-icon.work {
-  background-color: #c3dafe;
-  color: #2c5282;
-}
-.feed-icon .icon {
-  width: 18px;
-  height: 18px;
-  margin-right: 0;
-}
-.feed-item:hover {
-  background-color: #f7fafc;
-  border-radius: 8px;
-}
-
-.feed-content {
-  flex-grow: 1;
-}
-.feed-description {
-  font-size: 14px;
-  color: #2d3748;
-  margin: 0 0 4px;
-}
-.feed-time {
-  font-size: 12px;
-  color: #a0aec0;
-  margin: 0;
-}
-.feed-time.overdue {
-  color: #c53030;
-}
-
-.feed-item-empty {
-  font-size: 14px;
-  color: #718096;
-  padding: 16px 0;
 }
 </style>

@@ -59,6 +59,7 @@
       @update:rows="recordData.materials = $event"
       @save-row="handleSaveRow"
       @delete-row="handleDeleteRow"
+      @add-row="handleAddMaterialRow"
     />
 
     <ResourceEditTable
@@ -70,6 +71,7 @@
       @update:rows="recordData.tools = $event"
       @save-row="handleSaveRow"
       @delete-row="handleDeleteRow"
+      @add-row="handleAddToolRow"
     />
 
     <ResourceEditTable
@@ -81,6 +83,7 @@
       @update:rows="recordData.equipment = $event"
       @save-row="handleSaveRow"
       @delete-row="handleDeleteRow"
+      @add-row="handleAddEquipmentRow"
     />
 
     <ResourceEditTable
@@ -92,6 +95,7 @@
       @update:rows="recordData.services = $event"
       @save-row="handleSaveRow"
       @delete-row="handleDeleteRow"
+      @add-row="handleAddServiceRow"
     />
 
     <ResourceEditTable
@@ -137,39 +141,96 @@ const setActiveTab = (tab) => {
   activeTab.value = tab;
 };
 
+const getFormattedDate = (date = new Date()) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const handleSaveRow = async ({ row }) => {
-  if (activeTab.value === 'materials') {
-    try {
-      const materialData = {
-        id: row.id,
-        idValue: row.idValue,
-        Value: row.fact,
-        idUser: row.idUser,
-        idUpdatedAt: row.idUpdatedAt,
-      };
-      await saveResourceFact(materialData);
-      notificationStore.showNotification('Факт по материалу успешно сохранен!', 'success');
-      await loadWorkLogData(workLogId.value);
-    } catch (error) {
-      notificationStore.showNotification('Ошибка при сохранении факта по материалу.', 'error');
-      console.error('Ошибка сохранения факта:', error);
+  // TODO: Заменить на получение реальных данных пользователя
+  const user = { id: 1003, pv: 1087 };
+
+  const payload = {
+    id: row.id,
+    idValue: row.idValue,
+    Value: row.fact,
+    idUser: row.idUser,
+    objUser: user.id,
+    pvUser: user.pv,
+    idUpdatedAt: row.idUpdatedAt,
+    UpdatedAt: getFormattedDate(),
+  };
+
+  try {
+    let apiMethod, successMsg, errorMsg, errorLog;
+
+    if (activeTab.value === 'materials') {
+      apiMethod = saveResourceFact;
+      successMsg = 'Факт по материалу успешно сохранен!';
+      errorMsg = 'Ошибка при сохранении факта по материалу.';
+      errorLog = 'Ошибка сохранения факта по материалу:';
+    } else if (activeTab.value === 'services') {
+      apiMethod = saveServiceFact;
+      successMsg = 'Факт по услуге успешно сохранен!';
+      errorMsg = 'Ошибка при сохранении факта по услуге.';
+      errorLog = 'Ошибка сохранения факта по услуге:';
     }
-  } else if (activeTab.value === 'services') {
-    try {
-      const serviceData = {
-        id: row.id,
-        idValue: row.idValue,
-        Value: row.fact,
-        idUser: row.idUser,
-        idUpdatedAt: row.idUpdatedAt,
-      };
-      await saveServiceFact(serviceData);
-      notificationStore.showNotification('Факт по услуге успешно сохранен!', 'success');
-      await loadWorkLogData(workLogId.value);
-    } catch (error) {
-      notificationStore.showNotification('Ошибка при сохранении факта по услуге.', 'error');
-      console.error('Ошибка сохранения факта по услуге:', error);
-    }
+
+    await apiMethod(payload);
+    notificationStore.showNotification(successMsg, 'success');
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    notificationStore.showNotification(errorMsg, 'error');
+    console.error(errorLog, error);
+  }
+};
+
+const handleAddMaterialRow = async (newRowData) => {
+  try {
+    // TODO: Здесь должен быть вызов API для добавления нового материала
+    // const response = await addMaterial(workLogId.value, newRowData);
+    
+    notificationStore.showNotification('Материал успешно добавлен!', 'success');
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    notificationStore.showNotification('Ошибка при добавлении материала.', 'error');
+    console.error('Ошибка добавления материала:', error);
+  }
+};
+
+const handleAddToolRow = async (newRowData) => {
+  try {
+    // TODO: Здесь должен быть вызов API для добавления нового инструмента
+    notificationStore.showNotification('Инструмент успешно добавлен!', 'success');
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    notificationStore.showNotification('Ошибка при добавлении инструмента.', 'error');
+    console.error('Ошибка добавления инструмента:', error);
+  }
+};
+
+const handleAddEquipmentRow = async (newRowData) => {
+  try {
+    // TODO: Здесь должен быть вызов API для добавления новой техники
+    notificationStore.showNotification('Техника успешно добавлена!', 'success');
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    notificationStore.showNotification('Ошибка при добавлении техники.', 'error');
+    console.error('Ошибка добавления техники:', error);
+  }
+};
+
+const handleAddServiceRow = async (newRowData) => {
+  try {
+    // TODO: Здесь должен быть вызов API для добавления новой услуги
+    notificationStore.showNotification('Услуга успешно добавлена!', 'success');
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    notificationStore.showNotification('Ошибка при добавлении услуги.', 'error');
+    console.error('Ошибка добавления услуги:', error);
   }
 };
 
@@ -242,6 +303,7 @@ const loadWorkLogData = async (id) => {
         idValue: item.idValue,
         idUser: item.idUser,
         idUpdatedAt: item.idUpdatedAt,
+        Value: item.Value, // Добавляем факт из tpService
       })),
       tools: (data.tool || []).map(item => ({
         name: item.nameTypTool,
