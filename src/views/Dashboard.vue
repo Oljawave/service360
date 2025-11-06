@@ -1,5 +1,11 @@
 <template>
   <div class="dashboard-page">
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      Загрузка данных...
+    </div>
+
+    <template v-else>
     <DashboardHeader 
       :selected-farm="selectedFarm"
       :farms="farms"
@@ -12,16 +18,10 @@
 
     <div class="kpi-grid">
       <KpiCard :value="kpi.newIncidents" label="Новые инциденты сегодня" />
-      <KpiCard :value="kpi.worksToday" label="Работы на сегодня" />
+      <KpiCard :value="kpi.speedRestrictions" label="Ограничение скорости" />
       <KpiCard :value="kpi.overdueWorks" label="Просроченные работы" variant="overdue" />
       <KpiCard :value="kpi.openIncidents" label="Всего открытых инцидентов" />
     </div>
-
-    <QuickActions 
-      @add-incident="isAddIncidentModalOpen = true"
-      @plan-work="isPlanWorkModalOpen = true"
-      @go-to-inspections="goToWorkPlan"
-    />
 
     <RailwaySection 
       :intermediate-stations="intermediateStations"
@@ -29,9 +29,18 @@
       @incident-click="handleIncidentClick"
     />
 
+    <QuickActions 
+      @add-incident="isAddIncidentModalOpen = true"
+      @plan-work="isPlanWorkModalOpen = true"
+      @go-to-inspections="goToWorkPlan"
+    />
+
     <div class="main-grid">
       <div class="widget-card no-padding">
-        <CalendarWidget @date-selected="handleDateSelected" />
+        <CalendarWidget 
+          :selected-farm-id="selectedFarmId"
+          @date-selected="handleDateSelected" 
+        />
       </div>
 
       <WorkPlanWidget
@@ -57,6 +66,7 @@
       @close="isEditPlanModalOpen = false"
       @save="handlePlanUpdated"
     />
+    </template>
   </div>
 </template>
 
@@ -70,10 +80,8 @@ import ModalAddIncident from '@/modals/ModalAddIncident.vue';
 import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import KpiCard from '@/components/ui/KpiCard.vue';
-import { loadIncidents } from '@/api/incidentApi.js';
-import { loadWorkPlan } from '@/api/planApi.js';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
-import { loadDepartments } from '@/api/dashboardApi.js';
+import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi } from '@/api/dashboardApi.js';
 import RailwaySection from '@/components/ui/RailwaySection.vue';
 
 const router = useRouter();
@@ -81,10 +89,13 @@ const router = useRouter();
 const isAddIncidentModalOpen = ref(false);
 const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
+const isLoading = ref(true);
 const selectedEvent = ref(null);
 
 const selectedFarm = ref('Все хозяйства');
+const selectedFarmId = ref(null);
 const farms = ref(['Все хозяйства']);
+const departmentsMap = ref({});
 
 const RAILWAY_TOTAL_KM = 151;
 
@@ -99,7 +110,7 @@ const UST_KAMENOGORSK_CITY_ID = '1520316';
 
 const kpi = ref({
   newIncidents: 0,
-  worksToday: 0,
+  speedRestrictions: 0,
   overdueWorks: 0,
   openIncidents: 0,
 });
@@ -122,9 +133,23 @@ const goToWorkPlan = () => {
   router.push({ name: 'Inspections' });
 };
 
-const selectFarm = (farm) => {
+const selectFarm = async (farm) => {
   selectedFarm.value = farm;
-  console.log('Выбрано хозяйство:', farm);
+  
+  if (farm === 'Все хозяйства') {
+    selectedFarmId.value = null;
+  } else {
+    selectedFarmId.value = departmentsMap.value[farm];
+  }
+  
+  console.log('Выбрано хозяйство:', farm, 'ID:', selectedFarmId.value);
+  
+  isLoading.value = true;
+  await loadKpiData();
+  await loadRailwayIncidents(selectedFarmId.value); // Обновляем инциденты на карте
+  
+  // CalendarWidget обновится автоматически через watch, но мы дадим ему время
+  setTimeout(() => isLoading.value = false, 500); // Небольшая задержка для ререндера календаря
 };
 
 const formatDateToString = (date) => {
@@ -209,7 +234,13 @@ const fetchAlmatyDate = () => {
 const fetchFarms = async () => {
   try {
     const departments = await loadDepartments();
-    // Преобразуем массив объектов в массив строк и добавляем опцию "Все хозяйства"
+    
+    const depsMap = {};
+    departments.forEach(dep => {
+      depsMap[dep.name] = dep.id;
+    });
+    departmentsMap.value = depsMap;
+    
     farms.value = ['Все хозяйства', ...departments.map(dep => dep.name)];
   } catch (error) {
     console.error("Не удалось загрузить список хозяйств:", error);
@@ -221,19 +252,32 @@ const loadKpiData = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = formatDateToString(today);
-    const periodTypeToday = 71;
     const periodTypeAll = 11;
 
-    const [incidentsToday, worksToday, allWorks, allIncidents] = await Promise.all([
-      loadIncidents(todayStr, periodTypeToday),
-      loadWorkPlan(todayStr, periodTypeToday),
-      loadWorkPlan(todayStr, periodTypeAll),
-      loadIncidents(todayStr, periodTypeAll)
+    const objLocationParam = selectedFarmId.value;
+
+    // Новые инциденты сегодня: periodType=71, без status и event
+    const newIncidentsPromise = loadIncidentsForKpi(todayStr, 71, objLocationParam, null, null);
+
+    // Ограничение скорости: periodType=11, event=1157
+    const speedRestrictionsPromise = loadIncidentsForKpi(todayStr, 11, objLocationParam, null, 1157);
+
+    // Всего открытых инцидентов: periodType=11, status=1
+    const openIncidentsPromise = loadIncidentsForKpi(todayStr, 11, objLocationParam, 1, null);
+
+    // Просроченные работы
+    const allWorksPromise = loadWorkPlanForKpi(todayStr, null, objLocationParam);
+
+    const [newIncidents, speedRestrictions, openIncidents, allWorks] = await Promise.all([
+      newIncidentsPromise,
+      speedRestrictionsPromise,
+      openIncidentsPromise,
+      allWorksPromise
     ]);
 
-    kpi.value.newIncidents = incidentsToday.length;
-    kpi.value.worksToday = worksToday.length;
-    kpi.value.openIncidents = allIncidents.length;
+    kpi.value.newIncidents = newIncidents.length;
+    kpi.value.speedRestrictions = speedRestrictions.length;
+    kpi.value.openIncidents = openIncidents.length;
 
     const overdue = allWorks.filter(work => {
       const planDate = new Date(work.PlanDateEnd.split('T')[0]);
@@ -271,10 +315,14 @@ const processIncidents = (rawIncidents) => {
   });
 };
 
-const loadRailwayIncidents = async () => {
+const loadRailwayIncidents = async (farmId) => {
   try {
-    const todayStr = formatDateToString(new Date()); 
-    const rawIncidents = await loadIncidents(todayStr, 11); 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = formatDateToString(today);
+    
+    // Используем periodType 71 (Новые инциденты сегодня)
+    const rawIncidents = await loadIncidentsForKpi(todayStr, 71, farmId, null, null); 
     railwayIncidents.value = processIncidents(rawIncidents);
   } catch (error) {
     console.error("Ошибка при загрузке инцидентов:", error);
@@ -294,7 +342,8 @@ const handleDateSelected = async (dateStr) => {
   }
 
   try {
-    const works = await loadWorkPlan(dateStr, 71);
+    // Используем periodType 71 для выбранной даты
+    const works = await loadWorkPlanForKpi(dateStr, 71, selectedFarmId.value);
     dayEvents.value = works;
   } catch (error) {
     console.error(`Ошибка при загрузке работ:`, error);
@@ -303,13 +352,14 @@ const handleDateSelected = async (dateStr) => {
 };
 
 const refreshData = () => {
+  isLoading.value = true;
   loadKpiData();
   const todayStr = formatDateToString(new Date());
   handleDateSelected(todayStr);
-  loadRailwayIncidents();
+  loadRailwayIncidents(selectedFarmId.value); // Передаем текущий farmId
   fetchWeather();
   fetchAlmatyDate();
-  fetchFarms();
+  isLoading.value = false;
 };
 
 const handleEventDoubleClick = (event) => {
@@ -338,7 +388,9 @@ const handleIncidentClick = (incident) => {
 };
 
 onMounted(() => {
-  refreshData();
+  fetchFarms().then(() => {
+    refreshData();
+  });
 });
 </script>
 
@@ -354,7 +406,8 @@ onMounted(() => {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* Адаптировано, чтобы показать 4 карточки, если они одинаковой ширины */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
   gap: 24px;
   margin-bottom: 32px;
 }
@@ -376,5 +429,35 @@ onMounted(() => {
 
 .widget-card.no-padding {
   padding: 0;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  font-size: 16px;
+  color: #4a5568;
+  gap: 16px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3182ce;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

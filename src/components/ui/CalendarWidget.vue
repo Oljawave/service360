@@ -59,7 +59,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { loadWorkPlan } from '@/api/planApi';
+import { loadWorkPlanForKpi } from '@/api/dashboardApi';
+
+const props = defineProps({
+  selectedFarmId: [Number, null],
+});
 
 const currentDate = ref(new Date());
 const selectedDate = ref(new Date());
@@ -91,10 +95,15 @@ const fetchWorkPlanForMonth = async (date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
   const firstDayOfMonth = new Date(year, month, 1);
-  const periodTypeId = 11; // 11 - для загрузки всех плановых работ
+  const periodTypeId = 11;
 
   try {
-    const records = await loadWorkPlan(formatDateToString(firstDayOfMonth), periodTypeId);
+    const records = await loadWorkPlanForKpi(
+      formatDateToString(firstDayOfMonth),
+      periodTypeId,
+      props.selectedFarmId
+    );
+    
     const events = {};
     records.forEach(record => {
       const date = record.PlanDateEnd.split('T')[0];
@@ -104,7 +113,7 @@ const fetchWorkPlanForMonth = async (date) => {
       events[date].push({
         type: 'blue',
         title: record.fullNameWork,
-        time: '' // В API нет времени, оставляем пустым
+        time: '' 
       });
     });
     workPlanEvents.value = events;
@@ -160,6 +169,7 @@ const prevMonth = () => {
     currentDate.value.getMonth() - 1
   );
 };
+
 const nextMonth = () => {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
@@ -183,6 +193,9 @@ watch(currentDate, (newDate) => {
   fetchWorkPlanForMonth(newDate);
 });
 
+watch(() => props.selectedFarmId, () => {
+  fetchWorkPlanForMonth(currentDate.value);
+});
 </script>
 
 <style scoped>
@@ -235,7 +248,6 @@ watch(currentDate, (newDate) => {
   min-width: 140px;
   text-align: center;
 }
-
 
 .weekdays {
   display: grid;

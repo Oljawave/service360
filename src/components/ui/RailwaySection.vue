@@ -35,23 +35,29 @@
             </Transition>
           </div>
           
-          <!-- Отрисовка маркеров инцидентов -->
-          <template v-for="incident in railwayIncidents" :key="incident.id">
-            <div v-if="isSegment(incident)" class="incident-segment-wrapper" :style="getSegmentStyle(incident)" :title="incident.title" @click="handleIncidentClick(incident, $event)">
-              <div class="incident-segment" :class="incident.color.replace('-marker', '-segment')"></div>
-              <div class="segment-start-point track-marker incident-point" :class="incident.color"></div>
-              <div class="segment-end-point track-marker incident-point" :class="incident.color"></div>
+          <template v-for="cluster in clusteredIncidents" :key="cluster.id">
+            <div 
+              class="track-marker incident-point" 
+              :class="getClusterClass(cluster)" 
+              :style="{ left: cluster.position + '%' }" 
+              :title="cluster.title" 
+              @click="handleIncidentClick(cluster, $event)"
+            >
+              <span v-if="cluster.count > 1" class="cluster-count">{{ cluster.count }}</span>
             </div>
-            <div v-else class="track-marker incident-point" :class="incident.color" :style="{ left: incident.position + '%' }" :title="incident.title" @click="handleIncidentClick(incident, $event)"></div>
           </template>
 
-          <!-- Единственный экземпляр тултипа, который будет отображаться поверх всего -->
           <Transition name="tooltip-fade">
             <div v-if="selectedIncident" class="incident-tooltip" :style="getTooltipStyle(selectedIncident)" :class="getTooltipPositionClass(selectedIncident)" @click.stop>
-                  <div class="tooltip-header">{{ selectedIncident.rawData.nameCls }}</div>
+                  <div class="tooltip-header">
+                    {{ selectedIncident.count > 1 ? `КЛАСТЕР: ${selectedIncident.count} Инцидентов` : selectedIncident.rawData.nameCls }}
+                  </div>
                   <div class="tooltip-body">
-                    <div class="tooltip-item"><strong>Координаты:</strong> {{ formatIncidentCoords(selectedIncident.rawData) }}</div>
-                    <div class="tooltip-item description">
+                    <div class="tooltip-item">
+                      <strong>Координаты:</strong> 
+                      {{ formatIncidentCoords(selectedIncident) }}
+                    </div>
+                    <div class="tooltip-item description" v-if="selectedIncident.count === 1">
                       <strong>Описание:</strong>
                       <p :class="{ 'text-collapsed': !isDescriptionExpanded }">
                         {{ selectedIncident.rawData.Description }}
@@ -63,6 +69,15 @@
                       >
                         {{ isDescriptionExpanded ? 'Скрыть' : 'Ещё' }}
                       </button>
+                    </div>
+                    <div class="tooltip-item" v-if="selectedIncident.count > 1">
+                      <strong>Типы инцидентов в кластере:</strong>
+                      <ul>
+                        <li v-for="item in selectedIncident.rawData" :key="item.id">
+                          {{ item.nameCls }} ({{ formatIncidentCoords({ rawData: item }) }})
+                        </li>
+                      </ul>
+                      <p class="cluster-tip">Для просмотра деталей откройте таблицу инцидентов.</p>
                     </div>
                   </div>
                 </div>
@@ -90,6 +105,9 @@ import { ref, computed } from 'vue';
 
 // Общая длина линии для расчета процентов
 const TOTAL_RAIL_LENGTH_KM = 151;
+// Порог кластеризации в процентах (0.01 = 1% от общей длины линии)
+// 1% от 151 км = 1.51 км. Это 15 пикетов.
+const CLUSTER_THRESHOLD_PERCENT = 1.5; 
 
 // Принимаем данные от родительского компонента
 const props = defineProps({
@@ -118,47 +136,90 @@ const convertKmPkToTotalKm = (km, pk) => {
   return (km || 0) + (pk || 0) / 10;
 };
 
-/**
- * Преобразует координаты КМ и ПК в процентное положение на линии.
- */
-const convertKmPkToPercentage = (km, pk) => {
-  const totalKm = convertKmPkToTotalKm(km, pk);
-  return (totalKm / TOTAL_RAIL_LENGTH_KM) * 100;
-};
-
-/**
- * Определяет, является ли инцидент сегментом (линией).
- * Инцидент считается сегментом, если у него есть конечные координаты
- * и конечная точка находится дальше начальной.
- */
-const isSegment = (incident) => {
-  if (!incident.rawData || incident.rawData.FinishKm === undefined || incident.rawData.FinishKm === null) {
-    return false;
+// **ЛОГИКА КЛАСТЕРИЗАЦИИ**
+const clusteredIncidents = computed(() => {
+  if (!props.railwayIncidents || props.railwayIncidents.length === 0) {
+    return [];
   }
+
+  // 1. Сортируем инциденты по позиции
+  const sortedIncidents = [...props.railwayIncidents].sort((a, b) => a.position - b.position);
   
-  const startKmTotal = convertKmPkToTotalKm(incident.rawData.StartKm, incident.rawData.StartPicket);
-  const finishKmTotal = convertKmPkToTotalKm(incident.rawData.FinishKm, incident.rawData.FinishPicket);
-  
-  // Убеждаемся, что это действительно участок, а не одна точка
-  return finishKmTotal > startKmTotal;
-};
+  const clusters = [];
+  let currentCluster = null;
+
+  sortedIncidents.forEach(incident => {
+    if (!currentCluster) {
+      // Инициализируем новый кластер первым инцидентом
+      currentCluster = {
+        id: incident.id,
+        position: incident.position,
+        color: incident.color,
+        title: incident.title,
+        count: 1,
+        // Сохраняем все данные, чтобы показать их в тултипе
+        rawData: [incident.rawData], 
+      };
+      clusters.push(currentCluster);
+      return;
+    }
+
+    // Проверяем расстояние между текущим инцидентом и центром текущего кластера
+    const distance = incident.position - currentCluster.position;
+
+    if (distance <= CLUSTER_THRESHOLD_PERCENT) {
+      // 2. Инцидент находится близко, добавляем его в текущий кластер
+      currentCluster.count++;
+      currentCluster.rawData.push(incident.rawData);
+      
+      // Обновляем позицию кластера (используем среднее для центрирования)
+      const totalPosition = currentCluster.rawData.reduce((sum, item) => 
+        sum + ((item.StartKm || 0) + (item.StartPicket / 10 || 0)), 0);
+      
+      const avgKm = totalPosition / currentCluster.count;
+      currentCluster.position = (avgKm / TOTAL_RAIL_LENGTH_KM) * 100;
+
+      // Обновляем цвет кластера (приоритет: Красный > Желтый > Зеленый)
+      if (incident.color === 'red-marker') {
+        currentCluster.color = 'red-marker';
+      } else if (incident.color === 'yellow-marker' && currentCluster.color !== 'red-marker') {
+        currentCluster.color = 'yellow-marker';
+      }
+      
+      currentCluster.title = `${currentCluster.count} инцидентов в кластере`;
+    } else {
+      // 3. Инцидент слишком далек, начинаем новый кластер
+      currentCluster = {
+        id: incident.id,
+        position: incident.position,
+        color: incident.color,
+        title: incident.title,
+        count: 1,
+        rawData: [incident.rawData],
+      };
+      clusters.push(currentCluster);
+    }
+  });
+
+  return clusters.map(cluster => ({
+    ...cluster,
+    // Для кластеров возвращаем полный массив rawData, 
+    // для одиночных инцидентов - первый элемент массива
+    rawData: cluster.count > 1 ? cluster.rawData : cluster.rawData[0]
+  }));
+});
 
 /**
- * Рассчитывает CSS-стили (left и width) для сегмента.
+ * Возвращает класс CSS для маркера инцидента/кластера.
+ * Для кластера добавляет специальный класс 'cluster-marker'.
  */
-const getSegmentStyle = (incident) => {
-  const { StartKm, StartPicket, FinishKm, FinishPicket } = incident.rawData;
-  
-  const startPercent = convertKmPkToPercentage(StartKm, StartPicket);
-  const finishPercent = convertKmPkToPercentage(FinishKm, FinishPicket);
-  
-  const widthPercent = finishPercent - startPercent;
-  
+const getClusterClass = (cluster) => {
   return {
-    left: `${startPercent}%`,
-    width: `${widthPercent}%`,
+    [cluster.color]: true,
+    'cluster-marker': cluster.count > 1
   };
 };
+
 
 /**
  * Рассчитывает позиционирование для тултипа.
@@ -183,21 +244,29 @@ const getTooltipStyle = (incident) => {
 const formatStationCoords = (kmValue) => {
   if (kmValue === null || kmValue === undefined) return '';
   const km = Math.floor(kmValue);
-  // Расчет пикета: остаток км * 10 (потому что 1км = 10пк)
   const pk = Math.round((kmValue - km) * 10); 
   return `${km}км ${pk}пк`;
 };
 
-const formatIncidentCoords = (incidentData) => {
-  if (!incidentData) return 'Нет данных';
-  const { StartKm, StartPicket, FinishKm, FinishPicket } = incidentData;
-  // Для сегментов показываем обе точки, для точек - только начальную
-  if (isSegment({ rawData: incidentData })) {
-    const start = `${StartKm || 0}км ${StartPicket || 0}пк`;
-    const end = `${FinishKm || 0}км ${FinishPicket || 0}пк`;
-    return `${start} - ${end}`;
-  } else {
-    return `${StartKm || 0}км ${StartPicket || 0}пк`;
+const formatIncidentCoords = (incident) => {
+  // Если это кластер (count > 1)
+  if (incident.count > 1) {
+    // Находим минимальные и максимальные координаты в кластере
+    const startPositions = incident.rawData.map(item => convertKmPkToTotalKm(item.StartKm, item.StartPicket));
+    const minKmTotal = Math.min(...startPositions);
+    const maxKmTotal = Math.max(...startPositions);
+    
+    const minKm = Math.floor(minKmTotal);
+    const minPk = Math.round((minKmTotal - minKm) * 10);
+    const maxKm = Math.floor(maxKmTotal);
+    const maxPk = Math.round((maxKmTotal - maxKm) * 10);
+
+    return `от ${minKm}км ${minPk}пк до ${maxKm}км ${maxPk}пк`;
+  } 
+  // Если это одиночный инцидент
+  else {
+    const incidentData = incident.rawData;
+    return `${incidentData.StartKm || 0}км ${incidentData.StartPicket || 0}пк`;
   }
 };
 
@@ -218,32 +287,29 @@ const toggleDescription = () => {
 
 /**
  * Определяет позицию тултипа в зависимости от положения инцидента
- * Возвращает класс для CSS
  */
 const getTooltipPositionClass = (incident) => {
   const position = incident.position;
   
-  // Если инцидент в левой части (0-40%), показываем тултип справа
   if (position < 40) {
-    return 'tooltip-right'; // Будет позиционироваться от left
+    return 'tooltip-right'; 
   }
-  // Если в правой части (60-100%), показываем слева
   else if (position > 60) {
-    return 'tooltip-left'; // Будет позиционироваться от right
+    return 'tooltip-left'; 
   }
-  // В центре (40-60%) показываем сверху по центру (default)
   return 'tooltip-center';
 };
 
-const handleIncidentClick = (incident, event) => {
-  if (selectedIncident.value && selectedIncident.value.id === incident.id) {
+const handleIncidentClick = (cluster, event) => {
+  if (selectedIncident.value && selectedIncident.value.id === cluster.id) {
     selectedIncident.value = null; // Закрыть тултип при повторном клике
     isDescriptionExpanded.value = false;
   } else {
-    selectedIncident.value = incident;
-    isDescriptionExpanded.value = false; // Сбрасываем состояние при открытии нового
+    // В selectedIncident.value мы сохраняем объект кластера
+    selectedIncident.value = cluster;
+    isDescriptionExpanded.value = false; 
   }
-  emit('incident-click', incident);
+  emit('incident-click', cluster);
 };
 </script>
 
@@ -400,7 +466,7 @@ const handleIncidentClick = (incident, event) => {
 .tooltip-fade-enter-from, .tooltip-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(5px); }
 .tooltip-fade-enter-to, .tooltip-fade-leave-from { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* --- ИЗМЕНЕНИЯ Z-INDEX ЗДЕСЬ --- */
+/* --- СТИЛИ ДЛЯ ИНЦИДЕНТОВ/КЛАСТЕРОВ --- */
 .incident-point {
   width: 10px;
   height: 10px;
@@ -408,7 +474,24 @@ const handleIncidentClick = (incident, event) => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   z-index: 16;
+  /* Добавляем флекс-контейнер для центрирования числа */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 } 
+
+/* Стили для маркера кластера */
+.incident-point.cluster-marker {
+  width: 24px;
+  height: 24px;
+  border-width: 4px;
+}
+
+.cluster-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
 
 .overlay {
   position: fixed;
@@ -528,6 +611,22 @@ const handleIncidentClick = (incident, event) => {
   -webkit-box-orient: vertical;
 }
 
+.tooltip-item ul {
+  padding-left: 15px;
+  margin-top: 4px;
+  list-style: disc;
+}
+
+.tooltip-item li {
+  margin-bottom: 4px;
+}
+
+.cluster-tip {
+  margin-top: 8px;
+  color: #9f7aea;
+  font-weight: 500;
+}
+
 .expand-btn {
   background: none;
   border: none;
@@ -545,56 +644,8 @@ const handleIncidentClick = (incident, event) => {
   color: #1a4d8f;
 }
 
-/* --- СТИЛИ ДЛЯ ЛИНИЙ ИНЦИДЕНТОВ --- */
-
-/* Оболочка для сегмента */
-.incident-segment-wrapper {
-  position: absolute;
-  top: 50%; 
-  transform: translateY(-50%);
-  height: 16px;
-  cursor: pointer;
-  z-index: 8; 
-}
-
-/* Сама линия инцидента */
-.incident-segment {
-  position: absolute;
-  top: 34%;
-  left: 0;
-  width: 100%;
-  height: 4px; 
-  border-radius: 4px;
-}
-
-/* Точка-маркер в начале сегмента */
-.segment-start-point {
-  left: 0;
-  z-index: 12;
-  pointer-events: none;
-}
-
-/* Точка-маркер в конце сегмента */
-.segment-end-point {
-  left: 100%;
-  z-index: 12;
-  pointer-events: none;
-}
-.red-segment {
-  background-color: #ef4444;
-  animation: pulse-red-segment 2s infinite;
-}
-
-.yellow-segment {
-  background-color: #eab308;
-}
-
-.green-segment {
-  background-color: #22c55e;
-}
-
-/* Цветовые классы для точек (точек/начала сегмента) */
-.red-marker, .segment-start-point.red-marker {
+/* Цветовые классы для точек */
+.red-marker {
   background-color: #ef4444;
   animation: pulse-red 2s infinite;
 }
@@ -611,23 +662,11 @@ const handleIncidentClick = (incident, event) => {
   }
 }
 
-@keyframes pulse-red-segment {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.yellow-marker, .segment-start-point.yellow-marker {
+.yellow-marker {
   background-color: #eab308;
 }
 
-.green-marker, .segment-start-point.green-marker {
+.green-marker {
   background-color: #22c55e;
 }
 
@@ -679,8 +718,13 @@ const handleIncidentClick = (incident, event) => {
   }
   
   .track-marker.incident-point {
-    width: 18px;
+    /* Меняем размер только одиночных точек, кластеры имеют фиксированный размер */
+    width: 18px; 
     height: 18px;
+  }
+  .track-marker.cluster-marker {
+    width: 24px;
+    height: 24px;
   }
   
   .distance-labels {

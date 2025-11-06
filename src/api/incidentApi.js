@@ -41,16 +41,9 @@ function formatDateToYYYYMMDD(date) {
 }
 
 export async function loadIncidents(date = "2025-07-30", periodType = 11) {
-  const objLocation = localStorage.getItem("objLocation");
-
-  if (!objLocation) {
-    throw new Error("objLocation не найден в localStorage");
-  }
-
   console.log('Вызов метода data/loadIncident', {
     date,
     periodType,
-    objLocation: parseInt(objLocation)
   });
 
   const response = await axios.post(
@@ -61,7 +54,6 @@ export async function loadIncidents(date = "2025-07-30", periodType = 11) {
         {
           date,
           periodType,
-          objLocation: parseInt(objLocation),
         }
       ]
     },

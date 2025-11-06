@@ -175,12 +175,15 @@ const closeFarmMenuOnOutsideClick = (event) => {
   cursor: help;
 }
 
+/* Изменения для тултипа, чтобы он открывался влево */
 .weather-tooltip {
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 8px;
+  /* Устанавливаем тултип слева от родителя */
+  right: 100%; 
+  top: 50%;
+  /* Сдвигаем на половину своей высоты, чтобы отцентрировать вертикально */
+  transform: translateY(-50%); 
+  margin-right: 12px; /* Отступ от элемента погоды */
   background-color: #2d3748;
   color: white;
   padding: 6px 10px;
@@ -192,21 +195,23 @@ const closeFarmMenuOnOutsideClick = (event) => {
   z-index: 100;
 }
 
+/* Изменения для стрелки тултипа, чтобы она указывала вправо */
 .weather-tooltip::after {
   content: '';
   position: absolute;
-  bottom: 100%;
-  left: 50%;
-  margin-left: -5px;
+  /* Привязываем стрелку к правому краю тултипа */
+  left: 100%;
+  top: 50%;
+  margin-top: -5px; /* Сдвигаем на половину высоты стрелки для вертикального центрирования */
   border-width: 5px;
   border-style: solid;
-  border-color: transparent transparent #2d3748 transparent;
+  /* Создаем стрелку, направленную вправо */
+  border-color: transparent transparent transparent #2d3748;
 }
 
 .date-text {
   font-size: 14px;
   color: #4a5568;
-  font-weight: 500;
   white-space: nowrap;
 }
 </style>
