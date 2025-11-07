@@ -17,15 +17,37 @@
     />
 
     <div class="kpi-grid">
-      <KpiCard :value="kpi.newIncidents" label="Новые инциденты сегодня" />
-      <KpiCard :value="kpi.speedRestrictions" label="Ограничение скорости" />
-      <KpiCard :value="kpi.overdueWorks" label="Просроченные работы" variant="overdue" />
-      <KpiCard :value="kpi.openIncidents" label="Всего открытых инцидентов" />
+      <KpiCard 
+        :value="kpi.newIncidents" 
+        label="Новые инциденты сегодня" 
+        :class="{ 'active-kpi': activeKpiFilter === 'newIncidents' }"
+        @click="setActiveKpi('newIncidents')"
+      />
+      <KpiCard 
+        :value="kpi.speedRestrictions" 
+        label="Ограничение скорости" 
+        :class="{ 'active-kpi': activeKpiFilter === 'speedRestrictions' }"
+        @click="setActiveKpi('speedRestrictions')"
+      />
+      <KpiCard 
+        :value="kpi.overdueWorks" 
+        label="Просроченные работы" 
+        variant="overdue" 
+        :class="{ 'active-kpi': activeKpiFilter === 'overdueWorks' }"
+        @click="setActiveKpi('overdueWorks')"
+      />
+      <KpiCard 
+        :value="kpi.openIncidents" 
+        label="Всего открытых инцидентов" 
+        :class="{ 'active-kpi': activeKpiFilter === 'openIncidents' }"
+        @click="setActiveKpi('openIncidents')"
+      />
     </div>
 
     <RailwaySection 
       :intermediate-stations="intermediateStations"
       :railway-incidents="railwayIncidents"
+      :is-loading="isMapLoading"
       @incident-click="handleIncidentClick"
     />
 
@@ -90,6 +112,8 @@ const isAddIncidentModalOpen = ref(false);
 const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
 const isLoading = ref(true);
+const isMapLoading = ref(false);
+const activeKpiFilter = ref('newIncidents');
 const selectedEvent = ref(null);
 
 const selectedFarm = ref('Все хозяйства');
@@ -143,13 +167,23 @@ const selectFarm = async (farm) => {
   }
   
   console.log('Выбрано хозяйство:', farm, 'ID:', selectedFarmId.value);
+
+  // Загружаем KPI и обновляем карту
+  await Promise.all([
+    loadKpiData(),
+    loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value)
+  ]);
+};
+
+const setActiveKpi = async (filter) => {
+  // Если кликнули на уже активный фильтр, ничего не делаем
+  if (activeKpiFilter.value === filter) {
+    return;
+  }
   
-  isLoading.value = true;
-  await loadKpiData();
-  await loadRailwayIncidents(selectedFarmId.value); // Обновляем инциденты на карте
-  
-  // CalendarWidget обновится автоматически через watch, но мы дадим ему время
-  setTimeout(() => isLoading.value = false, 500); // Небольшая задержка для ререндера календаря
+  activeKpiFilter.value = filter;
+  // Обновляем только данные на карте
+  await loadRailwayIncidents(filter, selectedFarmId.value);
 };
 
 const formatDateToString = (date) => {
@@ -252,7 +286,6 @@ const loadKpiData = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = formatDateToString(today);
-    const periodTypeAll = 11;
 
     const objLocationParam = selectedFarmId.value;
 
@@ -278,30 +311,34 @@ const loadKpiData = async () => {
     kpi.value.newIncidents = newIncidents.length;
     kpi.value.speedRestrictions = speedRestrictions.length;
     kpi.value.openIncidents = openIncidents.length;
-
-    const overdue = allWorks.filter(work => {
-      const planDate = new Date(work.PlanDateEnd.split('T')[0]);
-      return planDate < today;
-    });
-    kpi.value.overdueWorks = overdue.length;
+    kpi.value.overdueWorks = allWorks.length;
   } catch (error) {
     console.error("Ошибка при загрузке KPI:", error);
   }
 };
 
-const processIncidents = (rawIncidents) => {
+const processIncidents = (rawIncidents, forcedColor = null) => {
   return rawIncidents.map(incident => {
     const startKmValue = (incident.StartKm || 0) + (incident.StartPicket / 10 || 0);
     const position = (startKmValue / RAILWAY_TOTAL_KM) * 100;
 
-    let color = 'red-marker';
-    const statusName = incident.nameStatus ? incident.nameStatus.toLowerCase() : '';
+    let color;
+    if (forcedColor) {
+      color = forcedColor;
+    } else {
+      // Логика по умолчанию, если цвет не задан принудительно
+      const statusName = incident.nameStatus ? incident.nameStatus.toLowerCase() : '';
+      if (statusName.includes('зарегистрирован')) color = 'red-marker'; 
+      else if (statusName.includes('в работе')) color = 'yellow-marker'; 
+      else if (statusName.includes('завершен') || statusName.includes('закрыт')) color = 'green-marker';
+      else color = 'red-marker'; // Цвет по умолчанию
+    }
+    
+    // Для просроченных работ используем fullNameWork в качестве описания
+    const description = incident.fullNameWork || incident.Description || incident.name;
+    // Добавляем fullNameWork в rawData, чтобы он был доступен в тултипе
+    const rawData = { ...incident, Description: description };
 
-    if (statusName.includes('зарегистрирован')) color = 'red-marker'; 
-    else if (statusName.includes('в работе')) color = 'yellow-marker'; 
-    else if (statusName.includes('завершен') || statusName.includes('закрыт')) color = 'green-marker';
-
-    const description = incident.Description || incident.name;
     const title = `${incident.nameCls}: ${description} (${startKmValue.toFixed(2)}км)`;
 
     return {
@@ -310,23 +347,49 @@ const processIncidents = (rawIncidents) => {
       color: color,
       title: title,
       km: startKmValue,
-      rawData: incident,
+      rawData: rawData,
     };
   });
 };
 
-const loadRailwayIncidents = async (farmId) => {
+const loadRailwayIncidents = async (filter, farmId) => {
+  isMapLoading.value = true;
   try {
+    let rawIncidents = [];
+    let color = null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = formatDateToString(today);
-    
-    // Используем periodType 71 (Новые инциденты сегодня)
-    const rawIncidents = await loadIncidentsForKpi(todayStr, 71, farmId, null, null); 
-    railwayIncidents.value = processIncidents(rawIncidents);
+
+    switch (filter) {
+      case 'newIncidents':
+        rawIncidents = await loadIncidentsForKpi(todayStr, 71, farmId, null, null);
+        color = 'red-marker';
+        break;
+      case 'speedRestrictions':
+        rawIncidents = await loadIncidentsForKpi(todayStr, 11, farmId, null, 1157);
+        color = 'orange-marker';
+        break;
+      case 'overdueWorks':
+        rawIncidents = await loadWorkPlanForKpi(todayStr, null, farmId);
+        color = 'purple-marker';
+        break;
+      case 'openIncidents':
+        rawIncidents = await loadIncidentsForKpi(todayStr, 11, farmId, 1, null);
+        color = 'red-marker';
+        break;
+      default:
+        // По умолчанию загружаем новые инциденты
+        rawIncidents = await loadIncidentsForKpi(todayStr, 71, farmId, null, null);
+        color = 'red-marker';
+    }
+
+    railwayIncidents.value = processIncidents(rawIncidents, color);
   } catch (error) {
     console.error("Ошибка при загрузке инцидентов:", error);
     railwayIncidents.value = [];
+  } finally {
+    isMapLoading.value = false;
   }
 };
 
@@ -353,13 +416,15 @@ const handleDateSelected = async (dateStr) => {
 
 const refreshData = () => {
   isLoading.value = true;
-  loadKpiData();
-  const todayStr = formatDateToString(new Date());
-  handleDateSelected(todayStr);
-  loadRailwayIncidents(selectedFarmId.value); // Передаем текущий farmId
-  fetchWeather();
-  fetchAlmatyDate();
-  isLoading.value = false;
+  Promise.all([
+    loadKpiData(),
+    loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value),
+    handleDateSelected(formatDateToString(new Date())),
+    fetchWeather(),
+    fetchAlmatyDate()
+  ]).finally(() => {
+    isLoading.value = false;
+  });
 };
 
 const handleEventDoubleClick = (event) => {
@@ -406,7 +471,6 @@ onMounted(() => {
 
 .kpi-grid {
   display: grid;
-  /* Адаптировано, чтобы показать 4 карточки, если они одинаковой ширины */
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
   gap: 24px;
   margin-bottom: 32px;
@@ -432,17 +496,17 @@ onMounted(() => {
 }
 
 .loading-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
   font-size: 16px;
   color: #4a5568;
   gap: 16px;

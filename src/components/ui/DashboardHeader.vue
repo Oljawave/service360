@@ -3,6 +3,7 @@
     <div class="title-and-select">
       <div class="farm-select-wrapper">
         <div 
+          ref="farmSelectRef"
           class="farm-select" 
           :aria-expanded="isFarmDropdownOpen"
           @click="toggleFarmMenu"
@@ -50,25 +51,47 @@ const emit = defineEmits(['selectFarm']);
 
 const isFarmDropdownOpen = ref(false);
 const showWeatherTooltip = ref(false);
+const farmSelectRef = ref(null); // Добавляем ref для доступа к DOM-элементу
+
+// Функция для закрытия меню по клику вне элемента
+const closeFarmMenuOnOutsideClick = (event) => {
+  // Проверяем, не является ли целью клика сам элемент выпадающего списка или его потомок
+  if (farmSelectRef.value && !farmSelectRef.value.contains(event.target)) {
+    isFarmDropdownOpen.value = false;
+    // Важно: Удаляем слушатель после закрытия
+    document.removeEventListener('click', closeFarmMenuOnOutsideClick);
+  }
+};
 
 const toggleFarmMenu = () => {
-  if (!isFarmDropdownOpen.value) {
-    document.addEventListener('click', closeFarmMenuOnOutsideClick, { once: true });
+  if (isFarmDropdownOpen.value) {
+    // Если меню открыто, закрываем его и удаляем слушатель
+    isFarmDropdownOpen.value = false;
+    document.removeEventListener('click', closeFarmMenuOnOutsideClick);
+  } else {
+    // Если меню закрыто, открываем его и добавляем слушатель
+    isFarmDropdownOpen.value = true;
+    // Добавляем слушатель, чтобы закрыть меню при следующем клике вне него
+    // Используем setTimeout, чтобы клик, который открывает меню, не закрыл его сразу же
+    setTimeout(() => {
+        document.addEventListener('click', closeFarmMenuOnOutsideClick);
+    }, 0);
   }
-  isFarmDropdownOpen.value = !isFarmDropdownOpen.value;
 };
 
 const selectFarm = (farm) => {
   emit('selectFarm', farm);
   isFarmDropdownOpen.value = false;
+  // Важно: Удаляем слушатель после выбора
+  document.removeEventListener('click', closeFarmMenuOnOutsideClick);
 };
 
-const closeFarmMenuOnOutsideClick = (event) => {
-  const dropdownElement = document.querySelector('.farm-select');
-  if (dropdownElement && !dropdownElement.contains(event.target)) {
-    isFarmDropdownOpen.value = false;
-  }
-};
+// Дополнительный хук для очистки слушателя, если компонент будет уничтожен
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+  document.removeEventListener('click', closeFarmMenuOnOutsideClick);
+});
+
 </script>
 
 <style scoped>
@@ -175,15 +198,12 @@ const closeFarmMenuOnOutsideClick = (event) => {
   cursor: help;
 }
 
-/* Изменения для тултипа, чтобы он открывался влево */
 .weather-tooltip {
   position: absolute;
-  /* Устанавливаем тултип слева от родителя */
   right: 100%; 
   top: 50%;
-  /* Сдвигаем на половину своей высоты, чтобы отцентрировать вертикально */
   transform: translateY(-50%); 
-  margin-right: 12px; /* Отступ от элемента погоды */
+  margin-right: 12px; 
   background-color: #2d3748;
   color: white;
   padding: 6px 10px;
@@ -195,17 +215,14 @@ const closeFarmMenuOnOutsideClick = (event) => {
   z-index: 100;
 }
 
-/* Изменения для стрелки тултипа, чтобы она указывала вправо */
 .weather-tooltip::after {
   content: '';
   position: absolute;
-  /* Привязываем стрелку к правому краю тултипа */
   left: 100%;
   top: 50%;
-  margin-top: -5px; /* Сдвигаем на половину высоты стрелки для вертикального центрирования */
+  margin-top: -5px;
   border-width: 5px;
   border-style: solid;
-  /* Создаем стрелку, направленную вправо */
   border-color: transparent transparent transparent #2d3748;
 }
 

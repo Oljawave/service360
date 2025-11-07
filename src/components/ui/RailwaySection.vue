@@ -1,5 +1,6 @@
 <template>
-  <div class="railway-section">
+  <div class="railway-section-wrapper">
+    <div class="railway-section">
     <div v-if="selectedIncident" class="overlay" @click="selectedIncident = null"></div>
     <h2 class="railway-title">Железнодорожная линия</h2>
     <p class="railway-subtitle">Нажмите на маркер инцидента для просмотра подробной информации</p>
@@ -35,8 +36,10 @@
             </Transition>
           </div>
           
-          <template v-for="cluster in clusteredIncidents" :key="cluster.id">
+          <TransitionGroup name="marker-fade">
             <div 
+              v-for="cluster in clusteredIncidents" 
+              :key="cluster.id"
               class="track-marker incident-point" 
               :class="getClusterClass(cluster)" 
               :style="{ left: cluster.position + '%' }" 
@@ -45,7 +48,7 @@
             >
               <span v-if="cluster.count > 1" class="cluster-count">{{ cluster.count }}</span>
             </div>
-          </template>
+          </TransitionGroup>
 
           <Transition name="tooltip-fade">
             <div v-if="selectedIncident" class="incident-tooltip" :style="getTooltipStyle(selectedIncident)" :class="getTooltipPositionClass(selectedIncident)" @click.stop>
@@ -60,7 +63,7 @@
                     <div class="tooltip-item description" v-if="selectedIncident.count === 1">
                       <strong>Описание:</strong>
                       <p :class="{ 'text-collapsed': !isDescriptionExpanded }">
-                        {{ selectedIncident.rawData.Description }}
+                        {{ selectedIncident.rawData.Description || 'Описание отсутствует' }}
                       </p>
                       <button 
                         v-if="isDescriptionLong(selectedIncident.rawData.Description)"
@@ -97,6 +100,11 @@
         <span class="distance-label">151км</span>
       </div>
     </div>
+    </div>
+    <div v-if="isLoading" class="map-loading-overlay">
+      <div class="spinner"></div>
+      <span>Обновление данных на карте...</span>
+    </div>
   </div>
 </template>
 
@@ -118,6 +126,10 @@ const props = defineProps({
   railwayIncidents: {
     type: Array,
     required: true,
+  },
+  isLoading: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -315,7 +327,13 @@ const handleIncidentClick = (cluster, event) => {
 
 <style scoped>
 /* ВСЕ СТИЛИ ИЗ БЛОКА .railway-section */
-
+.railway-section-wrapper {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin-bottom: 32px;
+}
 .railway-section {
   background: white;
   border-radius: 12px;
@@ -465,6 +483,22 @@ const handleIncidentClick = (cluster, event) => {
 .tooltip-fade-enter-active, .tooltip-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
 .tooltip-fade-enter-from, .tooltip-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(5px); }
 .tooltip-fade-enter-to, .tooltip-fade-leave-from { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* --- Анимация для маркеров --- */
+.marker-fade-enter-active {
+  transition: all 0.3s ease-out;
+  transition-delay: 0.15s; /* Небольшая задержка перед появлением */
+}
+.marker-fade-leave-active {
+  transition: all 0.15s ease-in;
+  position: absolute; /* Важно для плавного удаления */
+}
+
+.marker-fade-enter-from,
+.marker-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+}
 
 /* --- СТИЛИ ДЛЯ ИНЦИДЕНТОВ/КЛАСТЕРОВ --- */
 .incident-point {
@@ -664,6 +698,53 @@ const handleIncidentClick = (cluster, event) => {
 
 .yellow-marker {
   background-color: #eab308;
+  animation: pulse-yellow 2s infinite;
+}
+
+@keyframes pulse-yellow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+  }
+}
+
+.orange-marker {
+  background-color: #FB8C00;
+  animation: pulse-orange 2s infinite;
+}
+
+@keyframes pulse-orange {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 140, 0, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(251, 140, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 140, 0, 0);
+  }
+}
+
+.purple-marker {
+  background-color: #8E24AA;
+  animation: pulse-purple 2s infinite;
+}
+
+@keyframes pulse-purple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(142, 36, 170, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(142, 36, 170, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(142, 36, 170, 0);
+  }
 }
 
 .green-marker {
@@ -680,6 +761,39 @@ const handleIncidentClick = (cluster, event) => {
   font-size: 12px;
   color: #94a3b8;
   font-weight: 500;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 18; /* Ниже чем тултип, но выше карты */
+  border-radius: 12px;
+  transition: opacity 0.2s ease;
+  gap: 16px;
+  color: #4a5568;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3182ce;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
