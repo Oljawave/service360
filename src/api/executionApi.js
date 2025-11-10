@@ -81,6 +81,51 @@ export async function loadObjTaskLog(taskLogId) {
   }
 }
 
+export async function saveNewMaterialFact(data) {
+  if (!data.material || !data.unit || !data.fact || !data.taskLogId || !data.taskLogCls) {
+    throw new Error("Недостаточно данных для сохранения нового материала.");
+  }
+
+  try {
+    const user = await fetchUserData();
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      name: `${data.taskLogId}-${data.material.value}-${today}`,
+      objMaterial: data.material.value,
+      pvMaterial: data.material.pv,
+      meaMeasure: data.unit.value,
+      pvMeasure: data.unit.pv,
+      Value: Number(data.fact),
+      objTaskLog: data.taskLogId,
+      linkCls: data.taskLogCls,
+      CreatedAt: today,
+      UpdatedAt: today,
+      objUser: user.id,
+      pvUser: user.pv,
+      status: "fact",
+    };
+
+    console.log('Отправка data/saveResourceMaterial с данными:', payload);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourceMaterial",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`Ошибка при вызове saveNewMaterialFact:`, error);
+    throw error;
+  }
+}
+
 export async function saveResourceFact(materialData) {
   if (!materialData || !materialData.id) {
     throw new Error("Для сохранения факта по материалу необходимо передать данные с ID.");
@@ -196,6 +241,51 @@ export async function saveTaskLogFact(payload) {
     return response.data.result;
   } catch (error) {
     console.error(`Ошибка при вызове saveTaskLogFact для ID ${payload.id}:`, error);
+    throw error;
+  }
+}
+
+export async function saveNewMaterialFact(data) {
+  if (!data.material || !data.unit || !data.fact || !data.taskLogId || !data.taskLogCls) {
+    throw new Error("Недостаточно данных для сохранения нового материала.");
+  }
+
+  try {
+    const user = await fetchUserData();
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      name: `${data.taskLogId}-${data.material.value}-${today}`,
+      objMaterial: data.material.value,
+      pvMaterial: data.material.pv,
+      meaMeasure: data.unit.value,
+      pvMeasure: data.unit.pv,
+      Value: Number(data.fact),
+      objTaskLog: data.taskLogId,
+      linkCls: data.taskLogCls,
+      CreatedAt: today,
+      UpdatedAt: today,
+      objUser: user.id,
+      pvUser: user.pv,
+      status: "fact",
+    };
+
+    console.log('Отправка data/saveResourceMaterial с данными:', payload);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourceMaterial",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`Ошибка при вызове saveNewMaterialFact:`, error);
     throw error;
   }
 }

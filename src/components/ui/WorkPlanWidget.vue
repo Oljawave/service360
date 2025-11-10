@@ -12,10 +12,15 @@
           <UiIcon name="ClipboardList" color="#2b6cb0" style="margin-right: 1px;" />
         </div>
         <div class="feed-content">
-          <p class="feed-description">{{ event.fullNameWork }}</p> 
-          <p class="feed-time" :class="{ 'overdue': isOverdue(event.PlanDateEnd) }">
-            {{ getDaysRemainingText(event.PlanDateEnd) }}
-          </p>
+          <div class="feed-header">
+            <p v-if="hasCoordinates(event)" class="coordinates">{{ formatCoordinates(event) }}</p>
+            <div class="status-badge" :class="getStatusClass(event)">
+              <p class="feed-time">
+                {{ getStatusText(event) }}
+              </p>
+            </div>
+          </div>
+          <p class="feed-description">{{ event.fullNameWork }}</p>
         </div>
       </li>
       <li v-if="!dayEvents.length" class="feed-item-empty">
@@ -35,39 +40,77 @@ const props = defineProps({
 
 defineEmits(['eventDoubleClick']);
 
-const getDaysRemainingText = (planDateEnd) => {
-  if (!planDateEnd) return '';
+const hasCoordinates = (event) => {
+  const { StartKm, StartPicket, FinishKm, FinishPicket } = event;
+  const hasStart = StartKm !== undefined && StartPicket !== undefined;
+  const hasFinish = FinishKm !== undefined && FinishPicket !== undefined;
+  return hasStart || hasFinish;
+};
 
-  const endDate = new Date(planDateEnd.split('T')[0]);
+const formatCoordinates = (event) => {
+  const { StartKm, StartPicket, FinishKm, FinishPicket } = event;
+  const hasStart = StartKm !== undefined && StartPicket !== undefined;
+  const hasFinish = FinishKm !== undefined && FinishPicket !== undefined;
+
+  if (!hasStart && !hasFinish) {
+    return '';
+  }
+
+  const startStr = hasStart ? `${StartKm}км ${StartPicket}пк` : '';
+  const finishStr = hasFinish ? `${FinishKm}км ${FinishPicket}пк` : '';
+  return `${startStr}${startStr && finishStr ? ' - ' : ''}${finishStr}`;
+};
+
+const getIsOverdue = (event) => {
+  if (event.FactDateEnd && event.FactDateEnd !== '0000-01-01') return false;
+  if (!event.PlanDateEnd) return false;
+
+  const endDate = new Date(event.PlanDateEnd.split('T')[0]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return endDate.getTime() < today.getTime();
+}
+
+const getStatusText = (event) => {
+  if (event.FactDateEnd && event.FactDateEnd !== '0000-01-01') {
+    return 'Завершено';
+  }
+
+  if (!event.PlanDateEnd) return 'Срок не указан';
+
+  const endDate = new Date(event.PlanDateEnd.split('T')[0]);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const diffTime = endDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
   if (diffDays < 0) {
     return `Просрочено на ${Math.abs(diffDays)} дн.`;
   } else if (diffDays === 0) {
-    return 'Завершается сегодня';
+    return 'Сегодня';
   } else {
     const lastDigit = diffDays % 10;
     const lastTwoDigits = diffDays % 100;
-    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) return `Осталось ${diffDays} дней`;
-    if (lastDigit === 1) return `Осталось ${diffDays} день`;
-    if ([2, 3, 4].includes(lastDigit)) return `Осталось ${diffDays} дня`;
-    return `Осталось ${diffDays} дней`;
+    if (diffDays === 1) {
+      return `Остался 1 день`;
+    }
+    return `Осталось ${diffDays} дн.`;
   }
 };
 
-const isOverdue = (planDateEnd) => {
-  if (!planDateEnd) return false;
+const getStatusClass = (event) => {
+  if (event.FactDateEnd && event.FactDateEnd !== '0000-01-01') {
+    return 'completed';
+  }
 
-  const endDate = new Date(planDateEnd.split('T')[0]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  if (!event.PlanDateEnd) return 'draft';
 
-  const diffTime = endDate.getTime() - today.getTime();
-  return diffTime < 0;
+  if (getIsOverdue(event)) {
+    return 'overdue';
+  }
+  
+  return 'open';
 };
 </script>
 
@@ -118,7 +161,7 @@ const isOverdue = (planDateEnd) => {
 }
 
 .feed-icon.work {
-  background-color: #c3dafe;
+  background-color: #e6f0fb;
   color: #2c5282;
 }
 
@@ -134,19 +177,73 @@ const isOverdue = (planDateEnd) => {
 .feed-description {
   font-size: 14px;
   color: #2d3748;
-  margin: 0 0 4px;
+  margin: 0;
+}
+
+.feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.coordinates {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 0;
+  padding-right: 8px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .feed-time {
   font-size: 12px;
-  color: #a0aec0;
+  font-weight: 600;
   margin: 0;
+  line-height: 1;
 }
 
-.feed-time.overdue {
-  color: #c53030;
+.status-badge.open {
+  background-color: #e1efff;
+  border: 1px solid #3182ce;
 }
 
+.status-badge.open .feed-time {
+  color: #3182ce;
+}
+
+.status-badge.draft {
+  background-color: #edf2f7;
+  border: 1px solid #718096;
+}
+
+.status-badge.draft .feed-time {
+  color: #4a5568;
+}
+
+.status-badge.overdue {
+  background-color: #fff5f5; /* Светло-красный фон */
+  border: 1px solid #e53e3e; /* Красная рамка */
+}
+
+.status-badge.overdue .feed-time {
+  color: #c53030; /* Красный текст */
+}
+
+.status-badge.completed {
+  background-color: #f0fff4;
+  border: 1px solid #38a169;
+}
+
+.status-badge.completed .feed-time {
+  color: #2fa22f;
+}
 .feed-item-empty {
   font-size: 14px;
   color: #718096;

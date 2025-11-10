@@ -211,7 +211,8 @@ watch(() => props.selectedFarmId, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 34px;
+  margin-top: 20px;
 }
 
 .calendar-title {

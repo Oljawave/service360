@@ -53,13 +53,22 @@
                 />
               </td>
               <td v-if="!isPerformer" class="actions-column">
-                <button
-                  :class="['icon-button', 'save']"
-                  @click.stop="saveFact(index)"
-                  title="Сохранить факт"
-                >
-                  <Check :size="18" />
-                </button>
+                <div class="action-buttons-wrapper">
+                  <button
+                    :class="['icon-button', 'save']"
+                    @click.stop="saveFact(index)"
+                    title="Сохранить факт"
+                  >
+                    <Check :size="18" />
+                  </button>
+                  <button
+                    :class="['icon-button', 'delete']"
+                    title="Удаление плановых записей не предусмотрено"
+                    disabled
+                  >
+                    <Trash2 :size="18" />
+                  </button>
+                </div>
               </td>
 
               <!-- Исполнитель: Количество человек (План/Факт) -->
@@ -104,8 +113,8 @@
                       <div class="performer-number">{{ pIndex + 1 }}</div>
                       <div class="performer-fields">
                         <div class="performer-field">
+                          <label>ФИО исполнителя</label>
                           <AppDropdown
-                            label="ФИО исполнителя"
                             :id="`performer-name-${index}-${pIndex}`"
                             v-model="performer.name"
                             :options="performerNameOptions"
@@ -114,8 +123,8 @@
                           />
                         </div>
                         <div class="performer-field">
+                          <label>Часы работы</label>
                           <AppNumberInput
-                            label="Часы работы"
                             :modelValue="performer.time"
                             :min="0"
                             :max="row.planHours"
@@ -148,13 +157,10 @@
                       :key="`new-${index}-${npIndex}`"
                       class="performer-item new-performer-item"
                     >
-                      <div class="performer-number is-plus">
-                        <Plus :size="18" />
-                      </div>
                       <div class="performer-fields">
                         <div class="performer-field">
+                          <label>ФИО исполнителя</label>
                           <AppDropdown
-                            label="ФИО исполнителя"
                             :id="`new-performer-name-${index}-${npIndex}`"
                             v-model="newPerformer.name"
                             :options="performerNameOptions"
@@ -162,8 +168,8 @@
                           />
                         </div>
                         <div class="performer-field">
+                          <label>Часы работы</label>
                           <AppNumberInput
-                            label="Часы работы"
                             :modelValue="newPerformer.time"
                             :min="0"
                             :max="row.planHours"
@@ -185,7 +191,7 @@
                             @click.stop="removeNewPerformerRow(index, npIndex)"
                             title="Удалить форму"
                           >
-                            <X :size="18" />
+                            <Trash2 :size="18" />
                           </button>
                         </div>
                       </div>
@@ -224,21 +230,23 @@
               />
             </td>
             <td class="actions-column">
-              <button
-                :class="['icon-button', 'save']"
-                @click.stop="saveNewRow"
-                title="Сохранить"
-                :disabled="!isNewRowValid"
-              >
-                <Check :size="18" />
-              </button>
-              <button
-                :class="['icon-button', 'delete']"
-                @click.stop="cancelNewRow"
-                title="Удалить"
-              >
-                <Trash2 :size="18" />
-              </button>
+              <div class="action-buttons-wrapper">
+                <button
+                  :class="['icon-button', 'save']"
+                  @click.stop="saveNewRow"
+                  title="Сохранить"
+                  :disabled="!isNewRowValid"
+                >
+                  <Check :size="18" />
+                </button>
+                <button
+                  :class="['icon-button', 'delete']"
+                  @click.stop="cancelNewRow"
+                  title="Удалить"
+                >
+                  <Trash2 :size="18" />
+                </button>
+              </div>
             </td>
           </tr>
 
@@ -254,10 +262,12 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { Check, ChevronRight, Plus, Trash2, X } from 'lucide-vue-next';
 import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
+import { loadMaterials, loadUnits } from '@/api/repairApi.js';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -268,10 +278,12 @@ const props = defineProps({
   performerNameOptions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:rows', 'save-row', 'add-row']);
+const emit = defineEmits(['update:rows', 'save-row', 'add-row', 'save-performer', 'delete-performer', 'add-performer']);
 
 const existingRows = ref([]);
 const newRow = ref(null);
+const nameOptionsInternal = ref([]);
+const unitOptionsInternal = ref([]);
 
 /**
  * Рассчитывает фактические значения по количеству и часам
@@ -303,7 +315,7 @@ const initializeExistingRows = (rows) => {
         factHours: row.factHours || factHours,
         expanded: false,
         performers: performers,
-        newPerformers: [initializeNewPerformer()], // По умолчанию одна форма
+        newPerformers: [initializeNewPerformer()],
       }
     });
   } else {
@@ -321,6 +333,26 @@ const initializeExistingRows = (rows) => {
 
 existingRows.value = initializeExistingRows(props.rows);
 
+const notificationStore = useNotificationStore();
+
+const loadOptions = async () => {
+  try {
+    if (props.nameOptions.length === 0) {
+      nameOptionsInternal.value = await loadMaterials();
+    }
+    if (props.unitOptions.length === 0) {
+      unitOptionsInternal.value = await loadUnits();
+    }
+  } catch (error) {
+    notificationStore.showNotification('Не удалось загрузить справочники для добавления строки.', 'error');
+  }
+};
+
+onMounted(() => {
+  loadOptions();
+});
+
+
 watch(
   () => props.rows,
   (newRows) => {
@@ -329,13 +361,18 @@ watch(
   { deep: true }
 );
 
+const finalNameOptions = computed(() => props.nameOptions.length > 0 ? props.nameOptions : nameOptionsInternal.value);
+const finalUnitOptions = computed(() => props.unitOptions.length > 0 ? props.unitOptions : unitOptionsInternal.value);
+
 const getNameLabel = (value) => {
-  const option = props.nameOptions.find((opt) => opt.value === value);
+  // Используем объединенные опции для поиска
+  const option = finalNameOptions.value.find((opt) => opt.value === value);
   return option ? option.label : value;
 };
 
 const getUnitLabel = (value) => {
-  const option = props.unitOptions.find((opt) => opt.value === value);
+  // Используем объединенные опции для поиска
+  const option = finalUnitOptions.value.find((opt) => opt.value === value);
   return option ? option.label : value;
 };
 
@@ -344,7 +381,6 @@ const toggleRow = (index) => {
   row.expanded = !row.expanded;
   
   if (props.isPerformer && !row.expanded) {
-    // Сбрасываем формы добавления при закрытии, оставляя одну по умолчанию
     row.newPerformers = [initializeNewPerformer()];
   }
 };
@@ -364,7 +400,6 @@ const saveFact = (index) => {
 
 /**
  * Обновляет поля factCount и factHours в основной строке
- * на основе текущего списка исполнителей.
  */
 const updatePerformerFacts = (rowIndex) => {
   const row = existingRows.value[rowIndex];
@@ -381,22 +416,33 @@ const updateExistingPerformer = (rowIndex, performerIndex, field, value) => {
   emit('update:rows', [...existingRows.value]);
 };
 
-// Функция для сохранения деталей существующего исполнителя 
 const savePerformerDetails = (rowIndex, performerIndex) => {
+  const row = existingRows.value[rowIndex];
+  const performer = row.performers[performerIndex];
+  
   updatePerformerFacts(rowIndex);
-  emit('save-row', {
-    index: rowIndex,
+  
+  emit('save-performer', {
+    rowId: row.id,
+    rowIndex,
+    performerIndex,
+    performer,
     row: existingRows.value[rowIndex],
-    isExisting: true,
-    performerIndex, 
   });
 };
 
-// Функция для удаления исполнителя
 const deletePerformer = (rowIndex, performerIndex) => {
   const row = existingRows.value[rowIndex];
-  row.performers.splice(performerIndex, 1);
+  const performer = row.performers[performerIndex];
   
+  emit('delete-performer', {
+    rowId: row.id,
+    rowIndex,
+    performerIndex,
+    performerId: performer.id,
+  });
+  
+  row.performers.splice(performerIndex, 1);
   updatePerformerFacts(rowIndex);
   emit('update:rows', [...existingRows.value]);
 };
@@ -407,16 +453,13 @@ const isNewPerformerValid = (performer) => {
   return performer && performer.name && performer.time !== null && performer.time >= 0;
 };
 
-// Добавляет новую форму для исполнителя
 const addNewPerformerRow = (rowIndex) => {
   const row = existingRows.value[rowIndex];
   row.newPerformers.push(initializeNewPerformer());
 };
 
-// Удаляет форму добавления исполнителя
 const removeNewPerformerRow = (rowIndex, npIndex) => {
   const row = existingRows.value[rowIndex];
-  // Если это последняя форма, просто очищаем её, иначе удаляем
   if (row.newPerformers.length === 1) {
     row.newPerformers[0] = initializeNewPerformer();
   } else {
@@ -424,19 +467,21 @@ const removeNewPerformerRow = (rowIndex, npIndex) => {
   }
 };
 
-// Сохраняет нового исполнителя
 const saveNewPerformer = (rowIndex, npIndex) => {
   const row = existingRows.value[rowIndex];
   const newPerformer = row.newPerformers[npIndex];
   
   if (!isNewPerformerValid(newPerformer)) return;
 
+  emit('add-performer', {
+    rowId: row.id,
+    rowIndex,
+    performer: { ...newPerformer },
+  });
+
   row.performers.push({ ...newPerformer });
-  
-  // Удаляем использованную форму
   row.newPerformers.splice(npIndex, 1);
   
-  // Если форм не осталось, добавляем одну пустую
   if (row.newPerformers.length === 0) {
     row.newPerformers.push(initializeNewPerformer());
   }
@@ -463,9 +508,9 @@ const isNewRowValid = computed(() => {
 const saveNewRow = () => {
   if (!isNewRowValid.value) return;
 
+  // Отправляем полные объекты, а не только value
   emit('add-row', {
-    name: newRow.value.name,
-    unit: newRow.value.unit,
+    ...newRow.value,
     fact: newRow.value.fact || 0,
   });
 
@@ -744,11 +789,7 @@ const cancelNewRow = () => {
   background: #f1f5f9;
   border-radius: 8px;
   flex-shrink: 0;
-}
-
-.performer-number.is-plus {
-  color: #3b82f6;
-  background: #eff6ff;
+  margin-top: 28px;
 }
 
 .performer-fields {
@@ -756,18 +797,36 @@ const cancelNewRow = () => {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 20px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .performer-field {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.performer-field label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .performer-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8px;
-  padding-top: 28px;
+  padding-bottom: 2px;
+}
+
+.action-buttons-wrapper {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* Кнопки действий */
@@ -819,6 +878,11 @@ td.actions-column {
   box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
 }
 
+.icon-button.delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px 16px !important;
@@ -835,17 +899,7 @@ td.actions-column {
   margin: 0;
 }
 
-/* Показываем лейблы в формах исполнителей */
-.performer-fields :deep(label) {
-  display: block;
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 6px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
+/* Показываем лейблы в формах исполнителей - уже есть выше */
 .performer-fields :deep(.form-group) {
   margin: 0;
 }
@@ -864,7 +918,12 @@ td.actions-column {
   .performer-actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
+    padding-bottom: 0;
     padding-top: 8px;
+  }
+  
+  .performer-number {
+    margin-top: 0;
   }
 }
 
@@ -918,6 +977,7 @@ td.actions-column {
 
   .performer-number {
     align-self: flex-start;
+    margin-top: 0;
   }
 
   .performer-fields {

@@ -3,17 +3,15 @@
     <div class="railway-section">
     <div v-if="selectedIncident" class="overlay" @click="selectedIncident = null"></div>
     <h2 class="railway-title">Железнодорожная линия</h2>
-    <p class="railway-subtitle">Нажмите на маркер инцидента для просмотра подробной информации</p>
+    <p class="railway-subtitle">Нажмите на маркер для просмотра подробной информации</p>
     
     <div class="railway-container">
       <div class="stations-row">
         <div class="station-info">
           <div class="station-name">Станция Шар</div>
-          <div class="station-km">0 км</div>
         </div>
         <div class="station-info">
           <div class="station-name">Станция НУК</div>
-          <div class="station-km">151 км</div>
         </div>
       </div>
       
@@ -52,35 +50,30 @@
 
           <Transition name="tooltip-fade">
             <div v-if="selectedIncident" class="incident-tooltip" :style="getTooltipStyle(selectedIncident)" :class="getTooltipPositionClass(selectedIncident)" @click.stop>
-                  <div class="tooltip-header">
-                    {{ selectedIncident.count > 1 ? `КЛАСТЕР: ${selectedIncident.count} Инцидентов` : selectedIncident.rawData.nameCls }}
+                  <div class="tooltip-header">                    
+                    {{ activeKpiTitle }} ({{ selectedIncident.count }})
                   </div>
                   <div class="tooltip-body">
-                    <div class="tooltip-item">
-                      <strong>Координаты:</strong> 
-                      {{ formatIncidentCoords(selectedIncident) }}
-                    </div>
-                    <div class="tooltip-item description" v-if="selectedIncident.count === 1">
-                      <strong>Описание:</strong>
-                      <p :class="{ 'text-collapsed': !isDescriptionExpanded }">
-                        {{ selectedIncident.rawData.Description || 'Описание отсутствует' }}
-                      </p>
-                      <button 
-                        v-if="isDescriptionLong(selectedIncident.rawData.Description)"
-                        class="expand-btn"
-                        @click="toggleDescription"
-                      >
-                        {{ isDescriptionExpanded ? 'Скрыть' : 'Ещё' }}
-                      </button>
-                    </div>
-                    <div class="tooltip-item" v-if="selectedIncident.count > 1">
-                      <strong>Типы инцидентов в кластере:</strong>
-                      <ul>
-                        <li v-for="item in selectedIncident.rawData" :key="item.id">
-                          {{ item.nameCls }} ({{ formatIncidentCoords({ rawData: item }) }})
-                        </li>
-                      </ul>
-                      <p class="cluster-tip">Для просмотра деталей откройте таблицу инцидентов.</p>
+                    <div class="cluster-incidents-container">
+                      <div class="cluster-incidents-list" :class="{ 'scrollable': selectedIncident.count > 4 }">
+                        <div 
+                          v-for="(item, index) in incidentList" 
+                          :key="item.id"
+                          class="cluster-incident-item"
+                        >
+                          <div class="incident-number">{{ index + 1 }}.</div>
+                          <div class="incident-details">
+                            <div class="incident-coords">{{ formatSingleIncidentCoords(item) }}</div>
+                            <div class="incident-name" :title="item.Description">
+                              {{ 
+                                selectedIncident.count > 1 
+                                  ? truncateText(item.Description, 45) 
+                                  : (item.Description || 'Описание отсутствует') 
+                              }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -131,6 +124,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  activeKpiFilter: {
+    type: String,
+    default: 'newIncidents',
+  },
 });
 
 // Определяем события, которые может излучать компонент
@@ -139,6 +136,35 @@ const emit = defineEmits(['incident-click']);
 const hoveredStationId = ref(null);
 const selectedIncident = ref(null);
 const isDescriptionExpanded = ref(false);
+
+const kpiFilterTitles = {
+  newIncidents: 'Новые запросы',
+  speedRestrictions: 'Ограничения скорости',
+  overdueWorks: 'Просроченные работы',
+  openIncidents: 'Открытые запросы',
+};
+
+const activeKpiTitle = computed(() => {
+  return kpiFilterTitles[props.activeKpiFilter] || 'Инциденты';
+});
+
+const incidentList = computed(() => {
+  if (!selectedIncident.value) return [];
+  // Если rawData - не массив, оборачиваем его в массив
+  return Array.isArray(selectedIncident.value.rawData) 
+    ? selectedIncident.value.rawData 
+    : [selectedIncident.value.rawData];
+});
+/**
+ * Обрезает текст до указанной длины и добавляет многоточие.
+ */
+const truncateText = (text, maxLength) => {
+  if (!text) return 'Описание отсутствует';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + '...';
+};
 
 /**
  * Преобразует координаты КМ и ПК в общую длину в километрах.
@@ -213,12 +239,7 @@ const clusteredIncidents = computed(() => {
     }
   });
 
-  return clusters.map(cluster => ({
-    ...cluster,
-    // Для кластеров возвращаем полный массив rawData, 
-    // для одиночных инцидентов - первый элемент массива
-    rawData: cluster.count > 1 ? cluster.rawData : cluster.rawData[0]
-  }));
+  return clusters;
 });
 
 /**
@@ -260,26 +281,16 @@ const formatStationCoords = (kmValue) => {
   return `${km}км ${pk}пк`;
 };
 
-const formatIncidentCoords = (incident) => {
-  // Если это кластер (count > 1)
-  if (incident.count > 1) {
-    // Находим минимальные и максимальные координаты в кластере
-    const startPositions = incident.rawData.map(item => convertKmPkToTotalKm(item.StartKm, item.StartPicket));
-    const minKmTotal = Math.min(...startPositions);
-    const maxKmTotal = Math.max(...startPositions);
-    
-    const minKm = Math.floor(minKmTotal);
-    const minPk = Math.round((minKmTotal - minKm) * 10);
-    const maxKm = Math.floor(maxKmTotal);
-    const maxPk = Math.round((maxKmTotal - maxKm) * 10);
-
-    return `от ${minKm}км ${minPk}пк до ${maxKm}км ${maxPk}пк`;
-  } 
-  // Если это одиночный инцидент
-  else {
-    const incidentData = incident.rawData;
-    return `${incidentData.StartKm || 0}км ${incidentData.StartPicket || 0}пк`;
-  }
+/**
+ * Форматирует координаты для одного инцидента (начало - конец)
+ */
+const formatSingleIncidentCoords = (incidentData) => {
+  const startKm = incidentData.StartKm || 0;
+  const startPk = incidentData.StartPicket || 0;
+  const finishKm = incidentData.FinishKm || 0;
+  const finishPk = incidentData.FinishPicket || 0;
+  
+  return `${startKm}км ${startPk}пк - ${finishKm}км ${finishPk}пк`;
 };
 
 /**
@@ -326,18 +337,11 @@ const handleIncidentClick = (cluster, event) => {
 </script>
 
 <style scoped>
-/* ВСЕ СТИЛИ ИЗ БЛОКА .railway-section */
 .railway-section-wrapper {
   position: relative;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  margin-bottom: 32px;
-}
-.railway-section {
-  background: white;
-  border-radius: 12px;
-  padding: 40px;
+  padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   margin-bottom: 32px;
 }
@@ -376,15 +380,10 @@ const handleIncidentClick = (cluster, event) => {
 }
 
 .station-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #2d3748;
   margin-bottom: 4px;
-}
-
-.station-km {
-  font-size: 12px;
-  color: #a0aec0;
 }
 
 .railway-slider {
@@ -539,7 +538,8 @@ const handleIncidentClick = (cluster, event) => {
 
 .incident-tooltip {
   position: absolute;
-  width: 320px;
+  width: 340px;
+  max-width: 90vw;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
@@ -645,20 +645,83 @@ const handleIncidentClick = (cluster, event) => {
   -webkit-box-orient: vertical;
 }
 
-.tooltip-item ul {
-  padding-left: 15px;
-  margin-top: 4px;
-  list-style: disc;
+/* Стили для списка инцидентов в кластере */
+.cluster-incidents-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.tooltip-item li {
-  margin-bottom: 4px;
+.cluster-incidents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cluster-incidents-list.scrollable {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Стилизация скроллбара */
+.cluster-incidents-list.scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cluster-incidents-list.scrollable::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.cluster-incidents-list.scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.cluster-incidents-list.scrollable::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.cluster-incident-item {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  background-color: #f7fafc;
+  border-radius: 6px;
+  border-left: 3px solid #3182ce;
+}
+
+.incident-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3182ce;
+  min-width: 20px;
+}
+
+.incident-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.incident-name {
+  font-size: 12px;
+  color: #718096;
+}
+
+.incident-coords {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d3748;
 }
 
 .cluster-tip {
-  margin-top: 8px;
+  margin-top: 4px;
   color: #9f7aea;
   font-weight: 500;
+  font-size: 12px;
 }
 
 .expand-btn {
@@ -818,7 +881,7 @@ const handleIncidentClick = (cluster, event) => {
   }
   
   .incident-tooltip {
-    width: 280px;
+    width: 300px;
   }
 }
 
@@ -850,7 +913,7 @@ const handleIncidentClick = (cluster, event) => {
   }
   
   .incident-tooltip {
-    width: 260px;
+    width: 280px;
   }
 }
-</style>
+</style>  

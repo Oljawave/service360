@@ -19,7 +19,7 @@
     <div class="kpi-grid">
       <KpiCard 
         :value="kpi.newIncidents" 
-        label="Новые инциденты сегодня" 
+        label="Новые запросы на сегодня" 
         :class="{ 'active-kpi': activeKpiFilter === 'newIncidents' }"
         @click="setActiveKpi('newIncidents')"
       />
@@ -38,7 +38,7 @@
       />
       <KpiCard 
         :value="kpi.openIncidents" 
-        label="Всего открытых инцидентов" 
+        label="Всего открытых запросов" 
         :class="{ 'active-kpi': activeKpiFilter === 'openIncidents' }"
         @click="setActiveKpi('openIncidents')"
       />
@@ -48,6 +48,7 @@
       :intermediate-stations="intermediateStations"
       :railway-incidents="railwayIncidents"
       :is-loading="isMapLoading"
+      :active-kpi-filter="activeKpiFilter"
       @incident-click="handleIncidentClick"
     />
 
@@ -401,7 +402,7 @@ const handleDateSelected = async (dateStr) => {
   if (date.getTime() === today.getTime()) {
     activityTitle.value = 'План работ на сегодня';
   } else {
-    activityTitle.value = `План работ на ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+    activityTitle.value = `Работы на ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
   }
 
   try {
