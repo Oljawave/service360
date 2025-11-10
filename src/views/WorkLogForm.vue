@@ -50,66 +50,71 @@
       />
     </div>
 
-    <ResourceEditTable
-      v-if="recordData && activeTab === 'materials'"
-      title="Материалы"
-      :rows="recordData.materials"
-      :nameOptions="materialNameOptions"
-      :unitOptions="unitOptions"
-      @update:rows="recordData.materials = $event"
-      @save-row="handleSaveRow"
-      @delete-row="handleDeleteRow"
-      @add-row="handleAddMaterialRow"
-    />
-
-    <ResourceEditTable
-      v-if="recordData && activeTab === 'tools'"
-      title="Инструменты"
-      :rows="recordData.tools"
-      :nameOptions="toolNameOptions"
-      :unitOptions="unitOptions"
-      @update:rows="recordData.tools = $event"
-      @save-row="handleSaveRow"
-      @delete-row="handleDeleteRow"
-      @add-row="handleAddToolRow"
-    />
-
-    <ResourceEditTable
-      v-if="recordData && activeTab === 'equipment'"
-      title="Техника"
-      :rows="recordData.equipment"
-      :nameOptions="equipmentNameOptions"
-      :unitOptions="unitOptions"
-      @update:rows="recordData.equipment = $event"
-      @save-row="handleSaveRow"
-      @delete-row="handleDeleteRow"
-      @add-row="handleAddEquipmentRow"
-    />
-
-    <ResourceEditTable
-      v-if="recordData && activeTab === 'services'"
-      title="Услуги"
-      :rows="recordData.services"
-      :nameOptions="serviceNameOptions"
-      :unitOptions="unitOptions"
-      @update:rows="recordData.services = $event"
-      @save-row="handleSaveRow"
-      @delete-row="handleDeleteRow"
-      @add-row="handleAddServiceRow"
-    />
-
-    <ResourceEditTable
-    v-if="recordData && activeTab === 'performers'"
-    title="Исполнители"
-    :rows="recordData.performers"
-    :nameOptions="performerNameOptions"
-    :unitOptions="performerUnitOptions"
-    :is-performer="true"
-    :performerNameOptions="performerNameOptionsForDropdown"
-    @update:rows="recordData.performers = $event"
-    @save-row="handleSaveRow"
-    @delete-row="handleDeleteRow"
-    />
+    <div class="table-transition-wrapper">
+      <Transition name="fade-table" mode="out-in">
+        <ResourceEditTable
+          v-if="recordData && activeTab === 'materials'"
+          key="materials"
+          title="Материалы"
+          :rows="recordData.materials"
+          :nameOptions="materialNameOptions"
+          :unitOptions="unitOptions"
+          @update:rows="recordData.materials = $event"
+          @save-row="handleSaveRow"
+          @delete-row="handleDeleteRow"
+          @add-row="handleAddMaterialRow"
+        />
+        <ResourceEditTable
+          v-else-if="recordData && activeTab === 'tools'"
+          key="tools"
+          title="Инструменты"
+          :rows="recordData.tools"
+          :nameOptions="toolNameOptions"
+          :unitOptions="unitOptions"
+          @update:rows="recordData.tools = $event"
+          @save-row="handleSaveRow"
+          @delete-row="handleDeleteRow"
+          @add-row="handleAddToolRow"
+        />
+        <ResourceEditTable
+          v-else-if="recordData && activeTab === 'equipment'"
+          key="equipment"
+          title="Техника"
+          :rows="recordData.equipment"
+          :nameOptions="equipmentNameOptions"
+          :unitOptions="unitOptions"
+          @update:rows="recordData.equipment = $event"
+          @save-row="handleSaveRow"
+          @delete-row="handleDeleteRow"
+          @add-row="handleAddEquipmentRow"
+        />
+        <ResourceEditTable
+          v-else-if="recordData && activeTab === 'services'"
+          key="services"
+          title="Услуги"
+          :rows="recordData.services"
+          :nameOptions="serviceNameOptions"
+          :unitOptions="unitOptions"
+          @update:rows="recordData.services = $event"
+          @save-row="handleSaveRow"
+          @delete-row="handleDeleteRow"
+          @add-row="handleAddServiceRow"
+        />
+        <ResourceEditTable
+          v-else-if="recordData && activeTab === 'performers'"
+          key="performers"
+          title="Исполнители"
+          :rows="recordData.performers"
+          :nameOptions="performerNameOptions"
+          :unitOptions="performerUnitOptions"
+          :is-performer="true"
+          :performerNameOptions="performerNameOptionsForDropdown"
+          @update:rows="recordData.performers = $event"
+          @save-row="handleSaveRow"
+          @delete-row="handleDeleteRow"
+        />
+      </Transition>
+    </div>
 
     <div v-if="isLoading" class="loading-overlay">
       <div class="spinner"></div>
@@ -394,6 +399,21 @@ onMounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+.table-transition-wrapper {
+  position: relative;
+}
+
+.fade-table-enter-active,
+.fade-table-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-table-enter-from,
+.fade-table-leave-to {
+  opacity: 0;
+}
+
 
 @keyframes spin {
   to { transform: rotate(360deg); }
