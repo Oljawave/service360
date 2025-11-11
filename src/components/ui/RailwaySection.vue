@@ -224,7 +224,7 @@ const clusteredIncidents = computed(() => {
         currentCluster.color = 'yellow-marker';
       }
       
-      currentCluster.title = `${currentCluster.count} инцидентов в кластере`;
+      currentCluster.title = `Всего запросов: ${currentCluster.count}`;
     } else {
       // 3. Инцидент слишком далек, начинаем новый кластер
       currentCluster = {

@@ -133,7 +133,8 @@ import BackButton from '@/components/ui/BackButton.vue';
 import ResourceCard from '@/components/ui/ResourceCard.vue';
 import ResourceEditTable from '@/components/ui/ResourceEditTable.vue';
 import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
-import { loadObjTaskLog, saveResourceFact, saveServiceFact } from '@/api/executionApi.js';
+import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial } from '@/api/executionApi.js';
+import { loadMaterials, loadUnits } from '@/api/repairApi.js';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter();
@@ -144,6 +145,9 @@ const isLoading = ref(true);
 const workLogId = ref(route.params.id);
 const activeTab = ref('materials');
 const notificationStore = useNotificationStore();
+
+const materialNameOptions = ref([]);
+const unitOptions = ref([]);
 
 const setActiveTab = (tab) => {
   activeTab.value = tab;
@@ -158,40 +162,40 @@ const getFormattedDate = (date = new Date()) => {
 };
 
 const handleSaveRow = async ({ row }) => {
-  // TODO: Заменить на получение реальных данных пользователя
-  const user = { id: 1003, pv: 1087 };
-
   const payload = {
     id: row.id,
     idValue: row.idValue,
     Value: row.fact,
     idUser: row.idUser,
-    objUser: user.id,
-    pvUser: user.pv,
     idUpdatedAt: row.idUpdatedAt,
     UpdatedAt: getFormattedDate(),
   };
 
-  try {
-    let apiMethod, successMsg, errorMsg, errorLog;
+  let apiMethod, successMsg, errorMsg, errorLog;
 
+  try {
     if (activeTab.value === 'materials') {
       apiMethod = saveResourceFact;
       successMsg = 'Факт по материалу успешно сохранен!';
       errorMsg = 'Ошибка при сохранении факта по материалу.';
       errorLog = 'Ошибка сохранения факта по материалу:';
     } else if (activeTab.value === 'services') {
+      // Для услуг используется тот же метод, что и для материалов, согласно вашей логике
       apiMethod = saveServiceFact;
       successMsg = 'Факт по услуге успешно сохранен!';
       errorMsg = 'Ошибка при сохранении факта по услуге.';
       errorLog = 'Ошибка сохранения факта по услуге:';
+    } else {
+      // Если вкладка не 'materials' и не 'services', ничего не делаем
+      return;
     }
 
-    await apiMethod(payload);
+    const response = await apiMethod(payload);
     notificationStore.showNotification(successMsg, 'success');
-    await loadWorkLogData(workLogId.value);
+    await loadWorkLogData(workLogId.value); // Обновляем данные на странице
   } catch (error) {
-    notificationStore.showNotification(errorMsg, 'error');
+    const serverError = error.response?.data?.error?.message || error.message;
+    notificationStore.showNotification(`${errorMsg} ${serverError}`, 'error');
     console.error(errorLog, error);
   }
 };
@@ -244,10 +248,41 @@ const handleAddPerformer = async ({ rowId, performer }) => {
 
 const handleAddMaterialRow = async (newRowData) => {
   try {
-    // TODO: Здесь должен быть вызов API для добавления нового материала
-    // const response = await addMaterial(workLogId.value, newRowData);
-    
-    console.log('Добавление материала:', newRowData);
+    if (!recordData.value?.taskLogCls) {
+      throw new Error('Не найдены данные задачи');
+    }
+
+    console.log('Данные для добавления материала (newRowData):', newRowData);
+    console.log('Справочник материалов:', materialNameOptions.value);
+    console.log('Справочник единиц измерения:', unitOptions.value);
+
+    const materialId = newRowData.name?.value;
+    const unitId = newRowData.unit?.value;
+
+    // Находим выбранный материал и единицу измерения
+    const selectedMaterial = materialNameOptions.value.find(m => m.value === materialId);
+    const selectedUnit = unitOptions.value.find(u => u.value === unitId);
+
+    if (!selectedMaterial || !selectedUnit) {
+      if (!selectedMaterial) console.error('Материал с ID', materialId, 'не найден в справочнике materialNameOptions.');
+      if (!selectedUnit) console.error('Единица измерения с ID', unitId, 'не найдена в справочнике unitOptions.');
+      throw new Error('Материал или единица измерения не найдены');
+    }
+
+    const materialData = {
+      objMaterial: selectedMaterial.value,
+      pvMaterial: selectedMaterial.pv,
+      meaMeasure: selectedUnit.value,
+      pvMeasure: selectedUnit.pv,
+      Value: newRowData.fact || 0,
+    };
+
+    await addResourceMaterial(
+      materialData, 
+      workLogId.value, 
+      recordData.value.taskLogCls // Используем taskLogCls из recordData
+    );
+
     notificationStore.showNotification('Материал успешно добавлен!', 'success');
     await loadWorkLogData(workLogId.value);
   } catch (error) {
@@ -329,6 +364,8 @@ const loadWorkLogData = async (id) => {
     }
 
     recordData.value = {
+      taskLogPv: data.pv,
+      taskLogCls: data.cls,
       taskName: data.fullNameTask || '-',
       volume: data.ValuePlan !== null ? data.ValuePlan : '-',
       startDate: formatDate(data.PlanDateStart),
@@ -345,9 +382,13 @@ const loadWorkLogData = async (id) => {
       materials: (data.material || []).map(item => ({
         id: item.id,
         name: item.nameMaterial,
+        name: item.objMaterial, // Используем ID для консистентности
+        name_text: item.nameMaterial, // Текстовое представление для отображения
         plan: item.ValuePlan,
         fact: item.Value,
         unit: item.nameMeasure,
+        unit: item.meaMeasure, // Используем ID для консистентности
+        unit_text: item.nameMeasure, // Текстовое представление для отображения
         idValue: item.idValue,
         idUser: item.idUser,
         idUpdatedAt: item.idUpdatedAt,
@@ -379,7 +420,6 @@ const loadWorkLogData = async (id) => {
         name: item.namePosition,
         plan: item.Quantity,
         hours: item.Value,
-        // Добавляем детали исполнителей, если они есть в API
         performerDetails: item.performerDetails || [],
       })),
     };
@@ -391,13 +431,23 @@ const loadWorkLogData = async (id) => {
   }
 };
 
-// Mock data for dropdowns in ResourceEditTable
-const materialNameOptions = ref([
-  { value: 'cement', label: 'Цемент' },
-  { value: 'sand', label: 'Песок' },
-  { value: 'gravel', label: 'Щебень' },
-]);
+// Загрузка справочников
+const loadDropdownOptions = async () => {
+  try {
+    const [materials, units] = await Promise.all([
+      loadMaterials(),
+      loadUnits()
+    ]);
+    
+    materialNameOptions.value = materials;
+    unitOptions.value = units;
+  } catch (error) {
+    console.error('Ошибка загрузки справочников:', error);
+    notificationStore.showNotification('Ошибка загрузки справочников', 'error');
+  }
+};
 
+// Mock data for dropdowns in ResourceEditTable
 const toolNameOptions = ref([
   { value: 'hammer', label: 'Молоток' },
   { value: 'drill', label: 'Дрель' },
@@ -422,13 +472,6 @@ const performerNameOptions = ref([
   { value: 'engineer', label: 'Инженер' },
 ]);
 
-const unitOptions = ref([
-  { value: 'kg', label: 'кг' },
-  { value: 'm3', label: 'м³' },
-  { value: 'pcs', label: 'шт' },
-  { value: 'unit', label: 'ед.' },
-]);
-
 const performerUnitOptions = ref([
   { value: 'person', label: 'чел.' },
 ]);
@@ -442,8 +485,9 @@ const performerNameOptionsForDropdown = ref([
   { value: 'smirnov', label: 'Смирнов Дмитрий Александрович' },
 ]);
 
-onMounted(() => {
-  loadWorkLogData(workLogId.value);
+onMounted(async () => {
+  await loadDropdownOptions();
+  await loadWorkLogData(workLogId.value);
 });
 </script>
 

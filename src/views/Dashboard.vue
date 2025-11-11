@@ -335,9 +335,9 @@ const processIncidents = (rawIncidents, forcedColor = null) => {
       else color = 'red-marker'; // Цвет по умолчанию
     }
     
-    // Для просроченных работ используем fullNameWork в качестве описания
-    const description = incident.fullNameWork || incident.Description || incident.name;
-    // Добавляем fullNameWork в rawData, чтобы он был доступен в тултипе
+
+    const description = incident.Description || incident.fullNameWork;
+
     const rawData = { ...incident, Description: description };
 
     const title = `${incident.nameCls}: ${description} (${startKmValue.toFixed(2)}км)`;
