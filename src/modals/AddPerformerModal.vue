@@ -44,15 +44,15 @@
       </div>
 
       <div class="modal-footer">
-        <button class="button button-secondary" @click="closeModal">
+        <button class="button button-secondary" @click="closeModal" type="button">
           Отмена
         </button>
         <button 
           class="button button-primary" 
           @click="savePerformers"
           :disabled="!isFormValid || isLoading"
-        >
-          Сохранить
+          type="button" >
+          Добавить
         </button>
       </div>
     </div>
@@ -72,8 +72,8 @@ const props = defineProps({
     default: false
   },
   positionPv: {
-    type: Number,
-    required: true
+    type: [Number, null],
+    default: null
   }
 });
 
@@ -82,9 +82,9 @@ const emit = defineEmits(['close', 'save']);
 const notificationStore = useNotificationStore();
 
 const isLoading = ref(false);
-const selectedLocation = ref(null);
-const selectedPerformers = ref([]);
-const allPerformers = ref([]);
+const selectedLocation = ref(null); // Должен хранить объект { value, label }
+const selectedPerformers = ref([]); // Должен хранить массив ID
+const allPerformers = ref([]); // Полный список исполнителей с деталями
 
 // Уникальные участки из загруженных исполнителей
 const locationOptions = computed(() => {
@@ -105,18 +105,19 @@ const locationOptions = computed(() => {
 
 // Отфильтрованные исполнители по выбранному участку
 const filteredPerformers = computed(() => {
-  // Проверяем, что участок выбран (selectedLocation - это объект { value, label })
-  if (!selectedLocation.value) {
+  const locationValue = selectedLocation.value?.value; 
+  if (!locationValue) {
     return [];
   }
 
   return allPerformers.value.filter(
-    performer => performer.pvLocation === selectedLocation.value.value
+    performer => performer.pvLocation === locationValue
   );
 });
 
 // Опции для выпадающего списка исполнителей
 const performerOptions = computed(() => {
+  // Option value должен быть ID исполнителя, а label - его ФИО
   return filteredPerformers.value.map(performer => ({
     label: performer.fullName,
     value: performer.id
@@ -125,13 +126,17 @@ const performerOptions = computed(() => {
 
 // Проверка валидности формы
 const isFormValid = computed(() => {
-  return selectedLocation.value && selectedPerformers.value.length > 0;
+  // Проверяем, что value участка существует и что в selectedPerformers есть хотя бы один ID
+  return selectedLocation.value?.value && selectedPerformers.value.length > 0;
 });
 
 // Загрузка исполнителей при открытии модалки
 watch(() => props.isOpen, async (newValue) => {
   if (newValue) {
     await loadPerformers();
+    // Сброс при открытии
+    selectedLocation.value = null; 
+    selectedPerformers.value = [];
   } else {
     resetForm();
   }
@@ -139,6 +144,7 @@ watch(() => props.isOpen, async (newValue) => {
 
 const loadPerformers = async () => {
   isLoading.value = true;
+  if (props.positionPv === null) return;
   try {
     const records = await loadPersonnalByPosition(props.positionPv);
     allPerformers.value = records.map(record => ({
@@ -157,12 +163,14 @@ const loadPerformers = async () => {
   } catch (error) {
     notificationStore.showNotification('Ошибка при загрузке списка исполнителей', 'error');
     console.error('Ошибка загрузки исполнителей:', error);
+    allPerformers.value = [];
   } finally {
     isLoading.value = false;
   }
 };
 
 const handleLocationChange = (value) => {
+  // При смене участка сбрасываем выбранных исполнителей
   selectedPerformers.value = [];
 };
 
@@ -177,16 +185,20 @@ const handleOverlayClick = () => {
 const savePerformers = () => {
   if (!isFormValid.value) return;
 
-  const selectedPerformerData = selectedPerformers.value.map(performerId => {
-    return allPerformers.value.find(p => p.id === performerId);
-  });
+  // Получаем полные объекты исполнителей, которые были выбраны
+  const selectedPerformerData = allPerformers.value.filter(performer => 
+    selectedPerformers.value.includes(performer.id)
+  );
 
   emit('save', {
-    location: selectedLocation.value.value,
+    // Передаем только value участка
+    location: selectedLocation.value.value, 
     performers: selectedPerformerData
   });
 
-  closeModal();
+  // Закрытие модального окна происходит в ResourceEditTable.vue после успешной обработки
+  // Если вы хотите закрыть модалку сразу после emit:
+  // closeModal(); 
 };
 
 const resetForm = () => {
@@ -197,6 +209,7 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+/* Стили не менялись, но для полноты ответа оставим их структуру */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -310,52 +323,6 @@ const resetForm = () => {
 .required {
   color: #dc2626;
 }
-
-/* --- Изменения для списка исполнителей --- */
-
-.performers-checkbox-list {
-  /* Убрана явная граница, использован более светлый фон */
-  border: 1px solid #f1f5f9; /* Очень светлая граница для разделения */
-  border-radius: 8px;
-  padding: 4px; /* Уменьшен padding для компактности */
-  max-height: 300px;
-  overflow-y: auto;
-  background: #ffffff; /* Белый фон */
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Легкая внутренняя тень */
-}
-
-.performer-checkbox-item {
-  padding: 8px 12px; /* Уменьшен вертикальный padding */
-  border-radius: 4px; /* Уменьшен border-radius для более легкого вида */
-  transition: background 0.2s;
-}
-
-.performer-checkbox-item:hover {
-  background: #f8fafc; /* Светлый hover-эффект */
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-input {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: #3b82f6;
-}
-
-.checkbox-text {
-  font-size: 14px;
-  color: #334155; /* Мягкий, но читаемый цвет текста */
-  font-weight: 400; /* Явно установлен нежирный шрифт */
-  flex: 1;
-}
-/* --- Конец изменений для списка исполнителей --- */
 
 .empty-performers-text {
   color: #94a3b8;

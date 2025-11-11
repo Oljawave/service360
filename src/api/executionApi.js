@@ -240,6 +240,50 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   }
 }
 
+export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls) {
+  if (!personnelData || !taskLogId || !taskLogCls) {
+    throw new Error("Необходимо передать данные исполнителя, ID и CLS задачи.");
+  }
+
+  try {
+    const user = await fetchUserData();
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      name: `${taskLogId}-${personnelData.id}-${today}`,
+      fvPosition: personnelData.fvPosition,
+      pvPosition: personnelData.pvPosition,
+      objPersonnel: personnelData.id,
+      pvPersonnel: personnelData.pv,
+      Value: personnelData.time || 0, // Часы работы
+      objTaskLog: taskLogId,
+      linkCls: taskLogCls,
+      CreatedAt: today,
+      UpdatedAt: today,
+      objUser: user.id,
+      pvUser: user.pv,
+      status: "fact"
+    };
+
+    console.log('Вызов метода data/saveResourcePersonnel (добавление) с данными:', payload);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourcePersonnel",
+        params: ["ins", payload],
+      },
+      { withCredentials: true }
+    );
+
+    console.log('Ответ от data/saveResourcePersonnel (добавление):', response.data);
+    return response.data.result;
+  } catch (error) {
+    console.error('Ошибка при вызове addResourcePersonnel:', error);
+    throw error;
+  }
+}
+
 export async function saveTaskLogFact(payload) {
   if (!payload || !payload.id) {
     throw new Error("Payload должен содержать ID записи.");
