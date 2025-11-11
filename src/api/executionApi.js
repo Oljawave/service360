@@ -2,6 +2,7 @@ import axios from "axios";
 
 const API_REPAIR_URL = import.meta.env.VITE_REPAIR_URL;
 const AUTH_API_URL = import.meta.env.VITE_OBJECT_URL;
+const API_PERSONAL = import.meta.env.VITE_PERSONAL_URL;
 
 let userDataCache = null;
 
@@ -77,6 +78,33 @@ export async function loadObjTaskLog(taskLogId) {
     return response.data.result;
   } catch (error) {
     console.error(`Ошибка при вызове loadObjTaskLog для ID ${taskLogId}:`, error);
+    throw error;
+  }
+}
+
+export async function loadPersonnalByPosition(pvPosition) {
+  if (!pvPosition) {
+    throw new Error("pvPosition обязателен для загрузки персонала");
+  }
+
+  try {
+    console.log('Вызов метода data/loadPersonnalByPosition с pvPosition:', pvPosition);
+    const response = await axios.post(
+      API_PERSONAL,
+      {
+        method: "data/loadPersonnalByPosition",
+        params: [pvPosition, "Prop_Personnel"]
+      },
+      {
+        withCredentials: true
+      }
+    );
+
+    const records = response.data?.result?.records || [];
+    console.log('Получены записи персонала:', records);
+    return records;
+  } catch (error) {
+    console.error('Ошибка при загрузке персонала по позиции:', error);
     throw error;
   }
 }

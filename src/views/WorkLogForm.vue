@@ -180,19 +180,17 @@ const handleSaveRow = async ({ row }) => {
       errorMsg = 'Ошибка при сохранении факта по материалу.';
       errorLog = 'Ошибка сохранения факта по материалу:';
     } else if (activeTab.value === 'services') {
-      // Для услуг используется тот же метод, что и для материалов, согласно вашей логике
       apiMethod = saveServiceFact;
       successMsg = 'Факт по услуге успешно сохранен!';
       errorMsg = 'Ошибка при сохранении факта по услуге.';
       errorLog = 'Ошибка сохранения факта по услуге:';
     } else {
-      // Если вкладка не 'materials' и не 'services', ничего не делаем
       return;
     }
 
     const response = await apiMethod(payload);
     notificationStore.showNotification(successMsg, 'success');
-    await loadWorkLogData(workLogId.value); // Обновляем данные на странице
+    await loadWorkLogData(workLogId.value);
   } catch (error) {
     const serverError = error.response?.data?.error?.message || error.message;
     notificationStore.showNotification(`${errorMsg} ${serverError}`, 'error');
@@ -230,17 +228,17 @@ const handleDeletePerformer = async ({ rowId, performerId, performerIndex }) => 
   }
 };
 
-const handleAddPerformer = async ({ rowId, performer }) => {
+const handleAddPerformer = async ({ rowId, performers }) => {
   try {
-    // TODO: Здесь должен быть вызов API для добавления нового исполнителя
-    // const response = await addPerformerDetails(workLogId.value, rowId, performer);
+    // TODO: Здесь должен быть вызов API для добавления новых исполнителей
+    // const response = await addPerformerDetails(workLogId.value, rowId, performers);
     
-    console.log('Добавление исполнителя:', { rowId, performer });
-    notificationStore.showNotification('Исполнитель успешно добавлен!', 'success');
+    console.log('Добавление исполнителей:', { rowId, performers });
+    notificationStore.showNotification('Исполнители успешно добавлены!', 'success');
     await loadWorkLogData(workLogId.value);
   } catch (error) {
-    notificationStore.showNotification('Ошибка при добавлении исполнителя.', 'error');
-    console.error('Ошибка добавления исполнителя:', error);
+    notificationStore.showNotification('Ошибка при добавлении исполнителей.', 'error');
+    console.error('Ошибка добавления исполнителей:', error);
   }
 };
 
@@ -259,7 +257,6 @@ const handleAddMaterialRow = async (newRowData) => {
     const materialId = newRowData.name?.value;
     const unitId = newRowData.unit?.value;
 
-    // Находим выбранный материал и единицу измерения
     const selectedMaterial = materialNameOptions.value.find(m => m.value === materialId);
     const selectedUnit = unitOptions.value.find(u => u.value === unitId);
 
@@ -280,7 +277,7 @@ const handleAddMaterialRow = async (newRowData) => {
     await addResourceMaterial(
       materialData, 
       workLogId.value, 
-      recordData.value.taskLogCls // Используем taskLogCls из recordData
+      recordData.value.taskLogCls
     );
 
     notificationStore.showNotification('Материал успешно добавлен!', 'success');
@@ -381,14 +378,12 @@ const loadWorkLogData = async (id) => {
       
       materials: (data.material || []).map(item => ({
         id: item.id,
-        name: item.nameMaterial,
-        name: item.objMaterial, // Используем ID для консистентности
-        name_text: item.nameMaterial, // Текстовое представление для отображения
+        name: item.objMaterial,
+        name_text: item.nameMaterial,
         plan: item.ValuePlan,
         fact: item.Value,
-        unit: item.nameMeasure,
-        unit: item.meaMeasure, // Используем ID для консистентности
-        unit_text: item.nameMeasure, // Текстовое представление для отображения
+        unit: item.meaMeasure,
+        unit_text: item.nameMeasure,
         idValue: item.idValue,
         idUser: item.idUser,
         idUpdatedAt: item.idUpdatedAt,
@@ -421,6 +416,7 @@ const loadWorkLogData = async (id) => {
         plan: item.Quantity,
         hours: item.Value,
         performerDetails: item.performerDetails || [],
+        positionPv: item.pvPosition || item.pv, // PV позиции для загрузки исполнителей
       })),
     };
   } catch (error) {

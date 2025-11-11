@@ -96,7 +96,7 @@
                     <span class="performers-title">Список исполнителей (Факт):</span>
                     <button 
                       class="add-row-button small" 
-                      @click="addNewPerformerRow(index)"
+                      @click="openAddPerformerModal(index)"
                     >
                       <Plus :size="16" />
                       Добавить строку
@@ -114,13 +114,7 @@
                       <div class="performer-fields">
                         <div class="performer-field">
                           <label>ФИО исполнителя</label>
-                          <AppDropdown
-                            :id="`performer-name-${index}-${pIndex}`"
-                            v-model="performer.name"
-                            :options="performerNameOptions"
-                            placeholder="Выберите исполнителя"
-                            @update:modelValue="updateExistingPerformer(index, pIndex, 'name', $event)"
-                          />
+                          <div class="performer-name-display">{{ performer.fullName }}</div>
                         </div>
                         <div class="performer-field">
                           <label>Часы работы</label>
@@ -151,50 +145,8 @@
                       </div>
                     </div>
 
-                    <!-- Формы для добавления новых исполнителей -->
-                    <div
-                      v-for="(newPerformer, npIndex) in row.newPerformers"
-                      :key="`new-${index}-${npIndex}`"
-                      class="performer-item new-performer-item"
-                    >
-                      <div class="performer-fields">
-                        <div class="performer-field">
-                          <label>ФИО исполнителя</label>
-                          <AppDropdown
-                            :id="`new-performer-name-${index}-${npIndex}`"
-                            v-model="newPerformer.name"
-                            :options="performerNameOptions"
-                            placeholder="Выберите исполнителя"
-                          />
-                        </div>
-                        <div class="performer-field">
-                          <label>Часы работы</label>
-                          <AppNumberInput
-                            :modelValue="newPerformer.time"
-                            :min="0"
-                            :max="row.planHours"
-                            placeholder="0"
-                            @update:modelValue="newPerformer.time = $event"
-                          />
-                        </div>
-                        <div class="performer-actions">
-                          <button
-                            :class="['icon-button', 'save']"
-                            @click.stop="saveNewPerformer(index, npIndex)"
-                            title="Сохранить нового исполнителя"
-                            :disabled="!isNewPerformerValid(newPerformer)"
-                          >
-                            <Check :size="18" />
-                          </button>
-                          <button
-                            :class="['icon-button', 'delete']"
-                            @click.stop="removeNewPerformerRow(index, npIndex)"
-                            title="Удалить форму"
-                          >
-                            <Trash2 :size="18" />
-                          </button>
-                        </div>
-                      </div>
+                    <div v-if="row.performers.length === 0" class="empty-performers">
+                      Нет добавленных исполнителей. Нажмите "Добавить строку" для добавления.
                     </div>
                   </div>
                 </div>
@@ -258,14 +210,21 @@
         </tbody>
       </table>
     </div>
+    <AddPerformerModal
+      :isOpen="isModalOpen"
+      :positionPv="currentPositionPv"
+      @close="closeAddPerformerModal"
+      @save="handleAddPerformers"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
-import { Check, ChevronRight, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, ChevronRight, Plus, Trash2 } from 'lucide-vue-next';
 import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
+import AddPerformerModal from '@/modals/AddPerformerModal.vue';
 import { loadMaterials, loadUnits } from '@/api/repairApi.js';
 import { useNotificationStore } from '@/stores/notificationStore';
 
@@ -285,6 +244,10 @@ const newRow = ref(null);
 const nameOptionsInternal = ref([]);
 const unitOptionsInternal = ref([]);
 
+const isModalOpen = ref(false);
+const currentRowIndex = ref(null);
+const currentPositionPv = ref(null);
+
 /**
  * Рассчитывает фактические значения по количеству и часам
  * на основе детального списка исполнителей.
@@ -294,8 +257,6 @@ const calculatePerformerFacts = (performers = []) => {
   const factHours = performers.reduce((sum, p) => sum + (p.time || 0), 0);
   return { factCount, factHours };
 };
-
-const initializeNewPerformer = () => ({ name: null, time: 0 });
 
 const initializeExistingRows = (rows) => {
   if (props.isPerformer) {
@@ -315,7 +276,7 @@ const initializeExistingRows = (rows) => {
         factHours: row.factHours || factHours,
         expanded: false,
         performers: performers,
-        newPerformers: [initializeNewPerformer()],
+        positionPv: row.positionPv || null, // PV позиции для загрузки исполнителей
       }
     });
   } else {
@@ -352,7 +313,6 @@ onMounted(() => {
   loadOptions();
 });
 
-
 watch(
   () => props.rows,
   (newRows) => {
@@ -365,13 +325,11 @@ const finalNameOptions = computed(() => props.nameOptions.length > 0 ? props.nam
 const finalUnitOptions = computed(() => props.unitOptions.length > 0 ? props.unitOptions : unitOptionsInternal.value);
 
 const getNameLabel = (value) => {
-  // Используем объединенные опции для поиска
   const option = finalNameOptions.value.find((opt) => opt.value === value);
   return option ? option.label : value;
 };
 
 const getUnitLabel = (value) => {
-  // Используем объединенные опции для поиска
   const option = finalUnitOptions.value.find((opt) => opt.value === value);
   return option ? option.label : value;
 };
@@ -379,10 +337,6 @@ const getUnitLabel = (value) => {
 const toggleRow = (index) => {
   const row = existingRows.value[index];
   row.expanded = !row.expanded;
-  
-  if (props.isPerformer && !row.expanded) {
-    row.newPerformers = [initializeNewPerformer()];
-  }
 };
 
 const updateExistingRow = (index, value) => {
@@ -447,51 +401,66 @@ const deletePerformer = (rowIndex, performerIndex) => {
   emit('update:rows', [...existingRows.value]);
 };
 
-// --- Логика для добавления новых исполнителей ---
+// --- Логика модального окна ---
 
-const isNewPerformerValid = (performer) => {
-  return performer && performer.name && performer.time !== null && performer.time >= 0;
-};
-
-const addNewPerformerRow = (rowIndex) => {
+const openAddPerformerModal = (rowIndex) => {
   const row = existingRows.value[rowIndex];
-  row.newPerformers.push(initializeNewPerformer());
-};
-
-const removeNewPerformerRow = (rowIndex, npIndex) => {
-  const row = existingRows.value[rowIndex];
-  if (row.newPerformers.length === 1) {
-    row.newPerformers[0] = initializeNewPerformer();
-  } else {
-    row.newPerformers.splice(npIndex, 1);
-  }
-};
-
-const saveNewPerformer = (rowIndex, npIndex) => {
-  const row = existingRows.value[rowIndex];
-  const newPerformer = row.newPerformers[npIndex];
   
-  if (!isNewPerformerValid(newPerformer)) return;
+  // Получаем positionPv из строки
+  // Предполагается, что он должен быть в данных строки
+  // Если его нет, нужно будет передать его из родительского компонента
+  currentPositionPv.value = row.positionPv;
+  currentRowIndex.value = rowIndex;
+  isModalOpen.value = true;
+};
 
+const closeAddPerformerModal = () => {
+  isModalOpen.value = false;
+  currentRowIndex.value = null;
+  currentPositionPv.value = null;
+};
+
+const handleAddPerformers = (data) => {
+  if (currentRowIndex.value === null) return;
+
+  const row = existingRows.value[currentRowIndex.value];
+  
+  // Добавляем всех выбранных исполнителей с нулевым временем
+  const newPerformers = data.performers.map(performer => ({
+    id: performer.id,
+    cls: performer.cls,
+    pv: performer.pv,
+    name: performer.name,
+    fullName: performer.fullName,
+    time: 0,
+    location: data.location,
+    objLocation: performer.objLocation,
+    nameLocation: performer.nameLocation
+  }));
+
+  row.performers.push(...newPerformers);
+  updatePerformerFacts(currentRowIndex.value);
+  
+  emit('update:rows', [...existingRows.value]);
+  
+  // Эмитим событие для сохранения на сервере
   emit('add-performer', {
     rowId: row.id,
-    rowIndex,
-    performer: { ...newPerformer },
+    rowIndex: currentRowIndex.value,
+    performers: newPerformers,
   });
-
-  row.performers.push({ ...newPerformer });
-  row.newPerformers.splice(npIndex, 1);
-  
-  if (row.newPerformers.length === 0) {
-    row.newPerformers.push(initializeNewPerformer());
-  }
-  
-  updatePerformerFacts(rowIndex);
-  emit('update:rows', [...existingRows.value]);
 };
 
 // --- Функции для новой строки (для не-исполнителей) ---
 const addNewRow = () => {
+  // Для исполнителей эта кнопка не должна создавать локальную новую строку,
+  // а должна открывать модальное окно.
+  // Но если мы хотим добавить новую *позицию* исполнителя, логика будет здесь.
+  // Пока что, для исполнителей, основная кнопка "Добавить" будет открывать модальное окно
+  // для первой строки, если она есть.
+  if (props.isPerformer) {
+    return;
+  }
   if (!newRow.value) {
     newRow.value = {
       name: null,
@@ -508,7 +477,6 @@ const isNewRowValid = computed(() => {
 const saveNewRow = () => {
   if (!isNewRowValid.value) return;
 
-  // Отправляем полные объекты, а не только value
   emit('add-row', {
     ...newRow.value,
     fact: newRow.value.fact || 0,
@@ -767,16 +735,6 @@ const cancelNewRow = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.new-performer-item {
-  background: #ffffff;
-  border: 2px dashed #cbd5e1;
-}
-
-.new-performer-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.1);
-}
-
 .performer-number {
   display: flex;
   align-items: center;
@@ -814,6 +772,18 @@ const cancelNewRow = () => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.performer-name-display {
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #1e293b;
+  font-size: 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 .performer-actions {
@@ -883,7 +853,8 @@ td.actions-column {
   cursor: not-allowed;
 }
 
-.empty-state {
+.empty-state,
+.empty-performers {
   text-align: center;
   padding: 40px 16px !important;
   color: #94a3b8;
@@ -899,7 +870,7 @@ td.actions-column {
   margin: 0;
 }
 
-/* Показываем лейблы в формах исполнителей - уже есть выше */
+/* Показываем лейблы в формах исполнителей */
 .performer-fields :deep(.form-group) {
   margin: 0;
 }
