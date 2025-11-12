@@ -3,6 +3,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_LOCATION_URL;
 const API_PLAN_URL = import.meta.env.VITE_PLAN_URL;
 const API_INCIDENTS_URL = import.meta.env.VITE_INCIDENTS_URL;
+const API_INSPECTIONS_URL = import.meta.env.VITE_INSPECTIONS_URL;
 
 export const loadDepartments = async () => {
   try {
@@ -88,6 +89,34 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
     API_INCIDENTS_URL,
     {
       method: "data/loadIncident",
+      params: [params]
+    },
+    {
+      withCredentials: true
+    }
+  );
+
+  return response.data.result?.records || [];
+};
+
+export const loadRailwayStatus = async () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  const params = {
+    date: dateStr,
+    relobj: 2525
+  };
+
+  console.log('Вызов метода data/loadParameterLogByComponentParameter для статуса пути', params);
+
+  const response = await axios.post(
+    API_INSPECTIONS_URL,
+    {
+      method: "data/loadParameterLogByComponentParameter",
       params: [params]
     },
     {

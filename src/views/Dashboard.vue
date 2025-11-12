@@ -44,12 +44,17 @@
       />
     </div>
 
-    <RailwaySection 
+    <RailwaySection
       :intermediate-stations="intermediateStations"
       :railway-incidents="railwayIncidents"
       :is-loading="isMapLoading"
       :active-kpi-filter="activeKpiFilter"
       @incident-click="handleIncidentClick"
+    />
+
+    <RailwaySectionStatus
+      :intermediate-stations="intermediateStations"
+      :status-segments="railwayStatusSegments"
     />
 
     <QuickActions 
@@ -104,8 +109,9 @@ import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import KpiCard from '@/components/ui/KpiCard.vue';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
-import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi } from '@/api/dashboardApi.js';
+import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus } from '@/api/dashboardApi.js';
 import RailwaySection from '@/components/ui/RailwaySection.vue';
+import RailwaySectionStatus from '@/components/ui/RailwaySectionStatus.vue';
 
 const router = useRouter();
 
@@ -152,7 +158,8 @@ const intermediateStations = ref([
   { id: 's6', name: 'Улан', position: 88.41, km: 133.7 },
 ]);
 
-const railwayIncidents = ref([]); 
+const railwayIncidents = ref([]);
+const railwayStatusSegments = ref([]);
 
 const goToWorkPlan = () => {
   router.push({ name: 'Inspections' });
@@ -415,11 +422,22 @@ const handleDateSelected = async (dateStr) => {
   }
 };
 
+const loadRailwayStatusData = async () => {
+  try {
+    const statusData = await loadRailwayStatus();
+    railwayStatusSegments.value = statusData;
+  } catch (error) {
+    console.error('Ошибка при загрузке статуса пути:', error);
+    railwayStatusSegments.value = [];
+  }
+};
+
 const refreshData = () => {
   isLoading.value = true;
   Promise.all([
     loadKpiData(),
     loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value),
+    loadRailwayStatusData(),
     handleDateSelected(formatDateToString(new Date())),
     fetchWeather(),
     fetchAlmatyDate()

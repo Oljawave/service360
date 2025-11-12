@@ -476,16 +476,24 @@ const loadWorkLogData = async (id) => {
         idUser: item.idUser,
         idUpdatedAt: item.idUpdatedAt,
       })),
-      services: (data.tpService || []).map(item => ({
-        id: item.id,
-        name: item.nameTpService,
-        plan: item.ValuePlan,
-        fact: item.Value || 0,
-        unit: 'ед.',
-        idValue: item.idValue,
-        idUser: item.idUser,
-        idUpdatedAt: item.idUpdatedAt,
-      })),
+      services: (data.tpService || []).map(item => {
+        // Извлекаем единицу измерения из fullNameTpService (часть после запятой)
+        const fullName = item.fullNameTpService || item.nameTpService || '';
+        const parts = fullName.split(',');
+        const unit = parts.length > 1 ? parts[1].trim() : 'ед.';
+        const serviceName = parts[0].trim() || item.nameTpService;
+
+        return {
+          id: item.id,
+          name: serviceName,
+          plan: item.ValuePlan,
+          fact: item.Value || 0,
+          unit: unit,
+          idValue: item.idValue,
+          idUser: item.idUser,
+          idUpdatedAt: item.idUpdatedAt,
+        };
+      }),
       tools: (data.tool || []).map(item => ({
         id: item.id,
         name: item.nameTypTool,
