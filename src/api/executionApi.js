@@ -284,6 +284,78 @@ export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls)
   }
 }
 
+export async function saveComplexPersonnel(personnelId, performerData) {
+  if (!personnelId || !performerData) {
+    throw new Error("Необходимо передать ID personnel и данные исполнителя.");
+  }
+
+  try {
+    // Определяем операцию: "ins" для новых, "upd" для существующих
+    const operation = performerData.isNew ? "ins" : "upd";
+
+    const payload = {
+      id: personnelId,
+      objPerformer: performerData.objPerformer,
+      pvPerformer: performerData.pvPerformer,
+      PerformerValue: Number(performerData.PerformerValue)
+    };
+
+    // Для обновления существующих исполнителей добавляем дополнительные поля
+    if (!performerData.isNew) {
+      payload.idPerformer = performerData.idPerformer;
+      payload.idPerformerValue = performerData.idPerformerValue;
+    }
+
+    console.log(`Вызов метода data/saveComplexPersonnel (${operation}) с данными:`, payload);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveComplexPersonnel",
+        params: [operation, payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    console.log('Ответ от data/saveComplexPersonnel:', response.data);
+    return response.data.result;
+  } catch (error) {
+    console.error(`Ошибка при вызове saveComplexPersonnel для ID ${personnelId}:`, error);
+    console.error('Детали ошибки (ответ сервера):', error.response?.data);
+    throw error;
+  }
+}
+
+export async function deleteComplexPersonnel(complexId) {
+  if (!complexId) {
+    throw new Error("Необходимо передать ID комплекса для удаления.");
+  }
+
+  try {
+    console.log('Вызов метода data/deleteComplexData с ID:', complexId);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/deleteComplexData",
+        params: [complexId],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    console.log('Ответ от data/deleteComplexData:', response.data);
+    return response.data.result;
+  } catch (error) {
+    console.error(`Ошибка при вызове deleteComplexData для ID ${complexId}:`, error);
+    console.error('Детали ошибки (ответ сервера):', error.response?.data);
+    throw error;
+  }
+}
+
 export async function saveTaskLogFact(payload) {
   if (!payload || !payload.id) {
     throw new Error("Payload должен содержать ID записи.");

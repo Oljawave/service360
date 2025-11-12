@@ -94,7 +94,6 @@
           title="Услуги"
           :rows="recordData.services"
           :nameOptions="serviceNameOptions"
-          :unitOptions="unitOptions"
           @update:rows="recordData.services = $event"
           @save-row="handleSaveRow"
           @delete-row="handleDeleteRow"
@@ -133,8 +132,8 @@ import BackButton from '@/components/ui/BackButton.vue';
 import ResourceCard from '@/components/ui/ResourceCard.vue';
 import ResourceEditTable from '@/components/ui/ResourceEditTable.vue';
 import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
-import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial } from '@/api/executionApi.js';
-import { loadMaterials, loadUnits } from '@/api/repairApi.js';
+import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, saveComplexPersonnel, deleteComplexPersonnel } from '@/api/executionApi.js';
+import { loadMaterials, loadUnits, loadExternalServices } from '@/api/repairApi.js';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter();
@@ -202,25 +201,56 @@ const handleSaveRow = async ({ row }) => {
 
 const handleSavePerformer = async ({ rowId, performer, performerIndex }) => {
   try {
-    // TODO: Здесь должен быть вызов API для сохранения исполнителя
-    // const response = await savePerformerDetails(workLogId.value, rowId, performer);
-    
-    console.log('Сохранение исполнителя:', { rowId, performer, performerIndex });
+    // rowId - это ID записи personnel, по которой добавляем/редактируем исполнителя
+    // performer содержит данные исполнителя
+    const performerData = {
+      objPerformer: performer.id,      // id выбранного исполнителя
+      pvPerformer: performer.pv,       // pv выбранного исполнителя
+      PerformerValue: performer.time,  // указанные часы
+      isNew: performer.isNew,          // флаг нового/существующего исполнителя
+    };
+
+    // Для существующих исполнителей добавляем дополнительные поля
+    if (!performer.isNew) {
+      performerData.idPerformer = performer.idPerformer;
+      performerData.idPerformerValue = performer.idPerformerValue;
+    }
+
+    console.log('Сохранение исполнителя:', { personnelId: rowId, performerData });
+
+    await saveComplexPersonnel(rowId, performerData);
+
     notificationStore.showNotification('Данные исполнителя успешно сохранены!', 'success');
-    await loadWorkLogData(workLogId.value);
+
+    // Если это новый исполнитель, после сохранения помечаем его как существующий
+    if (performer.isNew) {
+      performer.isNew = false;
+      // Перезагружаем данные для получения ID от сервера
+      await loadWorkLogData(workLogId.value);
+    }
+    // Для существующих исполнителей не перезагружаем данные, чтобы не сбрасывать состояние expanded
   } catch (error) {
     notificationStore.showNotification('Ошибка при сохранении данных исполнителя.', 'error');
     console.error('Ошибка сохранения исполнителя:', error);
   }
 };
 
-const handleDeletePerformer = async ({ rowId, performerId, performerIndex }) => {
+const handleDeletePerformer = async ({ performer }) => {
   try {
-    // TODO: Здесь должен быть вызов API для удаления исполнителя
-    // const response = await deletePerformerDetails(workLogId.value, rowId, performerId);
-    
-    console.log('Удаление исполнителя:', { rowId, performerId, performerIndex });
+    // Для удаления используем ID комплекса
+    const complexId = performer.complexId;
+
+    if (!complexId) {
+      throw new Error('ID комплекса не найден');
+    }
+
+    console.log('Удаление исполнителя:', { complexId, performer });
+
+    await deleteComplexPersonnel(complexId);
+
     notificationStore.showNotification('Исполнитель успешно удален!', 'success');
+
+    // Перезагружаем данные для обновления списка
     await loadWorkLogData(workLogId.value);
   } catch (error) {
     notificationStore.showNotification('Ошибка при удалении исполнителя.', 'error');
@@ -415,7 +445,16 @@ const loadWorkLogData = async (id) => {
         name: item.namePosition,
         plan: item.Quantity,
         hours: item.Value,
-        performerDetails: item.performerDetails || [],
+        performerDetails: (item.complex || []).map(complexItem => ({
+          complexId: complexItem.idPerformerComplex, // ID комплекса для удаления
+          id: complexItem.objPerformer,
+          pv: complexItem.pvPerformer,
+          fullName: complexItem.fullNamePerformer,
+          time: complexItem.PerformerValue || 0,
+          idPerformer: complexItem.idPerformer,
+          idPerformerValue: complexItem.idPerformerValue,
+          isNew: false, // Это существующий исполнитель
+        })),
         positionPv: item.pvPosition || item.pv, // PV позиции для загрузки исполнителей
       })),
     };
@@ -430,13 +469,15 @@ const loadWorkLogData = async (id) => {
 // Загрузка справочников
 const loadDropdownOptions = async () => {
   try {
-    const [materials, units] = await Promise.all([
+    const [materials, units, services] = await Promise.all([
       loadMaterials(),
-      loadUnits()
+      loadUnits(),
+      loadExternalServices()
     ]);
-    
+
     materialNameOptions.value = materials;
     unitOptions.value = units;
+    serviceNameOptions.value = services;
   } catch (error) {
     console.error('Ошибка загрузки справочников:', error);
     notificationStore.showNotification('Ошибка загрузки справочников', 'error');
@@ -456,11 +497,7 @@ const equipmentNameOptions = ref([
   { value: 'crane', label: 'Кран' },
 ]);
 
-const serviceNameOptions = ref([
-  { value: 'transport', label: 'Транспортировка' },
-  { value: 'installation', label: 'Монтаж' },
-  { value: 'maintenance', label: 'Обслуживание' },
-]);
+const serviceNameOptions = ref([]);
 
 const performerNameOptions = ref([
   { value: 'foreman', label: 'Бригадир' },

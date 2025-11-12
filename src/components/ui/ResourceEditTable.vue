@@ -40,7 +40,7 @@
               <td>{{ getNameLabel(row.name) }}</td>
 
               <!-- Не-исполнитель: Ед. изм., План, Факт (с инпутом), Действия -->
-              <td v-if="!isPerformer">{{ getUnitLabel(row.unit) }}</td>
+              <td v-if="!isPerformer">{{ row.unit || 'ед.' }}</td>
               <td v-if="!isPerformer">{{ row.plan }}</td>
               <td v-if="!isPerformer" class="fact-input-cell">
                 <AppNumberInput
@@ -169,7 +169,7 @@
                 placeholder="Выберите наименование"
               />
             </td>
-            <td>
+            <td v-if="showUnitColumn">
               <AppDropdown
                 :id="`new-unit`"
                 v-model="newRow.unit"
@@ -177,6 +177,7 @@
                 placeholder="Выберите ед. изм."
               />
             </td>
+            <td v-else class="unit-empty">—</td>
             <td class="plan-empty">—</td>
             <td>
               <AppNumberInput
@@ -221,6 +222,13 @@
       @close="closeAddPerformerModal"
       @save="handleAddPerformers"
     />
+    <ConfirmationModal
+      v-if="showDeleteConfirmation"
+      title="Удаление исполнителя"
+      message="Вы уверены, что хотите удалить этого исполнителя?"
+      @confirm="confirmDeletePerformer"
+      @cancel="cancelDeletePerformer"
+    />
   </div>
 </template>
 
@@ -231,6 +239,7 @@ import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue';
 import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
 import AppInput from '@/components/ui/FormControls/AppInput.vue';
 import AddPerformerModal from '@/modals/AddPerformerModal.vue';
+import ConfirmationModal from '@/modals/ConfirmationModal.vue';
 import { loadMaterials, loadUnits } from '@/api/repairApi.js';
 import { useNotificationStore } from '@/stores/notificationStore';
 
@@ -253,6 +262,15 @@ const unitOptionsInternal = ref([]);
 const isModalOpen = ref(false);
 const currentRowIndex = ref(null);
 const currentPositionPv = ref(null);
+
+// Для подтверждения удаления
+const showDeleteConfirmation = ref(false);
+const pendingDeleteData = ref(null);
+
+// Показывать ли колонку единиц измерения (только если unitOptions передан и не пустой)
+const showUnitColumn = computed(() => {
+  return !props.isPerformer && props.unitOptions && props.unitOptions.length > 0;
+});
 
 /**
  * Рассчитывает фактические значения по количеству и часам
@@ -300,7 +318,23 @@ const initializeExistingRows = (rows) => {
 };
 
 watch(() => props.rows, (newRows) => {
+  // Сохраняем состояние expanded перед обновлением
+  const expandedStates = new Map();
+  existingRows.value.forEach((row) => {
+    if (row.expanded) {
+      expandedStates.set(row.id, true);
+    }
+  });
+
+  // Обновляем данные
   existingRows.value = initializeExistingRows(newRows);
+
+  // Восстанавливаем состояние expanded
+  existingRows.value.forEach((row) => {
+    if (expandedStates.has(row.id)) {
+      row.expanded = true;
+    }
+  });
 }, { immediate: true, deep: true });
 
 const toggleRow = (index) => {
@@ -385,13 +419,8 @@ const updateExistingPerformer = (rowIndex, performerIndex, field, value) => {
 
 const getNameLabel = (value) => {
   if (props.isPerformer) return value;
-  
-  const option = nameOptionsInternal.value.find(opt => opt.value === value);
-  return option ? option.label : value;
-};
 
-const getUnitLabel = (value) => {
-  const option = unitOptionsInternal.value.find(opt => opt.value === value);
+  const option = nameOptionsInternal.value.find(opt => opt.value === value);
   return option ? option.label : value;
 };
 
@@ -418,7 +447,7 @@ const deletePerformer = (rowIndex, performerIndex) => {
   // Если это новый исполнитель (еще не сохранен на бэке), просто удаляем из массива
   if (performer.isNew) {
     row.performers.splice(performerIndex, 1);
-    
+
     // Пересчитываем факты
     const { factCount, factHours } = calculatePerformerFacts(row.performers);
     row.factCount = factCount;
@@ -427,22 +456,45 @@ const deletePerformer = (rowIndex, performerIndex) => {
     const notificationStore = useNotificationStore();
     notificationStore.showNotification('Исполнитель удален.', 'success');
   } else {
-    // Если исполнитель уже сохранен, эмитим событие для удаления на бэке
-    emit('delete-performer', {
-      rowId: row.id,
-      performerId: performer.id,
-      performerIndex: performerIndex
-    });
+    // Если исполнитель уже сохранен, показываем модальное окно подтверждения
+    pendingDeleteData.value = { rowIndex, performerIndex, row, performer };
+    showDeleteConfirmation.value = true;
   }
+};
+
+const confirmDeletePerformer = () => {
+  if (!pendingDeleteData.value) return;
+
+  const { row, performer, performerIndex } = pendingDeleteData.value;
+
+  // Эмитим событие для удаления на бэке
+  emit('delete-performer', {
+    rowId: row.id,
+    performer: performer, // Передаем весь объект исполнителя с complexId
+    performerIndex: performerIndex
+  });
+
+  // Закрываем модальное окно и очищаем данные
+  showDeleteConfirmation.value = false;
+  pendingDeleteData.value = null;
+};
+
+const cancelDeletePerformer = () => {
+  showDeleteConfirmation.value = false;
+  pendingDeleteData.value = null;
 };
 
 // --- Обработка новых строк для не-исполнителей ---
 const addNewRow = () => {
-  newRow.value = {
+  const row = {
     name: null,
-    unit: null,
     fact: 0,
   };
+  // Добавляем unit только если нужна колонка единиц измерения
+  if (showUnitColumn.value) {
+    row.unit = null;
+  }
+  newRow.value = row;
 };
 
 const cancelNewRow = () => {
@@ -450,7 +502,14 @@ const cancelNewRow = () => {
 };
 
 const isNewRowValid = computed(() => {
-  return newRow.value && newRow.value.name && newRow.value.unit;
+  if (!newRow.value || !newRow.value.name) {
+    return false;
+  }
+  // Если нужна колонка единиц измерения, проверяем что unit заполнен
+  if (showUnitColumn.value && !newRow.value.unit) {
+    return false;
+  }
+  return true;
 });
 
 const saveNewRow = () => {
@@ -648,9 +707,10 @@ onMounted(async () => {
   padding: 8px 16px !important;
 }
 
-.plan-empty {
+.plan-empty,
+.unit-empty {
   color: #94a3b8;
-  text-align: center;
+  text-align: left;
 }
 
 .expanded-row {
