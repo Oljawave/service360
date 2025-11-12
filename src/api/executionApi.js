@@ -240,6 +240,51 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   }
 }
 
+export async function addResourceTpService(serviceData, taskLogId, taskLogCls) {
+  if (!serviceData || !taskLogId || !taskLogCls) {
+    throw new Error("Необходимо передать данные услуги, ID и CLS задачи.");
+  }
+
+  try {
+    const user = await fetchUserData();
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      name: `${taskLogId}-${serviceData.objTpService}-${today}`,
+      objTpService: serviceData.objTpService,
+      pvTpService: serviceData.pvTpService,
+      Value: Number(serviceData.Value),
+      objTaskLog: taskLogId,
+      linkCls: taskLogCls,
+      CreatedAt: today,
+      UpdatedAt: today,
+      objUser: user.id,
+      pvUser: user.pv,
+      status: "fact"
+    };
+
+    console.log('Вызов метода data/saveResourceTpService (добавление) с данными:', payload);
+
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveResourceTpService",
+        params: ["ins", payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    console.log('Ответ от data/saveResourceTpService (добавление):', response.data);
+    return response.data.result;
+  } catch (error) {
+    console.error('Ошибка при вызове addResourceTpService:', error);
+    console.error('Детали ошибки (ответ сервера):', error.response?.data);
+    throw error;
+  }
+}
+
 export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls) {
   if (!personnelData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные исполнителя, ID и CLS задачи.");

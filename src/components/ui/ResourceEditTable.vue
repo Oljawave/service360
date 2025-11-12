@@ -2,8 +2,8 @@
   <div class="resource-edit-section">
     <div class="section-header">
       <h3 class="section-title">{{ title }}</h3>
-      <!-- Кнопка "Добавить строку" для не-исполнителей -->
-      <button v-if="!isPerformer" class="add-row-button" @click="addNewRow">
+      <!-- Кнопка "Добавить строку" для не-исполнителей, кроме инструментов и техники -->
+      <button v-if="!isPerformer && !isTool && !isEquipment" class="add-row-button" @click="addNewRow">
         <Plus :size="18" />
         Добавить строку
       </button>
@@ -13,21 +13,22 @@
       <table class="resource-table">
         <thead>
           <tr>
-            <th v-if="isPerformer" class="expand-column"></th>
+            <th v-if="isPerformer || isTool || isEquipment" class="expand-column"></th>
             <th class="name-column">Наименование</th>
-            <th v-if="!isPerformer" class="unit-column">Ед. измерения</th>
+            <th v-if="!isPerformer && !isTool && !isEquipment" class="unit-column">Ед. измерения</th>
             <th v-if="isPerformer" class="count-column">Количество человек</th>
-            <th v-if="isPerformer" class="time-column">Время</th>
-            <th v-if="!isPerformer" class="plan-column">План</th>
-            <th v-if="!isPerformer" class="fact-column">Факт</th>
-            <th v-if="!isPerformer" class="actions-column"></th>
+            <th v-if="isTool || isEquipment" class="count-column">Количество</th>
+            <th v-if="isPerformer || isEquipment" class="time-column">Время</th>
+            <th v-if="!isPerformer && !isTool && !isEquipment" class="plan-column">План</th>
+            <th v-if="!isPerformer && !isTool && !isEquipment" class="fact-column">Факт</th>
+            <th v-if="!isPerformer && !isTool && !isEquipment" class="actions-column"></th>
           </tr>
         </thead>
         <tbody>
           <!-- Существующие строки -->
           <template v-for="(row, index) in existingRows" :key="row.id || index">
             <tr class="existing-row">
-              <td v-if="isPerformer" class="expand-column">
+              <td v-if="isPerformer || isTool || isEquipment" class="expand-column">
                 <button
                   class="expand-button"
                   @click="toggleRow(index)"
@@ -39,10 +40,10 @@
               <!-- Наименование -->
               <td>{{ getNameLabel(row.name) }}</td>
 
-              <!-- Не-исполнитель: Ед. изм., План, Факт (с инпутом), Действия -->
-              <td v-if="!isPerformer">{{ row.unit || 'ед.' }}</td>
-              <td v-if="!isPerformer">{{ row.plan }}</td>
-              <td v-if="!isPerformer" class="fact-input-cell">
+              <!-- Обычные ресурсы (материалы, услуги): Ед. изм., План, Факт, Действия -->
+              <td v-if="!isPerformer && !isTool && !isEquipment">{{ row.unit || 'ед.' }}</td>
+              <td v-if="!isPerformer && !isTool && !isEquipment">{{ row.plan }}</td>
+              <td v-if="!isPerformer && !isTool && !isEquipment" class="fact-input-cell">
                 <AppNumberInput
                   :modelValue="row.fact"
                   :min="0"
@@ -52,7 +53,7 @@
                   @mousedown.stop
                 />
               </td>
-              <td v-if="!isPerformer" class="actions-column">
+              <td v-if="!isPerformer && !isTool && !isEquipment" class="actions-column">
                 <div class="action-buttons-wrapper">
                   <button
                     :class="['icon-button', 'save']"
@@ -71,16 +72,16 @@
                 </div>
               </td>
 
-              <!-- Исполнитель: Количество человек (План/Факт) -->
-              <td v-if="isPerformer" class="plan-fact-cell">
+              <!-- Исполнители, Инструменты, Техника: Количество (План/Факт) -->
+              <td v-if="isPerformer || isTool || isEquipment" class="plan-fact-cell">
                 <div class="plan-fact-data">
                   <span>План: {{ row.planCount }}</span>
                   <span>Факт: {{ row.factCount }}</span>
                 </div>
               </td>
 
-              <!-- Исполнитель: Время (План/Факт) -->
-              <td v-if="isPerformer" class="plan-fact-cell">
+              <!-- Исполнители, Техника: Время (План/Факт) -->
+              <td v-if="isPerformer || isEquipment" class="plan-fact-cell">
                 <div class="plan-fact-data">
                   <span>План: {{ row.planHours }}</span>
                   <span>Факт: {{ row.factHours }}</span>
@@ -94,15 +95,15 @@
                 <div class="performers-detail">
                   <div class="performers-header">
                     <span class="performers-title">Список исполнителей (Факт):</span>
-                    <button 
-                      class="add-row-button small" 
+                    <button
+                      class="add-row-button small"
                       @click="openAddPerformerModal(index)"
                     >
                       <Plus :size="16" />
                       Добавить строку
                     </button>
                   </div>
-                  
+
                   <div class="performers-list">
                     <!-- Список существующих исполнителей -->
                     <div
@@ -152,6 +153,129 @@
 
                     <div v-if="row.performers.length === 0" class="empty-performers">
                       Нет добавленных исполнителей. Нажмите "Добавить строку" для добавления.
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Раскрывающаяся секция для инструментов -->
+            <tr v-if="isTool && row.expanded" class="expanded-row">
+              <td colspan="3" class="expanded-content">
+                <div class="performers-detail">
+                  <div class="performers-header">
+                    <span class="performers-title">Список инструментов (Факт):</span>
+                    <button
+                      class="add-row-button small"
+                      @click="openAddResourceModal(index)"
+                    >
+                      <Plus :size="16" />
+                      Добавить строку
+                    </button>
+                  </div>
+
+                  <div class="performers-list">
+                    <!-- Список существующих единиц инструментов -->
+                    <div
+                      v-for="(detail, dIndex) in row.details"
+                      :key="`existing-${row.id || index}-${dIndex}`"
+                      class="performer-item"
+                    >
+                      <div class="performer-number">{{ dIndex + 1 }}</div>
+                      <div class="performer-fields">
+                        <div class="performer-field">
+                          <AppInput
+                            :id="`resource-name-${index}-${dIndex}`"
+                            label="Инвентарный номер"
+                            :modelValue="detail.inventoryNumber || detail.name"
+                            disabled
+                            placeholder="Инвентарный номер"
+                          />
+                        </div>
+                        <div class="performer-actions">
+                          <button
+                            :class="['icon-button', 'delete']"
+                            @click.stop="deleteResourceDetail(index, dIndex)"
+                            title="Удалить инструмент"
+                          >
+                            <Trash2 :size="18" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="row.details.length === 0" class="empty-performers">
+                      Нет добавленных инструментов. Нажмите "Добавить строку" для добавления.
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Раскрывающаяся секция для техники -->
+            <tr v-if="isEquipment && row.expanded" class="expanded-row">
+              <td colspan="4" class="expanded-content">
+                <div class="performers-detail">
+                  <div class="performers-header">
+                    <span class="performers-title">Список техники (Факт):</span>
+                    <button
+                      class="add-row-button small"
+                      @click="openAddResourceModal(index)"
+                    >
+                      <Plus :size="16" />
+                      Добавить строку
+                    </button>
+                  </div>
+
+                  <div class="performers-list">
+                    <!-- Список существующих единиц техники -->
+                    <div
+                      v-for="(detail, dIndex) in row.details"
+                      :key="`existing-${row.id || index}-${dIndex}`"
+                      class="performer-item"
+                    >
+                      <div class="performer-number">{{ dIndex + 1 }}</div>
+                      <div class="performer-fields">
+                        <div class="performer-field">
+                          <AppInput
+                            :id="`resource-name-${index}-${dIndex}`"
+                            label="Гос. номер / ID"
+                            :modelValue="detail.inventoryNumber || detail.name"
+                            disabled
+                            placeholder="Гос. номер"
+                          />
+                        </div>
+                        <div class="performer-field">
+                          <label>Часы работы</label>
+                          <AppNumberInput
+                            :modelValue="detail.time"
+                            :min="0"
+                            :max="row.planHours"
+                            placeholder="0"
+                            @update:modelValue="updateExistingDetail(index, dIndex, 'time', $event)"
+                          />
+                        </div>
+                        <div class="performer-actions">
+                          <button
+                            :class="['icon-button', 'save']"
+                            @click.stop="saveResourceDetails(index, dIndex)"
+                            title="Сохранить"
+                          >
+                            <Check :size="18" />
+                          </button>
+                          <button
+                            :class="['icon-button', 'delete']"
+                            @click.stop="deleteResourceDetail(index, dIndex)"
+                            title="Удалить технику"
+                          >
+                            <Trash2 :size="18" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="row.details.length === 0" class="empty-performers">
+                      Нет добавленной техники. Нажмите "Добавить строку" для добавления.
                     </div>
                   </div>
                 </div>
@@ -249,10 +373,12 @@ const props = defineProps({
   nameOptions: { type: Array, default: () => [] },
   unitOptions: { type: Array, default: () => [] },
   isPerformer: { type: Boolean, default: false },
+  isTool: { type: Boolean, default: false },
+  isEquipment: { type: Boolean, default: false },
   performerNameOptions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:rows', 'save-row', 'add-row', 'save-performer', 'delete-performer', 'add-performer']);
+const emit = defineEmits(['update:rows', 'save-row', 'add-row', 'save-performer', 'delete-performer', 'add-performer', 'save-resource', 'delete-resource']);
 
 const existingRows = ref([]);
 const newRow = ref(null);
@@ -285,22 +411,54 @@ const calculatePerformerFacts = (performers = []) => {
 const initializeExistingRows = (rows) => {
   if (props.isPerformer) {
     return rows.map((row) => {
-      const performers = row.performerDetails && row.performerDetails.length > 0 
+      const performers = row.performerDetails && row.performerDetails.length > 0
         ? row.performerDetails
-        : []; 
+        : [];
 
       const { factCount, factHours } = calculatePerformerFacts(performers);
 
       return {
         id: row.id,
         name: row.name,
-        planCount: row.plan || 0, 
-        planHours: row.hours || 0, 
+        planCount: row.plan || 0,
+        planHours: row.hours || 0,
         factCount: row.factCount || factCount,
         factHours: row.factHours || factHours,
         expanded: false,
         performers: performers,
         positionPv: row.positionPv || null, // PV позиции для загрузки исполнителей
+      };
+    });
+  } else if (props.isTool) {
+    return rows.map((row) => {
+      const details = row.toolDetails || [];
+      const factCount = details.length;
+
+      return {
+        id: row.id,
+        name: row.name,
+        planCount: row.planCount || 0,
+        factCount: row.factCount || factCount,
+        expanded: false,
+        details: details,
+        typPv: row.typToolPv,
+      };
+    });
+  } else if (props.isEquipment) {
+    return rows.map((row) => {
+      const details = row.equipmentDetails || [];
+      const { factCount, factHours } = calculatePerformerFacts(details);
+
+      return {
+        id: row.id,
+        name: row.name,
+        planCount: row.planCount || 0,
+        planHours: row.planHours || 0,
+        factCount: row.factCount || factCount,
+        factHours: row.factHours || factHours,
+        expanded: false,
+        details: details,
+        typPv: row.typEquipmentPv,
       };
     });
   } else {
@@ -318,21 +476,94 @@ const initializeExistingRows = (rows) => {
 };
 
 watch(() => props.rows, (newRows) => {
-  // Сохраняем состояние expanded перед обновлением
+  // Сохраняем состояние expanded и несохраненных элементов перед обновлением
   const expandedStates = new Map();
+  const unsavedPerformers = new Map();
+  const unsavedDetails = new Map();
+
   existingRows.value.forEach((row) => {
     if (row.expanded) {
       expandedStates.set(row.id, true);
+    }
+
+    // Сохраняем несохраненных исполнителей (isNew === true)
+    if (props.isPerformer && row.performers && Array.isArray(row.performers)) {
+      const unsaved = row.performers.filter(p => p.isNew === true);
+      if (unsaved.length > 0) {
+        unsavedPerformers.set(row.id, unsaved);
+      }
+    }
+
+    // Сохраняем несохраненные детали инструментов/техники (isNew === true)
+    if ((props.isTool || props.isEquipment) && row.details && Array.isArray(row.details)) {
+      const unsaved = row.details.filter(d => d.isNew === true);
+      if (unsaved.length > 0) {
+        unsavedDetails.set(row.id, unsaved);
+      }
     }
   });
 
   // Обновляем данные
   existingRows.value = initializeExistingRows(newRows);
 
-  // Восстанавливаем состояние expanded
+  // Восстанавливаем состояние expanded и несохраненных элементов
   existingRows.value.forEach((row) => {
     if (expandedStates.has(row.id)) {
       row.expanded = true;
+    }
+
+    // Восстанавливаем несохраненных исполнителей
+    if (props.isPerformer && unsavedPerformers.has(row.id)) {
+      const unsaved = unsavedPerformers.get(row.id);
+
+      // Фильтруем дубликаты - добавляем только тех исполнителей, которых еще нет
+      // Проверяем по id и pv исполнителя
+      const existingPerformerKeys = new Set(
+        row.performers.map(p => `${p.id}_${p.pv}`)
+      );
+
+      const uniqueUnsaved = unsaved.filter(p =>
+        !existingPerformerKeys.has(`${p.id}_${p.pv}`)
+      );
+
+      if (uniqueUnsaved.length > 0) {
+        row.performers = [...row.performers, ...uniqueUnsaved];
+
+        // Пересчитываем факты
+        const { factCount, factHours } = calculatePerformerFacts(row.performers);
+        row.factCount = factCount;
+        row.factHours = factHours;
+      }
+    }
+
+    // Восстанавливаем несохраненные детали инструментов/техники
+    if ((props.isTool || props.isEquipment) && unsavedDetails.has(row.id)) {
+      const unsaved = unsavedDetails.get(row.id);
+
+      // Фильтруем дубликаты - добавляем только те детали, которых еще нет
+      // Проверяем по id и pv
+      const existingDetailKeys = new Set(
+        row.details.map(d => `${d.id}_${d.pv || ''}`)
+      );
+
+      const uniqueUnsaved = unsaved.filter(d =>
+        !existingDetailKeys.has(`${d.id}_${d.pv || ''}`)
+      );
+
+      if (uniqueUnsaved.length > 0) {
+        row.details = [...row.details, ...uniqueUnsaved];
+
+        // Пересчитываем факты
+        if (props.isTool) {
+          // Для инструментов только количество
+          row.factCount = row.details.length;
+        } else {
+          // Для техники - количество и часы
+          const { factCount, factHours } = calculatePerformerFacts(row.details);
+          row.factCount = factCount;
+          row.factHours = factHours;
+        }
+      }
     }
   });
 }, { immediate: true, deep: true });
@@ -482,6 +713,74 @@ const confirmDeletePerformer = () => {
 const cancelDeletePerformer = () => {
   showDeleteConfirmation.value = false;
   pendingDeleteData.value = null;
+};
+
+// --- Обработка инструментов и техники ---
+
+// Открытие модалки добавления инструментов/техники
+const openAddResourceModal = (index) => {
+  // TODO: Реализовать модалку для выбора инструментов/техники
+  currentRowIndex.value = index;
+  const row = existingRows.value[index];
+  currentPositionPv.value = row.typPv;
+  isModalOpen.value = true;
+};
+
+// Обновление деталей инструмента/техники
+const updateExistingDetail = (rowIndex, detailIndex, field, value) => {
+  const detail = existingRows.value[rowIndex].details[detailIndex];
+  detail[field] = value;
+
+  // Пересчитываем факты при изменении часов работы (только для техники)
+  if (field === 'time' && props.isEquipment) {
+    const row = existingRows.value[rowIndex];
+    const { factCount, factHours } = calculatePerformerFacts(row.details);
+    row.factCount = factCount;
+    row.factHours = factHours;
+  }
+};
+
+// Сохранение деталей инструмента/техники
+const saveResourceDetails = (rowIndex, detailIndex) => {
+  const row = existingRows.value[rowIndex];
+  const detail = row.details[detailIndex];
+
+  emit('save-resource', {
+    rowId: row.id,
+    detail: detail,
+    detailIndex: detailIndex,
+    resourceType: props.isTool ? 'tool' : 'equipment'
+  });
+};
+
+// Удаление детали инструмента/техники
+const deleteResourceDetail = (rowIndex, detailIndex) => {
+  const row = existingRows.value[rowIndex];
+  const detail = row.details[detailIndex];
+
+  // Если это новый элемент (еще не сохранен на бэке), просто удаляем из массива
+  if (detail.isNew) {
+    row.details.splice(detailIndex, 1);
+
+    // Пересчитываем факты
+    if (props.isTool) {
+      row.factCount = row.details.length;
+    } else {
+      const { factCount, factHours } = calculatePerformerFacts(row.details);
+      row.factCount = factCount;
+      row.factHours = factHours;
+    }
+
+    const notificationStore = useNotificationStore();
+    notificationStore.showNotification(
+      props.isTool ? 'Инструмент удален.' : 'Техника удалена.',
+      'success'
+    );
+  } else {
+    // Если элемент уже сохранен, показываем модальное окно подтверждения
+    pendingDeleteData.value = { rowIndex, detailIndex, row, detail };
+    showDeleteConfirmation.value = true;
+  }
 };
 
 // --- Обработка новых строк для не-исполнителей ---

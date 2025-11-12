@@ -24,6 +24,7 @@
         icon="wrench"
         :items="recordData.tools"
         :is-active="activeTab === 'tools'"
+        is-tool
         @click="setActiveTab('tools')"
       />
       <ResourceCard
@@ -31,6 +32,7 @@
         icon="truck"
         :items="recordData.equipment"
         :is-active="activeTab === 'equipment'"
+        is-equipment
         @click="setActiveTab('equipment')"
       />
       <ResourceCard
@@ -71,10 +73,13 @@
           :rows="recordData.tools"
           :nameOptions="toolNameOptions"
           :unitOptions="unitOptions"
+          :is-tool="true"
           @update:rows="recordData.tools = $event"
           @save-row="handleSaveRow"
           @delete-row="handleDeleteRow"
           @add-row="handleAddToolRow"
+          @save-resource="handleSaveResource"
+          @delete-resource="handleDeleteResource"
         />
         <ResourceEditTable
           v-else-if="recordData && activeTab === 'equipment'"
@@ -83,10 +88,13 @@
           :rows="recordData.equipment"
           :nameOptions="equipmentNameOptions"
           :unitOptions="unitOptions"
+          :is-equipment="true"
           @update:rows="recordData.equipment = $event"
           @save-row="handleSaveRow"
           @delete-row="handleDeleteRow"
           @add-row="handleAddEquipmentRow"
+          @save-resource="handleSaveResource"
+          @delete-resource="handleDeleteResource"
         />
         <ResourceEditTable
           v-else-if="recordData && activeTab === 'services'"
@@ -132,7 +140,7 @@ import BackButton from '@/components/ui/BackButton.vue';
 import ResourceCard from '@/components/ui/ResourceCard.vue';
 import ResourceEditTable from '@/components/ui/ResourceEditTable.vue';
 import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
-import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, saveComplexPersonnel, deleteComplexPersonnel } from '@/api/executionApi.js';
+import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, addResourceTpService, saveComplexPersonnel, deleteComplexPersonnel } from '@/api/executionApi.js';
 import { loadMaterials, loadUnits, loadExternalServices } from '@/api/repairApi.js';
 import { useNotificationStore } from '@/stores/notificationStore';
 
@@ -201,13 +209,11 @@ const handleSaveRow = async ({ row }) => {
 
 const handleSavePerformer = async ({ rowId, performer, performerIndex }) => {
   try {
-    // rowId - это ID записи personnel, по которой добавляем/редактируем исполнителя
-    // performer содержит данные исполнителя
     const performerData = {
-      objPerformer: performer.id,      // id выбранного исполнителя
-      pvPerformer: performer.pv,       // pv выбранного исполнителя
-      PerformerValue: performer.time,  // указанные часы
-      isNew: performer.isNew,          // флаг нового/существующего исполнителя
+      objPerformer: performer.id,
+      pvPerformer: performer.pv,
+      PerformerValue: performer.time,
+      isNew: performer.isNew,
     };
 
     // Для существующих исполнителей добавляем дополнительные поля
@@ -216,19 +222,13 @@ const handleSavePerformer = async ({ rowId, performer, performerIndex }) => {
       performerData.idPerformerValue = performer.idPerformerValue;
     }
 
-    console.log('Сохранение исполнителя:', { personnelId: rowId, performerData });
-
     await saveComplexPersonnel(rowId, performerData);
 
     notificationStore.showNotification('Данные исполнителя успешно сохранены!', 'success');
 
-    // Если это новый исполнитель, после сохранения помечаем его как существующий
-    if (performer.isNew) {
-      performer.isNew = false;
-      // Перезагружаем данные для получения ID от сервера
-      await loadWorkLogData(workLogId.value);
-    }
-    // Для существующих исполнителей не перезагружаем данные, чтобы не сбрасывать состояние expanded
+    // Перезагружаем данные с сервера
+    // Watcher в ResourceEditTable автоматически сохранит несохраненных исполнителей
+    await loadWorkLogData(workLogId.value);
   } catch (error) {
     notificationStore.showNotification('Ошибка при сохранении данных исполнителя.', 'error');
     console.error('Ошибка сохранения исполнителя:', error);
@@ -237,14 +237,11 @@ const handleSavePerformer = async ({ rowId, performer, performerIndex }) => {
 
 const handleDeletePerformer = async ({ performer }) => {
   try {
-    // Для удаления используем ID комплекса
     const complexId = performer.complexId;
 
     if (!complexId) {
       throw new Error('ID комплекса не найден');
     }
-
-    console.log('Удаление исполнителя:', { complexId, performer });
 
     await deleteComplexPersonnel(complexId);
 
@@ -258,17 +255,52 @@ const handleDeletePerformer = async ({ performer }) => {
   }
 };
 
-const handleAddPerformer = async ({ rowId, performers }) => {
+const handleAddPerformer = async () => {
   try {
-    // TODO: Здесь должен быть вызов API для добавления новых исполнителей
-    // const response = await addPerformerDetails(workLogId.value, rowId, performers);
-    
-    console.log('Добавление исполнителей:', { rowId, performers });
+    // TODO: Реализовать API для массового добавления исполнителей
     notificationStore.showNotification('Исполнители успешно добавлены!', 'success');
     await loadWorkLogData(workLogId.value);
   } catch (error) {
     notificationStore.showNotification('Ошибка при добавлении исполнителей.', 'error');
     console.error('Ошибка добавления исполнителей:', error);
+  }
+};
+
+// --- Обработчики для инструментов и техники ---
+
+const handleSaveResource = async ({ rowId, detail, detailIndex, resourceType }) => {
+  try {
+    // TODO: Реализовать API для сохранения деталей инструмента/техники
+    const resourceName = resourceType === 'tool' ? 'инструмента' : 'техники';
+
+    console.log(`Сохранение ${resourceName}:`, { rowId, detail, detailIndex, resourceType });
+
+    notificationStore.showNotification(`Данные ${resourceName} успешно сохранены!`, 'success');
+
+    // Перезагружаем данные с сервера
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    const resourceName = resourceType === 'tool' ? 'инструмента' : 'техники';
+    notificationStore.showNotification(`Ошибка при сохранении данных ${resourceName}.`, 'error');
+    console.error(`Ошибка сохранения ${resourceName}:`, error);
+  }
+};
+
+const handleDeleteResource = async ({ detail, resourceType }) => {
+  try {
+    // TODO: Реализовать API для удаления деталей инструмента/техники
+    const resourceName = resourceType === 'tool' ? 'Инструмент' : 'Техника';
+
+    console.log(`Удаление ${resourceName}:`, { detail, resourceType });
+
+    notificationStore.showNotification(`${resourceName} успешно удален!`, 'success');
+
+    // Перезагружаем данные для обновления списка
+    await loadWorkLogData(workLogId.value);
+  } catch (error) {
+    const resourceName = resourceType === 'tool' ? 'инструмента' : 'техники';
+    notificationStore.showNotification(`Ошибка при удалении ${resourceName}.`, 'error');
+    console.error(`Ошибка удаления ${resourceName}:`, error);
   }
 };
 
@@ -344,8 +376,34 @@ const handleAddEquipmentRow = async (newRowData) => {
 
 const handleAddServiceRow = async (newRowData) => {
   try {
-    // TODO: Здесь должен быть вызов API для добавления новой услуги
-    console.log('Добавление услуги:', newRowData);
+    if (!recordData.value?.taskLogCls) {
+      throw new Error('Не найдены данные задачи');
+    }
+
+    console.log('Данные для добавления услуги (newRowData):', newRowData);
+    console.log('Справочник услуг:', serviceNameOptions.value);
+
+    const serviceId = newRowData.name?.value;
+
+    const selectedService = serviceNameOptions.value.find(s => s.value === serviceId);
+
+    if (!selectedService) {
+      console.error('Услуга с ID', serviceId, 'не найдена в справочнике serviceNameOptions.');
+      throw new Error('Услуга не найдена');
+    }
+
+    const serviceData = {
+      objTpService: selectedService.value,
+      pvTpService: selectedService.pv,
+      Value: newRowData.fact || 0,
+    };
+
+    await addResourceTpService(
+      serviceData,
+      workLogId.value,
+      recordData.value.taskLogCls
+    );
+
     notificationStore.showNotification('Услуга успешно добавлена!', 'success');
     await loadWorkLogData(workLogId.value);
   } catch (error) {
@@ -431,14 +489,20 @@ const loadWorkLogData = async (id) => {
       tools: (data.tool || []).map(item => ({
         id: item.id,
         name: item.nameTypTool,
-        plan: item.Value,
-        unit: 'шт',
+        planCount: item.Value || 0,      // Value - это количество для инструментов
+        factCount: 0,                     // TODO: Получать из фактических данных
+        toolDetails: [],                  // TODO: Получать детали по конкретным единицам инструмента
+        typToolPv: item.pvTypTool || null,
       })),
       equipment: (data.equipment || []).map(item => ({
         id: item.id,
         name: item.nameTypEquipment,
-        plan: item.Quantity,
-        hours: item.Value,
+        planCount: item.Quantity || 0,    // Планируемое количество
+        planHours: item.Value || 0,        // Планируемые часы
+        factCount: 0,                      // TODO: Получать из фактических данных
+        factHours: 0,                      // TODO: Получать из фактических данных
+        equipmentDetails: [],              // TODO: Получать детали по конкретным единицам техники
+        typEquipmentPv: item.pvTypEquipment || null,
       })),
       performers: (data.personnel || []).map(item => ({
         id: item.id,

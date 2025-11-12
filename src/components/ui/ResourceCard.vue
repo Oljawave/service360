@@ -47,6 +47,14 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  isTool: {
+    type: Boolean,
+    default: false
+  },
+  isEquipment: {
+    type: Boolean,
+    default: false
+  },
   isActive: {
     type: Boolean,
     default: false
@@ -71,6 +79,13 @@ const totalPerformers = computed(() => {
 
 const totalQuantity = computed(() => {
   if (props.isPerformer) return 0;
+
+  // Для инструментов и техники используем planCount
+  if (props.isTool || props.isEquipment) {
+    return props.items.reduce((sum, item) => sum + (item.planCount || 0), 0);
+  }
+
+  // Для материалов и услуг используем plan
   return props.items.reduce((sum, item) => sum + (item.plan || 0), 0);
 });
 </script>
