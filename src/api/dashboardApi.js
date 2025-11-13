@@ -99,12 +99,20 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
   return response.data.result?.records || [];
 };
 
-export const loadRailwayStatus = async () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const dateStr = `${year}-${month}-${day}`;
+export const loadRailwayStatus = async (customDate = null) => {
+  let dateStr;
+
+  if (customDate) {
+    // Если передана кастомная дата, используем её
+    dateStr = customDate;
+  } else {
+    // Иначе используем сегодняшнюю дату
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    dateStr = `${year}-${month}-${day}`;
+  }
 
   const params = {
     date: dateStr,

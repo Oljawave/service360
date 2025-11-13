@@ -6,15 +6,25 @@
     </div>
 
     <template v-else>
-    <DashboardHeader 
+    <DashboardHeader
       :selected-farm="selectedFarm"
       :farms="farms"
       :weather-temp="weatherTemp"
       :weather-icon-name="weatherIconName"
       :weather-icon-color="weatherIconColor"
       :current-date="currentDate"
+      :is-railway-status-open="isRailwayStatusOpen"
       @select-farm="selectFarm"
+      @toggle-railway-status="toggleRailwayStatus"
     />
+
+    <Transition name="railway-status-slide">
+      <RailwaySectionStatus
+        v-if="isRailwayStatusOpen"
+        :intermediate-stations="intermediateStations"
+        :status-segments="railwayStatusSegments"
+      />
+    </Transition>
 
     <div class="kpi-grid">
       <KpiCard 
@@ -50,11 +60,6 @@
       :is-loading="isMapLoading"
       :active-kpi-filter="activeKpiFilter"
       @incident-click="handleIncidentClick"
-    />
-
-    <RailwaySectionStatus
-      :intermediate-stations="intermediateStations"
-      :status-segments="railwayStatusSegments"
     />
 
     <QuickActions 
@@ -120,8 +125,10 @@ const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
 const isLoading = ref(true);
 const isMapLoading = ref(false);
+const selectedDate = ref(null); // Добавим ref для хранения выбранной даты
 const activeKpiFilter = ref('newIncidents');
 const selectedEvent = ref(null);
+const isRailwayStatusOpen = ref(false);
 
 const selectedFarm = ref('Все хозяйства');
 const selectedFarmId = ref(null);
@@ -179,8 +186,12 @@ const selectFarm = async (farm) => {
   // Загружаем KPI и обновляем карту
   await Promise.all([
     loadKpiData(),
-    loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value)
+    loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value),
   ]);
+
+  // Обновляем план работ для новой фермы, используя текущую выбранную дату
+  const dateToRefresh = selectedDate.value ? formatDateToString(selectedDate.value) : formatDateToString(new Date());
+  await handleDateSelected(dateToRefresh);
 };
 
 const setActiveKpi = async (filter) => {
@@ -402,6 +413,7 @@ const loadRailwayIncidents = async (filter, farmId) => {
 };
 
 const handleDateSelected = async (dateStr) => {
+  selectedDate.value = new Date(dateStr); // Сохраняем выбранную дату
   const date = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -469,6 +481,10 @@ const handlePlanUpdated = () => {
 
 const handleIncidentClick = (incident) => {
   console.log('Clicked incident:', incident);
+};
+
+const toggleRailwayStatus = () => {
+  isRailwayStatusOpen.value = !isRailwayStatusOpen.value;
 };
 
 onMounted(() => {
@@ -542,5 +558,22 @@ onMounted(() => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Анимация для RailwaySectionStatus */
+.railway-status-slide-enter-active,
+.railway-status-slide-leave-active {
+  transition: all 0.3s ease;
+  transform-origin: top;
+}
+
+.railway-status-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scaleY(0.95);
+}
+
+.railway-status-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scaleY(0.98);
 }
 </style>

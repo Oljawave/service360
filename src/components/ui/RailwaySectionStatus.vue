@@ -7,19 +7,35 @@
         <p class="railway-subtitle">Средний балл {{ averageScore }}</p>
       </div>
       <div class="status-legend">
-        <div class="legend-item">
+        <div
+          class="legend-item"
+          :class="{ 'legend-item-active': selectedLegends.includes('excellent'), 'legend-item-inactive': selectedLegends.length > 0 && !selectedLegends.includes('excellent') }"
+          @click="toggleLegend('excellent')"
+        >
           <div class="legend-color" style="background-color: #10b981;"></div>
           <span class="legend-text">{{ statusStats.excellent }} км  Отлично ≤ 25</span>
         </div>
-        <div class="legend-item">
+        <div
+          class="legend-item"
+          :class="{ 'legend-item-active': selectedLegends.includes('good'), 'legend-item-inactive': selectedLegends.length > 0 && !selectedLegends.includes('good') }"
+          @click="toggleLegend('good')"
+        >
           <div class="legend-color" style="background-color: #84cc16;"></div>
           <span class="legend-text">{{ statusStats.good }} км  Хорошо ≤ 80</span>
         </div>
-        <div class="legend-item">
+        <div
+          class="legend-item"
+          :class="{ 'legend-item-active': selectedLegends.includes('satisfactory'), 'legend-item-inactive': selectedLegends.length > 0 && !selectedLegends.includes('satisfactory') }"
+          @click="toggleLegend('satisfactory')"
+        >
           <div class="legend-color" style="background-color: #f97316;"></div>
           <span class="legend-text">{{ statusStats.satisfactory }} км  Удовл. ≤ 180</span>
         </div>
-        <div class="legend-item">
+        <div
+          class="legend-item"
+          :class="{ 'legend-item-active': selectedLegends.includes('poor'), 'legend-item-inactive': selectedLegends.length > 0 && !selectedLegends.includes('poor') }"
+          @click="toggleLegend('poor')"
+        >
           <div class="legend-color" style="background-color: #ef4444;"></div>
           <span class="legend-text">{{ statusStats.poor }} км  Неудовл. > 180</span>
         </div>
@@ -52,15 +68,10 @@
             @mouseleave="hoveredSegmentKm = null"
           >
             <Transition name="tooltip-fade">
-              <div v-if="hoveredSegmentKm === segment.km && segment.paramsLimit !== null && segment.paramsLimit !== undefined" class="segment-tooltip">
-                <div class="tooltip-header">Километр: {{ segment.finishKm }} км</div>
-                <div class="tooltip-body">
-                  <div class="tooltip-item">
-                    <strong>Состояние</strong>
-                    <span>{{ segment.status }}</span>
-                  </div>
-                  <div class="tooltip-item"><strong>Балл</strong><span>{{ segment.paramsLimit }}</span></div>
-                </div>
+              <div v-if="hoveredSegmentKm === segment.km && segment.status" class="segment-tooltip">
+                <div class="tooltip-row"><strong>Состояние:</strong> {{ segment.status }}</div>
+                <div class="tooltip-row"><strong>Балл:</strong> {{ segment.paramsLimit }}</div>
+                <div class="tooltip-row"><strong>Километр:</strong> {{ segment.km }} км</div>
               </div>
             </Transition>
           </div>
@@ -119,6 +130,7 @@ const TOTAL_RAIL_LENGTH_KM = 151;
 
 const hoveredStationId = ref(null);
 const hoveredSegmentKm = ref(null);
+const selectedLegends = ref([]);
 
 // Форматируем текущую дату
 const currentDate = computed(() => {
@@ -131,6 +143,16 @@ const formatStationCoords = (kmValue) => {
   const km = Math.floor(kmValue);
   const pk = Math.round((kmValue - km) * 10);
   return `${km}км ${pk}пк`;
+};
+
+// Функция переключения фильтра легенды
+const toggleLegend = (legendType) => {
+  const index = selectedLegends.value.indexOf(legendType);
+  if (index > -1) {
+    selectedLegends.value.splice(index, 1);
+  } else {
+    selectedLegends.value.push(legendType);
+  }
 };
 
 // Определяем цвет сегмента на основе ParamsLimit
@@ -147,6 +169,14 @@ const getSegmentStatus = (paramsLimit) => {
   if (paramsLimit <= 80) return 'Хорошо';
   if (paramsLimit <= 180) return 'Удовлетворительно';
   return 'Неудовлетворительно';
+};
+
+// Определяем тип статуса для фильтрации
+const getSegmentStatusType = (paramsLimit) => {
+  if (paramsLimit <= 25) return 'excellent';
+  if (paramsLimit <= 80) return 'good';
+  if (paramsLimit <= 180) return 'satisfactory';
+  return 'poor';
 };
 
 // Создаем массив всех километровых сегментов с учетом данных о состоянии
@@ -176,6 +206,12 @@ const railwaySegments = computed(() => {
 
     const statusData = statusMap.get(km);
     const color = statusData ? getSegmentColor(statusData.ParamsLimit) : '#cbd5e1'; // серый по умолчанию
+    const statusType = statusData ? getSegmentStatusType(statusData.ParamsLimit) : null;
+
+    // Если есть фильтры и сегмент не соответствует ни одному из них, пропускаем
+    if (selectedLegends.value.length > 0 && statusType && !selectedLegends.value.includes(statusType)) {
+      continue;
+    }
 
     segments.push({
       km,
@@ -185,6 +221,7 @@ const railwaySegments = computed(() => {
       paramsLimit: statusData?.ParamsLimit,
       finishKm: statusData?.FinishKm,
       status: statusData ? getSegmentStatus(statusData.ParamsLimit) : null,
+      statusType,
     });
   }
 
@@ -202,16 +239,19 @@ const statusStats = computed(() => {
     count: 0,
   };
 
-  railwaySegments.value.forEach(segment => {
-    if (segment.paramsLimit !== undefined && segment.paramsLimit !== null) {
+  // Каждая запись представляет 1 километр участка
+  props.statusSegments.forEach(segment => {
+    if (segment.ParamsLimit !== undefined && segment.ParamsLimit !== null) {
       stats.count++;
-      stats.totalScore += segment.paramsLimit;
+      stats.totalScore += segment.ParamsLimit;
 
-      if (segment.paramsLimit <= 25) {
+      // Считаем количество километров по категориям
+      // Каждая запись = 1 км
+      if (segment.ParamsLimit <= 25) {
         stats.excellent++;
-      } else if (segment.paramsLimit <= 80) {
+      } else if (segment.ParamsLimit <= 80) {
         stats.good++;
-      } else if (segment.paramsLimit <= 180) {
+      } else if (segment.ParamsLimit <= 180) {
         stats.satisfactory++;
       } else {
         stats.poor++;
@@ -242,7 +282,7 @@ const averageScore = computed(() => {
 .status-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 32px;
   gap: 24px;
 }
@@ -270,19 +310,37 @@ const averageScore = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.legend-item:hover {
+  background-color: #f7fafc;
+}
+
+.legend-item-active {
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+}
+
+.legend-item-inactive {
+  opacity: 0.4;
 }
 
 .legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
 .legend-text {
-  font-size: 13px;
-  color: #4a5568;
+  font-size: 14px;
+  color: #1a202c;
   white-space: nowrap;
+  font-weight: 400;
 }
 
 .railway-container {
@@ -332,26 +390,29 @@ const averageScore = computed(() => {
   border-radius: 1px;
   transition: all 0.3s ease;
   cursor: pointer;
+  z-index: 2;
 }
 
 .railway-segment:hover {
-  transform: scaleY(1.3);
+  height: 8px;
+  top: -1px;
   z-index: 10;
 }
 
 .segment-tooltip {
   position: absolute;
-  bottom: 20px;
+  bottom: 100%;
   left: 50%;
-  width: 240px;
   transform: translateX(-50%);
-  background-color: white;
-  color: #1a202c;
-  border-radius: 8px;
-  font-size: 13px;
-  white-space: normal;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  z-index: 25;
+  margin-bottom: 12px;
+  background-color: #2d3748;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  z-index: 30;
   pointer-events: none;
 }
 
@@ -360,37 +421,28 @@ const averageScore = computed(() => {
   position: absolute;
   top: 100%;
   left: 50%;
-  margin-left: -6px;
-  border-width: 6px;
+  margin-left: -5px;
+  border-width: 5px;
   border-style: solid;
-  border-color: white transparent transparent transparent;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+  border-color: #2d3748 transparent transparent transparent;
 }
 
-.tooltip-header {
-  padding: 10px 14px;
-  font-size: 13px;
+.tooltip-row {
+  margin: 3px 0;
+  line-height: 1.4;
+}
+
+.tooltip-row:first-child {
+  margin-top: 0;
+}
+
+.tooltip-row:last-child {
+  margin-bottom: 0;
+}
+
+.tooltip-row strong {
   font-weight: 600;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.tooltip-body {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tooltip-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.tooltip-item strong {
-  font-weight: 600;
-  color: #4a5568;
+  margin-right: 4px;
 }
 
 .track-marker {
