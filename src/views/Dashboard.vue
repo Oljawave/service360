@@ -9,10 +9,6 @@
     <DashboardHeader
       :selected-farm="selectedFarm"
       :farms="farms"
-      :weather-temp="weatherTemp"
-      :weather-icon-name="weatherIconName"
-      :weather-icon-color="weatherIconColor"
-      :current-date="currentDate"
       :is-railway-status-open="isRailwayStatusOpen"
       @select-farm="selectFarm"
       @toggle-railway-status="toggleRailwayStatus"
@@ -137,14 +133,7 @@ const departmentsMap = ref({});
 
 const RAILWAY_TOTAL_KM = 151;
 
-const weatherTemp = ref('Загрузка...'); 
-const currentDate = ref('Загрузка...'); 
-const weatherIconName = ref('Sun');
-const weatherIconColor = ref('#f6ad55');
-
-const API_KEY = 'b68cfdf8a6b6640730e7fec49b793661'; 
-const ALMATY_TIMEZONE = 'Asia/Almaty';
-const UST_KAMENOGORSK_CITY_ID = '1520316'; 
+ 
 
 const kpi = ref({
   newIncidents: 0,
@@ -212,76 +201,6 @@ const formatDateToString = (date) => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const mapOpenWeatherIcon = (iconCode) => {
-  const map = {
-    '01d': { name: 'Sun', color: '#f6ad55' },
-    '01n': { name: 'Moon', color: '#63b3ed' },
-    '02d': { name: 'CloudSun', color: '#ecc94b' },
-    '02n': { name: 'CloudMoon', color: '#a0aec0' },
-    '03d': { name: 'Cloud', color: '#718096' },
-    '03n': { name: 'Cloud', color: '#718096' },
-    '04d': { name: 'CloudDrizzle', color: '#4a5568' },
-    '04n': { name: 'CloudDrizzle', color: '#4a5568' },
-    '09d': { name: 'CloudRain', color: '#63b3ed' },
-    '09n': { name: 'CloudRain', color: '#63b3ed' },
-    '10d': { name: 'CloudRain', color: '#63b3ed' },
-    '10n': { name: 'CloudRain', color: '#63b3ed' },
-    '11d': { name: 'CloudLightning', color: '#9f7aea' },
-    '11n': { name: 'CloudLightning', color: '#9f7aea' },
-    '13d': { name: 'CloudSnow', color: '#e2e8f0' },
-    '13n': { name: 'CloudSnow', color: '#e2e8f0' },
-    '50d': { name: 'Mist', color: '#a0aec0' },
-    '50n': { name: 'Mist', color: '#a0aec0' },
-  };
-  return map[iconCode] || { name: 'Sun', color: '#f6ad55' };
-};
-
-const fetchWeather = async () => {
-  if (!API_KEY) {
-    weatherTemp.value = 'Нет API ключа';
-    weatherIconName.value = 'AlertCircle';
-    weatherIconColor.value = '#c53030';
-    return;
-  }
-  
-  const url = `https://api.openweathermap.org/data/2.5/weather?id=${UST_KAMENOGORSK_CITY_ID}&appid=${API_KEY}&units=metric&lang=ru`;
-  
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
-    
-    const temp = Math.round(data.main.temp);
-    const iconCode = data.weather[0].icon;
-
-    weatherTemp.value = `${temp}°C`;
-    const iconMapping = mapOpenWeatherIcon(iconCode);
-    weatherIconName.value = iconMapping.name;
-    weatherIconColor.value = iconMapping.color;
-  } catch (error) {
-    console.error("Ошибка при получении погоды:", error);
-    weatherTemp.value = '—°C';
-    weatherIconName.value = 'AlertCircle';
-    weatherIconColor.value = '#c53030';
-  }
-};
-
-const fetchAlmatyDate = () => {
-  try {
-    const options = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: ALMATY_TIMEZONE,
-    };
-    const nowInAlmaty = new Date().toLocaleDateString('ru-RU', options);
-    currentDate.value = nowInAlmaty;
-  } catch (error) {
-    console.error("Ошибка при получении даты:", error);
-    currentDate.value = 'Дата недоступна';
-  }
 };
 
 const fetchFarms = async () => {
@@ -450,9 +369,7 @@ const refreshData = () => {
     loadKpiData(),
     loadRailwayIncidents(activeKpiFilter.value, selectedFarmId.value),
     loadRailwayStatusData(),
-    handleDateSelected(formatDateToString(new Date())),
-    fetchWeather(),
-    fetchAlmatyDate()
+    handleDateSelected(formatDateToString(new Date()))
   ]).finally(() => {
     isLoading.value = false;
   });
