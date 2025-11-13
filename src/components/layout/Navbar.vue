@@ -7,6 +7,13 @@
       <SearchBox v-if="!isMobile" :collapsed="collapsedSearch" />
     </div>
 
+    <WeatherAndDate
+      :weather-temp="weatherTemp"
+      :weather-icon-name="weatherIconName"
+      :weather-icon-color="weatherIconColor"
+      :current-date="currentDate"
+    />
+
     <div class="navbar-right">
       <div class="lang-select" @click="toggleLangMenu">
         {{ currentLang }}
@@ -33,19 +40,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import UiIcon from '../ui/UiIcon.vue'
 import SearchBox from '../ui/SearchBox.vue'
 import UserAvatar from '../ui/UserAvatar.vue'
+import WeatherAndDate from '../ui/WeatherAndDate.vue'
 import { useSidebarStore } from '@/stores/sidebar'
 
 
-const collapsedSearch = ref(false) // Оставляем для возможного сжатия на десктопе
+const collapsedSearch = ref(false)
 const isMobile = ref(false)
 const currentLang = ref(localStorage.getItem('lang') || 'РУС')
 const languages = ['РУС', 'ҚАЗ', 'ENG']
 const langMenuOpen = ref(false)
 const sidebar = useSidebarStore()
+
+const weatherTemp = ref('+12°C')
+const weatherIconName = ref('CloudSun')
+const weatherIconColor = ref('#f59e0b')
+
+const currentDate = computed(() => {
+  const today = new Date()
+  return today.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
+})
 
 const toggleLangMenu = () => {
   langMenuOpen.value = !langMenuOpen.value

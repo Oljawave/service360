@@ -45,16 +45,21 @@
     <div class="railway-container">
       <div class="stations-row">
         <div class="station-info">
-          <div class="station-name">Станция Шар</div>
+          <div class="station-name">{{ edgeStations.startStation.name }}</div>
         </div>
         <div class="station-info">
-          <div class="station-name">Станция НУК</div>
+          <div class="station-name">{{ edgeStations.endStation.name }}</div>
         </div>
       </div>
 
       <div class="railway-slider">
-        <div class="railway-track">
-          <!-- Пунктирные сегменты -->
+        <div
+          ref="railwayTrackRef"
+          class="railway-track"
+          :class="{ 'is-dragging': isDragging, 'is-zoomable': zoomLevel > MIN_ZOOM }"
+          @mousedown="handleMouseDown"
+        >
+
           <div
             v-for="segment in railwaySegments"
             :key="segment.km"
@@ -79,10 +84,10 @@
           <div class="track-marker start-point" :style="{ left: '0%' }"></div>
 
           <div
-            v-for="station in intermediateStations"
+            v-for="station in visibleStations"
             :key="station.id"
             class="track-marker intermediate-station"
-            :style="{ left: station.position + '%' }"
+            :style="{ left: station.position }"
             @mouseenter="hoveredStationId = station.id"
             @mouseleave="hoveredStationId = null"
           >
@@ -98,13 +103,14 @@
       </div>
 
       <div class="distance-labels">
-        <span class="distance-label">0км</span>
-        <span class="distance-label">25км</span>
-        <span class="distance-label">50км</span>
-        <span class="distance-label">75км</span>
-        <span class="distance-label">100км</span>
-        <span class="distance-label">125км</span>
-        <span class="distance-label">151км</span>
+        <span
+          v-for="label in distanceLabels"
+          :key="label.km"
+          class="distance-label"
+          :style="{ left: label.position }"
+        >
+          {{ label.label }}
+        </span>
       </div>
     </div>
     </div>
@@ -112,9 +118,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-// Принимаем данные от родительского компонента
 const props = defineProps({
   intermediateStations: {
     type: Array,
@@ -132,7 +137,16 @@ const hoveredStationId = ref(null);
 const hoveredSegmentKm = ref(null);
 const selectedLegends = ref([]);
 
-// Форматируем текущую дату
+const zoomLevel = ref(1);
+const panOffset = ref(0);
+const railwayTrackRef = ref(null);
+const isDragging = ref(false);
+const dragStartX = ref(0);
+const dragStartOffset = ref(0);
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 20;
+const ZOOM_SPEED = 0.1;
 const currentDate = computed(() => {
   const today = new Date();
   return today.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -145,7 +159,6 @@ const formatStationCoords = (kmValue) => {
   return `${km}км ${pk}пк`;
 };
 
-// Функция переключения фильтра легенды
 const toggleLegend = (legendType) => {
   const index = selectedLegends.value.indexOf(legendType);
   if (index > -1) {
@@ -155,7 +168,6 @@ const toggleLegend = (legendType) => {
   }
 };
 
-// Определяем цвет сегмента на основе ParamsLimit
 const getSegmentColor = (paramsLimit) => {
   if (paramsLimit <= 25) return '#10b981'; // зеленый
   if (paramsLimit <= 80) return '#84cc16'; // салатовый
@@ -163,7 +175,6 @@ const getSegmentColor = (paramsLimit) => {
   return '#ef4444'; // красный
 };
 
-// Определяем статус на основе ParamsLimit
 const getSegmentStatus = (paramsLimit) => {
   if (paramsLimit <= 25) return 'Отлично';
   if (paramsLimit <= 80) return 'Хорошо';
@@ -171,7 +182,6 @@ const getSegmentStatus = (paramsLimit) => {
   return 'Неудовлетворительно';
 };
 
-// Определяем тип статуса для фильтрации
 const getSegmentStatusType = (paramsLimit) => {
   if (paramsLimit <= 25) return 'excellent';
   if (paramsLimit <= 80) return 'good';
@@ -179,36 +189,41 @@ const getSegmentStatusType = (paramsLimit) => {
   return 'poor';
 };
 
-// Создаем массив всех километровых сегментов с учетом данных о состоянии
 const railwaySegments = computed(() => {
   const segments = [];
+  const { startKm: viewStartKm, endKm: viewEndKm } = visibleRange.value;
 
-  // Создаем Map для быстрого поиска данных по километру
   const statusMap = new Map();
   props.statusSegments.forEach(segment => {
     const startKm = Math.floor(segment.StartKm || 0);
     const finishKm = Math.floor(segment.FinishKm || 0);
 
-    // Заполняем все километры в диапазоне
     for (let km = startKm; km <= finishKm; km++) {
       statusMap.set(km, segment);
     }
   });
 
-  // Создаем сегменты для каждого километра
-  for (let km = 0; km < TOTAL_RAIL_LENGTH_KM; km++) {
-    const startPercent = (km / TOTAL_RAIL_LENGTH_KM) * 100;
-    const endPercent = ((km + 1) / TOTAL_RAIL_LENGTH_KM) * 100;
+  const startKmFloor = Math.floor(viewStartKm);
+  const endKmCeil = Math.ceil(viewEndKm);
+
+  for (let km = startKmFloor; km <= endKmCeil && km <= TOTAL_RAIL_LENGTH_KM; km++) {
+    const segmentStart = Math.max(km, viewStartKm);
+    const segmentEnd = Math.min(km + 1, viewEndKm);
+
+    if (segmentEnd <= segmentStart) continue;
+
+    const startPercent = ((segmentStart - viewStartKm) / (viewEndKm - viewStartKm)) * 100;
+    const endPercent = ((segmentEnd - viewStartKm) / (viewEndKm - viewStartKm)) * 100;
     const totalWidth = endPercent - startPercent;
 
-    // Делаем сегмент уже, оставляя промежуток (95% ширины, 5% - промежуток)
+  
     const widthPercent = totalWidth * 0.95;
 
     const statusData = statusMap.get(km);
-    const color = statusData ? getSegmentColor(statusData.ParamsLimit) : '#cbd5e1'; // серый по умолчанию
+    const color = statusData ? getSegmentColor(statusData.ParamsLimit) : '#cbd5e1'; 
     const statusType = statusData ? getSegmentStatusType(statusData.ParamsLimit) : null;
 
-    // Если есть фильтры и сегмент не соответствует ни одному из них, пропускаем
+
     if (selectedLegends.value.length > 0 && statusType && !selectedLegends.value.includes(statusType)) {
       continue;
     }
@@ -228,33 +243,36 @@ const railwaySegments = computed(() => {
   return segments;
 });
 
-// Вычисляем статистику по категориям
 const statusStats = computed(() => {
   const stats = {
-    excellent: 0, // ≤ 25
-    good: 0,      // ≤ 80
-    satisfactory: 0, // ≤ 180
-    poor: 0,      // > 180
+    excellent: 0, 
+    good: 0,      
+    satisfactory: 0, 
+    poor: 0,   
     totalScore: 0,
     count: 0,
   };
 
-  // Каждая запись представляет 1 километр участка
-  props.statusSegments.forEach(segment => {
-    if (segment.ParamsLimit !== undefined && segment.ParamsLimit !== null) {
-      stats.count++;
-      stats.totalScore += segment.ParamsLimit;
+  const { startKm: viewStartKm, endKm: viewEndKm } = visibleRange.value;
 
-      // Считаем количество километров по категориям
-      // Каждая запись = 1 км
-      if (segment.ParamsLimit <= 25) {
-        stats.excellent++;
-      } else if (segment.ParamsLimit <= 80) {
-        stats.good++;
-      } else if (segment.ParamsLimit <= 180) {
-        stats.satisfactory++;
-      } else {
-        stats.poor++;
+
+  props.statusSegments.forEach(segment => {
+    const segStartKm = segment.StartKm || 0;
+
+    if (segStartKm >= viewStartKm && segStartKm < viewEndKm) {
+      if (segment.ParamsLimit !== undefined && segment.ParamsLimit !== null) {
+        stats.count++;
+        stats.totalScore += segment.ParamsLimit;
+
+        if (segment.ParamsLimit <= 25) {
+          stats.excellent++;
+        } else if (segment.ParamsLimit <= 80) {
+          stats.good++;
+        } else if (segment.ParamsLimit <= 180) {
+          stats.satisfactory++;
+        } else {
+          stats.poor++;
+        }
       }
     }
   });
@@ -262,10 +280,186 @@ const statusStats = computed(() => {
   return stats;
 });
 
-// Средний балл
 const averageScore = computed(() => {
   if (statusStats.value.count === 0) return 0;
   return Math.round(statusStats.value.totalScore / statusStats.value.count);
+});
+
+const visibleRange = computed(() => {
+  const visibleWidth = TOTAL_RAIL_LENGTH_KM / zoomLevel.value;
+  const maxOffset = TOTAL_RAIL_LENGTH_KM - visibleWidth;
+  const actualOffset = Math.max(0, Math.min(maxOffset, (panOffset.value / 100) * TOTAL_RAIL_LENGTH_KM));
+
+  return {
+    startKm: actualOffset,
+    endKm: actualOffset + visibleWidth,
+    visibleWidth
+  };
+});
+
+const handleWheel = (event) => {
+  event.preventDefault();
+
+  const delta = -Math.sign(event.deltaY);
+  const newZoom = zoomLevel.value + delta * ZOOM_SPEED * zoomLevel.value;
+
+
+  const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+
+  if (clampedZoom !== zoomLevel.value) {
+
+    const rect = railwayTrackRef.value.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mousePercent = mouseX / rect.width;
+
+    const oldVisibleWidth = TOTAL_RAIL_LENGTH_KM / zoomLevel.value;
+    const newVisibleWidth = TOTAL_RAIL_LENGTH_KM / clampedZoom;
+
+    const currentStartKm = (panOffset.value / 100) * TOTAL_RAIL_LENGTH_KM;
+    const mouseKm = currentStartKm + oldVisibleWidth * mousePercent;
+
+    const newStartKm = mouseKm - newVisibleWidth * mousePercent;
+    const maxOffset = TOTAL_RAIL_LENGTH_KM - newVisibleWidth;
+    const clampedStartKm = Math.max(0, Math.min(maxOffset, newStartKm));
+
+    zoomLevel.value = clampedZoom;
+    panOffset.value = (clampedStartKm / TOTAL_RAIL_LENGTH_KM) * 100;
+  }
+};
+
+const handleMouseDown = (event) => {
+  if (zoomLevel.value > MIN_ZOOM) {
+    isDragging.value = true;
+    dragStartX.value = event.clientX;
+    dragStartOffset.value = panOffset.value;
+    event.preventDefault();
+  }
+};
+
+const handleMouseMove = (event) => {
+  if (isDragging.value && railwayTrackRef.value) {
+    const rect = railwayTrackRef.value.getBoundingClientRect();
+    const deltaX = event.clientX - dragStartX.value;
+    const deltaPercent = -(deltaX / rect.width) * (100 / zoomLevel.value);
+
+    const newOffset = dragStartOffset.value + deltaPercent;
+    const maxOffset = ((TOTAL_RAIL_LENGTH_KM - visibleRange.value.visibleWidth) / TOTAL_RAIL_LENGTH_KM) * 100;
+
+    panOffset.value = Math.max(0, Math.min(maxOffset, newOffset));
+  }
+};
+
+const handleMouseUp = () => {
+  isDragging.value = false;
+};
+
+const visibleStations = computed(() => {
+  const { startKm, endKm, visibleWidth } = visibleRange.value;
+
+  return props.intermediateStations
+    .filter(station => {
+      const stationKm = station.km || 0;
+      return stationKm >= startKm && stationKm <= endKm;
+    })
+    .map(station => {
+      const stationKm = station.km || 0;
+      const position = ((stationKm - startKm) / visibleWidth) * 100;
+      return {
+        ...station,
+        position: `${position}%`
+      };
+    });
+});
+
+const edgeStations = computed(() => {
+  const { startKm, endKm } = visibleRange.value;
+
+  const allStations = [
+    { km: 0, name: 'Станция Шар' },
+    ...props.intermediateStations,
+    { km: TOTAL_RAIL_LENGTH_KM, name: 'Станция НУК' }
+  ];
+
+  let startStation = allStations[0];
+  let endStation = allStations[allStations.length - 1];
+
+  for (let i = 0; i < allStations.length; i++) {
+    if (allStations[i].km <= startKm) {
+      startStation = allStations[i];
+    }
+    if (allStations[i].km >= endKm) {
+      endStation = allStations[i];
+      break;
+    }
+  }
+
+  return { startStation, endStation };
+});
+
+const distanceLabels = computed(() => {
+  const { startKm, endKm, visibleWidth } = visibleRange.value;
+  const labels = [];
+
+
+  let step;
+  if (visibleWidth > 100) {
+    step = 25;
+  } else if (visibleWidth > 50) {
+    step = 10;
+  } else if (visibleWidth > 20) {
+    step = 5;
+  } else if (visibleWidth > 10) {
+    step = 2;
+  } else {
+    step = 1;
+  }
+
+  const firstLabel = Math.ceil(startKm / step) * step;
+
+  for (let km = firstLabel; km <= endKm; km += step) {
+    const position = ((km - startKm) / visibleWidth) * 100;
+    if (position >= 0 && position <= 100) {
+      labels.push({
+        km,
+        position: `${position}%`,
+        label: `${Math.round(km)}км`
+      });
+    }
+  }
+
+  if (labels.length === 0 || labels[0].km > startKm + 0.5) {
+    labels.unshift({
+      km: startKm,
+      position: '0%',
+      label: `${Math.round(startKm)}км`
+    });
+  }
+
+  if (labels.length === 0 || labels[labels.length - 1].km < endKm - 0.5) {
+    labels.push({
+      km: endKm,
+      position: '100%',
+      label: `${Math.round(endKm)}км`
+    });
+  }
+
+  return labels;
+});
+
+onMounted(() => {
+  if (railwayTrackRef.value) {
+    railwayTrackRef.value.addEventListener('wheel', handleWheel, { passive: false });
+  }
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+});
+
+onUnmounted(() => {
+  if (railwayTrackRef.value) {
+    railwayTrackRef.value.removeEventListener('wheel', handleWheel);
+  }
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', handleMouseUp);
 });
 </script>
 
@@ -382,6 +576,16 @@ const averageScore = computed(() => {
   height: 6px;
   background: #e2e8f0;
   border-radius: 3px;
+  cursor: default;
+  user-select: none;
+}
+
+.railway-track.is-zoomable {
+  cursor: grab;
+}
+
+.railway-track.is-dragging {
+  cursor: grabbing;
 }
 
 .railway-segment {
@@ -529,15 +733,19 @@ const averageScore = computed(() => {
 .tooltip-fade-enter-to, .tooltip-fade-leave-from { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .distance-labels {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 20px;
   padding: 0 12px;
 }
 
 .distance-label {
+  position: absolute;
   font-size: 12px;
   color: #94a3b8;
   font-weight: 500;
+  transform: translateX(-50%);
+  transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

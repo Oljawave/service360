@@ -23,29 +23,23 @@
         </div>
       </div>
     </div>
-    <div class="weather-and-date">
+    <div class="action-buttons">
       <button
-        class="railway-status-toggle"
+        class="action-button"
         :class="{ 'active': isRailwayStatusOpen }"
         @click="toggleRailwayStatus"
-        @mouseenter="showRailwayLabel = true"
-        @mouseleave="handleMouseLeave"
       >
         <UiIcon name="Route" :color="isRailwayStatusOpen ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
-        <Transition name="button-expand">
-          <span v-if="showRailwayLabel || isRailwayStatusOpen" class="button-label">Состояние пути</span>
-        </Transition>
+        <span class="button-label">Оценка</span>
       </button>
-      <div class="weather-display" @mouseenter="showWeatherTooltip = true" @mouseleave="showWeatherTooltip = false">
-        <UiIcon :name="weatherIconName" :color="weatherIconColor" style="margin-right: 4px;"/>
-        <div class="weather-content">
-          <span class="weather-temp">{{ weatherTemp }}</span>
-          <Transition name="weather-expand">
-            <span v-if="showWeatherTooltip" class="weather-location">в г. Оскемен</span>
-          </Transition>
-        </div>
-      </div>
-      <span class="date-text">{{ currentDate }}</span>
+      <button class="action-button">
+        <UiIcon name="Ruler" color="#4a5568" style="width: 16px; height: 16px; flex-shrink: 0;" />
+        <span class="button-label">Ширина</span>
+      </button>
+      <button class="action-button">
+        <UiIcon name="Activity" color="#4a5568" style="width: 16px; height: 16px; flex-shrink: 0;" />
+        <span class="button-label">Перекосы</span>
+      </button>
     </div>
   </div>
 </template>
@@ -57,19 +51,13 @@ import UiIcon from '@/components/ui/UiIcon.vue';
 const props = defineProps({
   selectedFarm: String,
   farms: Array,
-  weatherTemp: String,
-  weatherIconName: String,
-  weatherIconColor: String,
-  currentDate: String,
   isRailwayStatusOpen: Boolean,
 });
 
 const emit = defineEmits(['selectFarm', 'toggleRailwayStatus']);
 
 const isFarmDropdownOpen = ref(false);
-const showWeatherTooltip = ref(false);
-const showRailwayLabel = ref(false);
-const farmSelectRef = ref(null); // Добавляем ref для доступа к DOM-элементу
+const farmSelectRef = ref(null);
 
 // Функция для закрытия меню по клику вне элемента
 const closeFarmMenuOnOutsideClick = (event) => {
@@ -106,13 +94,6 @@ const selectFarm = (farm) => {
 
 const toggleRailwayStatus = () => {
   emit('toggleRailwayStatus');
-};
-
-const handleMouseLeave = () => {
-  // Скрываем текст только если кнопка не активна
-  if (!props.isRailwayStatusOpen) {
-    showRailwayLabel.value = false;
-  }
 };
 
 // Дополнительный хук для очистки слушателя, если компонент будет уничтожен
@@ -205,15 +186,13 @@ onUnmounted(() => {
   background-color: #f7fafc;
 }
 
-.weather-and-date {
+.action-buttons {
   display: flex;
   align-items: center;
-  font-size: 14px;
-  color: #718096;
   gap: 12px;
 }
 
-.railway-status-toggle {
+.action-button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -230,12 +209,12 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.railway-status-toggle:hover {
+.action-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.08);
 }
 
-.railway-status-toggle.active {
+.action-button.active {
   border-color: #3b82f6;
   background: #eff6ff;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
@@ -248,81 +227,7 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.railway-status-toggle.active .button-label {
+.action-button.active .button-label {
   color: #3b82f6;
-}
-
-/* Анимация раскрытия кнопки */
-.button-expand-enter-active,
-.button-expand-leave-active {
-  transition: all 0.3s ease;
-  max-width: 150px;
-}
-
-.button-expand-enter-from,
-.button-expand-leave-to {
-  opacity: 0;
-  max-width: 0;
-}
-
-.button-expand-enter-to,
-.button-expand-leave-from {
-  opacity: 1;
-  max-width: 150px;
-}
-
-.weather-display {
-  display: flex;
-  align-items: center;
-  cursor: help;
-}
-
-.weather-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  border-right: 1px solid #e2e8f0;
-  padding-right: 8px;
-}
-
-.weather-temp {
-  font-weight: 600;
-  color: #2d3748;
-  white-space: nowrap;
-}
-
-.weather-location {
-  font-weight: 400;
-  color: #4a5568;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-/* Анимация раскрытия */
-.weather-expand-enter-active,
-.weather-expand-leave-active {
-  transition: all 0.3s ease;
-  max-width: 200px;
-}
-
-.weather-expand-enter-from,
-.weather-expand-leave-to {
-  opacity: 0;
-  max-width: 0;
-  transform: translateX(-10px);
-}
-
-.weather-expand-enter-to,
-.weather-expand-leave-from {
-  opacity: 1;
-  max-width: 200px;
-  transform: translateX(0);
-}
-
-.date-text {
-  font-size: 14px;
-  color: #4a5568;
-  white-space: nowrap;
 }
 </style>
