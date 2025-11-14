@@ -189,18 +189,16 @@ const filteredItems = computed(() => filterItems(JSON.parse(JSON.stringify(allIt
 
 .logo-section {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   height: 70px;
   margin-bottom: 24px;
   padding: 0 8px;
-  position: relative;
 }
 
 .logo-img {
   height: 50px;
   object-fit: contain;
-  display: block;
 }
 
 .panel-btn {
@@ -212,8 +210,6 @@ const filteredItems = computed(() => filterItems(JSON.parse(JSON.stringify(allIt
   justify-content: center;
   width: 40px;
   height: 40px;
-  position: absolute;
-  right: 8px;
 }
 
 .panel-btn .icon {
