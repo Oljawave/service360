@@ -4,7 +4,6 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_PLAN_URL;
 
 export const updatePlan = async (planData) => {
-  console.log('Отправляемые данные в updatePlan:', JSON.stringify(planData, null, 2));
 
   if (planData.PlanDateEnd) {
     const date = new Date(planData.PlanDateEnd);
@@ -20,11 +19,7 @@ export const updatePlan = async (planData) => {
       params: ['upd', planData]
     };
 
-    console.log('Полный запрос (payload):', JSON.stringify(payload, null, 2));
-
     const response = await axios.post(API_URL, payload);
-
-    console.log('Успешный ответ от сервера:', response.data);
 
     if (response.data && response.data.result) {
       return response.data.result;

@@ -46,8 +46,6 @@ export const loadWorkPlanForKpi = async (date, periodType = null, objLocation = 
     params.objLocation = objLocation;
   }
 
-  console.log('Вызов метода data/loadPlan для KPI', params);
-
   const response = await axios.post(
     API_PLAN_URL,
     {
@@ -83,7 +81,6 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
     params.event = event;
   }
 
-  console.log('Вызов метода data/loadIncident для KPI', params);
 
   const response = await axios.post(
     API_INCIDENTS_URL,
@@ -119,8 +116,6 @@ export const loadRailwayStatus = async (customDate = null, relobj = 2525) => {
     relobj: relobj
   };
 
-  console.log('Вызов метода data/loadParameterLogByComponentParameter для статуса пути', params);
-
   const response = await axios.post(
     API_INSPECTIONS_URL,
     {
@@ -147,8 +142,6 @@ export const loadRailwaySkewData = async (customDate = null) => {
     const day = String(today.getDate()).padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
   }
-
-  console.log('Загрузка данных о перекосах для даты:', dateStr);
 
   // Загружаем данные по всем 4 типам отклонений параллельно
   const [levelData, skewData, subsidence, planDeviation] = await Promise.all([
@@ -195,4 +188,44 @@ export const loadRailwaySkewData = async (customDate = null) => {
   ];
 
   return allData;
+};
+
+export const loadSizeIncidentOfMonth = async (objLocation = null, event = null, open = null) => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  const params = {
+    date: dateStr
+  };
+
+  // Добавляем objLocation только если он не null
+  if (objLocation !== null) {
+    params.objLocation = objLocation;
+  }
+
+  // Добавляем event только если он не null
+  if (event !== null) {
+    params.event = event;
+  }
+
+  // Добавляем open только если он не null
+  if (open !== null) {
+    params.open = open;
+  }
+
+  const response = await axios.post(
+    API_INCIDENTS_URL,
+    {
+      method: "data/loadSizeIncidentOfMonth",
+      params: [params]
+    },
+    {
+      withCredentials: true
+    }
+  );
+
+  return response.data.result || 0;
 };

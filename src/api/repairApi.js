@@ -11,12 +11,6 @@ export async function loadPlanCorrectional(date = "2025-07-30", periodType = 11)
     throw new Error("objLocation не найден в localStorage");
   }
 
-  console.log('Вызов метода data/loadPlanCorrectional', {
-    date,
-    periodType,
-    objLocation: parseInt(objLocation)
-  });
-
   const response = await axios.post(
     API_REPAIR_URL,
     {

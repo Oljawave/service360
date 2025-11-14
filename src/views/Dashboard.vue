@@ -28,28 +28,31 @@
     />
 
     <div class="kpi-grid">
-      <KpiCard 
-        :value="kpi.newIncidents" 
-        label="Новые запросы на сегодня" 
+      <KpiCard
+        :value="kpi.newIncidents"
+        :monthly-value="kpiMonthly.newIncidents"
+        label="Новые запросы на сегодня"
         :class="{ 'active-kpi': activeKpiFilter === 'newIncidents' }"
         @click="setActiveKpi('newIncidents')"
       />
-      <KpiCard 
-        :value="kpi.speedRestrictions" 
-        label="Ограничение скорости" 
+      <KpiCard
+        :value="kpi.speedRestrictions"
+        :monthly-value="kpiMonthly.speedRestrictions"
+        label="Ограничение скорости"
         :class="{ 'active-kpi': activeKpiFilter === 'speedRestrictions' }"
         @click="setActiveKpi('speedRestrictions')"
       />
-      <KpiCard 
-        :value="kpi.overdueWorks" 
-        label="Просроченные работы" 
-        variant="overdue" 
+      <KpiCard
+        :value="kpi.overdueWorks"
+        label="Просроченные работы"
+        variant="overdue"
         :class="{ 'active-kpi': activeKpiFilter === 'overdueWorks' }"
         @click="setActiveKpi('overdueWorks')"
       />
-      <KpiCard 
-        :value="kpi.openIncidents" 
-        label="Всего открытых запросов" 
+      <KpiCard
+        :value="kpi.openIncidents"
+        :monthly-value="kpiMonthly.openIncidents"
+        label="Всего открытых запросов"
         :class="{ 'active-kpi': activeKpiFilter === 'openIncidents' }"
         @click="setActiveKpi('openIncidents')"
       />
@@ -115,7 +118,7 @@ import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import KpiCard from '@/components/ui/KpiCard.vue';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
-import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus, loadRailwaySkewData } from '@/api/dashboardApi.js';
+import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus, loadRailwaySkewData, loadSizeIncidentOfMonth } from '@/api/dashboardApi.js';
 import RailwaySection from '@/components/ui/RailwaySection.vue';
 import RailwaySectionStatus from '@/components/ui/RailwaySectionStatus.vue';
 
@@ -149,6 +152,12 @@ const kpi = ref({
   openIncidents: 0,
 });
 
+const kpiMonthly = ref({
+  newIncidents: 0,
+  speedRestrictions: 0,
+  openIncidents: 0,
+});
+
 const dayEvents = ref([]);
 const activityTitle = ref('План работ на день');
 
@@ -176,8 +185,6 @@ const selectFarm = async (farm) => {
   } else {
     selectedFarmId.value = departmentsMap.value[farm];
   }
-  
-  console.log('Выбрано хозяйство:', farm, 'ID:', selectedFarmId.value);
 
   // Загружаем KPI и обновляем карту
   await Promise.all([
@@ -246,17 +253,29 @@ const loadKpiData = async () => {
     // Просроченные работы
     const allWorksPromise = loadWorkPlanForKpi(todayStr, null, objLocationParam);
 
-    const [newIncidents, speedRestrictions, openIncidents, allWorks] = await Promise.all([
+    // Месячные данные
+    const newIncidentsMonthlyPromise = loadSizeIncidentOfMonth(objLocationParam, null, null);
+    const speedRestrictionsMonthlyPromise = loadSizeIncidentOfMonth(objLocationParam, 1157, null);
+    const openIncidentsMonthlyPromise = loadSizeIncidentOfMonth(objLocationParam, null, 1);
+
+    const [newIncidents, speedRestrictions, openIncidents, allWorks, newIncidentsMonthly, speedRestrictionsMonthly, openIncidentsMonthly] = await Promise.all([
       newIncidentsPromise,
       speedRestrictionsPromise,
       openIncidentsPromise,
-      allWorksPromise
+      allWorksPromise,
+      newIncidentsMonthlyPromise,
+      speedRestrictionsMonthlyPromise,
+      openIncidentsMonthlyPromise
     ]);
 
     kpi.value.newIncidents = newIncidents.length;
     kpi.value.speedRestrictions = speedRestrictions.length;
     kpi.value.openIncidents = openIncidents.length;
     kpi.value.overdueWorks = allWorks.length;
+
+    kpiMonthly.value.newIncidents = newIncidentsMonthly;
+    kpiMonthly.value.speedRestrictions = speedRestrictionsMonthly;
+    kpiMonthly.value.openIncidents = openIncidentsMonthly;
   } catch (error) {
     console.error("Ошибка при загрузке KPI:", error);
   }
@@ -420,6 +439,12 @@ const toggleRailwayStatus = () => {
 };
 
 const switchToWidthMode = async () => {
+  // Если уже в режиме ширины и открыт, то закрываем
+  if (railwayViewMode.value === 'width' && isRailwayStatusOpen.value) {
+    isRailwayStatusOpen.value = false;
+    return;
+  }
+
   isRailwayModeChanging.value = true;
   railwayViewMode.value = 'width';
   isRailwayStatusOpen.value = true;
@@ -428,6 +453,12 @@ const switchToWidthMode = async () => {
 };
 
 const switchToStatusMode = async () => {
+  // Если уже в режиме оценки и открыт, то закрываем
+  if (railwayViewMode.value === 'status' && isRailwayStatusOpen.value) {
+    isRailwayStatusOpen.value = false;
+    return;
+  }
+
   isRailwayModeChanging.value = true;
   railwayViewMode.value = 'status';
   isRailwayStatusOpen.value = true;
@@ -436,6 +467,12 @@ const switchToStatusMode = async () => {
 };
 
 const switchToSkewMode = async () => {
+  // Если уже в режиме перекосов и открыт, то закрываем
+  if (railwayViewMode.value === 'skew' && isRailwayStatusOpen.value) {
+    isRailwayStatusOpen.value = false;
+    return;
+  }
+
   isRailwayModeChanging.value = true;
   railwayViewMode.value = 'skew';
   isRailwayStatusOpen.value = true;
