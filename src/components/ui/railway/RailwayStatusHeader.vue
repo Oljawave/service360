@@ -1,8 +1,13 @@
 <template>
   <div class="status-header">
-    <div>
-      <h2 class="railway-title">{{ title }}</h2>
-      <p v-if="mode !== 'width' && mode !== 'skew'" class="railway-subtitle">Средний балл {{ averageScore }}</p>
+    <div class="title-section">
+      <div>
+        <h2 class="railway-title">{{ title }}</h2>
+        <div v-if="mode !== 'width' && mode !== 'skew'" class="average-score">
+          <span class="score-label">Средний балл</span>
+          <span class="score-value">{{ averageScore }}</span>
+        </div>
+      </div>
     </div>
     <div class="status-legend">
       <template v-if="mode === 'skew'">
@@ -111,17 +116,37 @@ const emit = defineEmits(['toggleLegend']);
   gap: 24px;
 }
 
+.title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .railway-title {
   font-size: 20px;
   font-weight: 600;
   color: #1a202c;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
-.railway-subtitle {
+.average-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.score-label {
   font-size: 14px;
   color: #718096;
-  margin: 0;
+  font-weight: 400;
+}
+
+.score-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #3b82f6;
+  letter-spacing: -0.5px;
 }
 
 .status-legend {

@@ -26,27 +26,42 @@
     <div class="action-buttons">
       <button
         class="action-button"
-        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'status' }"
+        :class="{
+          'active': isRailwayStatusOpen && railwayViewMode === 'status',
+          'expanded': expandedButton === 'status' || pinnedButton === 'status'
+        }"
         @click="handleStatusClick"
+        @mouseenter="expandedButton = 'status'"
+        @mouseleave="handleMouseLeave('status')"
       >
         <UiIcon name="Route" :color="isRailwayStatusOpen && railwayViewMode === 'status' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
-        <span class="button-label">Оценка</span>
+        <span class="button-label">Оценка состояния пути</span>
       </button>
       <button
         class="action-button"
-        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'width' }"
+        :class="{
+          'active': isRailwayStatusOpen && railwayViewMode === 'width',
+          'expanded': expandedButton === 'width' || pinnedButton === 'width'
+        }"
         @click="handleWidthClick"
+        @mouseenter="expandedButton = 'width'"
+        @mouseleave="handleMouseLeave('width')"
       >
         <UiIcon name="Ruler" :color="isRailwayStatusOpen && railwayViewMode === 'width' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
-        <span class="button-label">Ширина</span>
+        <span class="button-label">Отклонения по ширине колеи</span>
       </button>
       <button
         class="action-button"
-        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'skew' }"
+        :class="{
+          'active': isRailwayStatusOpen && railwayViewMode === 'skew',
+          'expanded': expandedButton === 'skew' || pinnedButton === 'skew'
+        }"
         @click="handleSkewClick"
+        @mouseenter="expandedButton = 'skew'"
+        @mouseleave="handleMouseLeave('skew')"
       >
         <UiIcon name="Activity" :color="isRailwayStatusOpen && railwayViewMode === 'skew' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
-        <span class="button-label">Перекосы</span>
+        <span class="button-label">Перекосы и другие отклонения</span>
       </button>
     </div>
   </div>
@@ -70,6 +85,8 @@ const emit = defineEmits(['selectFarm', 'toggleRailwayStatus', 'switchToWidth', 
 
 const isFarmDropdownOpen = ref(false);
 const farmSelectRef = ref(null);
+const expandedButton = ref(null);
+const pinnedButton = ref(null);
 
 // Функция для закрытия меню по клику вне элемента
 const closeFarmMenuOnOutsideClick = (event) => {
@@ -109,15 +126,32 @@ const toggleRailwayStatus = () => {
 };
 
 const handleWidthClick = () => {
+  // Всегда фиксируем новую кнопку
+  pinnedButton.value = 'width';
+  expandedButton.value = 'width';
   emit('switchToWidth');
 };
 
 const handleStatusClick = () => {
+  // Всегда фиксируем новую кнопку
+  pinnedButton.value = 'status';
+  expandedButton.value = 'status';
   emit('switchToStatus');
 };
 
 const handleSkewClick = () => {
+  // Всегда фиксируем новую кнопку
+  pinnedButton.value = 'skew';
+  expandedButton.value = 'skew';
   emit('switchToSkew');
+};
+
+const handleMouseLeave = (buttonName) => {
+  // Сворачиваем кнопку только если она не зафиксирована
+  // Активная (зафиксированная) кнопка остаётся развёрнутой
+  if (pinnedButton.value !== buttonName) {
+    expandedButton.value = null;
+  }
 };
 
 // Дополнительный хук для очистки слушателя, если компонент будет уничтожен
@@ -221,8 +255,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  min-width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0 10px;
   background: white;
   border: 2px solid transparent;
@@ -238,6 +272,11 @@ onUnmounted(() => {
   box-shadow: 0 4px 8px rgba(0,0,0,0.08);
 }
 
+.action-button.expanded {
+  width: auto;
+  min-width: 40px;
+}
+
 .action-button.active {
   border-color: #3b82f6;
   background: #eff6ff;
@@ -249,6 +288,15 @@ onUnmounted(() => {
   color: #4a5568;
   white-space: nowrap;
   font-weight: 500;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
+
+.action-button.expanded .button-label {
+  max-width: 300px;
+  opacity: 1;
 }
 
 .action-button.active .button-label {

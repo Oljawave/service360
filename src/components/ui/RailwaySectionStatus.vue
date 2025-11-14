@@ -7,7 +7,7 @@
       </div>
 
       <RailwayStatusHeader
-        :title="mode === 'skew' ? 'Перекосы пути' : (mode === 'width' ? 'Ширина колеи' : 'Оценка состояния пути')"
+        :title="mode === 'skew' ? 'Перекосы и другие отклонения' : (mode === 'width' ? 'Отклонения по ширине колеи' : 'Оценка состояния пути')"
         :average-score="averageScore"
         :status-stats="statusStats"
         :selected-legends="selectedLegends"
@@ -201,7 +201,7 @@ const railwaySegments = computed(() => {
 
     const widthPercent = totalWidth * 0.95;
 
-    const statusDataArray = statusMap.get(km) || [];
+    let statusDataArray = statusMap.get(km) || [];
 
     if (statusDataArray.length === 0) {
       // Нет данных для этого километра
@@ -217,17 +217,22 @@ const railwaySegments = computed(() => {
       continue;
     }
 
-    // Собираем все типы статусов для этого километра
-    const statusTypes = statusDataArray.map(s => getSegmentStatusType(s.ParamsLimit, s.skewType)).filter(t => t !== null);
-    const uniqueStatusTypes = [...new Set(statusTypes)];
-
-    // Проверяем фильтр легенды
+    // Фильтруем данные по выбранным легендам
     if (selectedLegends.value.length > 0) {
-      const hasMatchingType = uniqueStatusTypes.some(type => selectedLegends.value.includes(type));
-      if (!hasMatchingType) {
+      statusDataArray = statusDataArray.filter(segment => {
+        const statusType = getSegmentStatusType(segment.ParamsLimit, segment.skewType);
+        return statusType !== null && selectedLegends.value.includes(statusType);
+      });
+
+      // Если после фильтрации не осталось подходящих сегментов, пропускаем этот километр
+      if (statusDataArray.length === 0) {
         continue;
       }
     }
+
+    // Собираем все типы статусов для этого километра (уже отфильтрованные)
+    const statusTypes = statusDataArray.map(s => getSegmentStatusType(s.ParamsLimit, s.skewType)).filter(t => t !== null);
+    const uniqueStatusTypes = [...new Set(statusTypes)];
 
     // Определяем цвет: если есть несколько типов, показываем приоритетный
     let color = '#cbd5e1';
