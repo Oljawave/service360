@@ -26,18 +26,26 @@
     <div class="action-buttons">
       <button
         class="action-button"
-        :class="{ 'active': isRailwayStatusOpen }"
-        @click="toggleRailwayStatus"
+        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'status' }"
+        @click="handleStatusClick"
       >
-        <UiIcon name="Route" :color="isRailwayStatusOpen ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
+        <UiIcon name="Route" :color="isRailwayStatusOpen && railwayViewMode === 'status' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
         <span class="button-label">Оценка</span>
       </button>
-      <button class="action-button">
-        <UiIcon name="Ruler" color="#4a5568" style="width: 16px; height: 16px; flex-shrink: 0;" />
+      <button
+        class="action-button"
+        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'width' }"
+        @click="handleWidthClick"
+      >
+        <UiIcon name="Ruler" :color="isRailwayStatusOpen && railwayViewMode === 'width' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
         <span class="button-label">Ширина</span>
       </button>
-      <button class="action-button">
-        <UiIcon name="Activity" color="#4a5568" style="width: 16px; height: 16px; flex-shrink: 0;" />
+      <button
+        class="action-button"
+        :class="{ 'active': isRailwayStatusOpen && railwayViewMode === 'skew' }"
+        @click="handleSkewClick"
+      >
+        <UiIcon name="Activity" :color="isRailwayStatusOpen && railwayViewMode === 'skew' ? '#3b82f6' : '#4a5568'" style="width: 16px; height: 16px; flex-shrink: 0;" />
         <span class="button-label">Перекосы</span>
       </button>
     </div>
@@ -52,9 +60,13 @@ const props = defineProps({
   selectedFarm: String,
   farms: Array,
   isRailwayStatusOpen: Boolean,
+  railwayViewMode: {
+    type: String,
+    default: 'status'
+  }
 });
 
-const emit = defineEmits(['selectFarm', 'toggleRailwayStatus']);
+const emit = defineEmits(['selectFarm', 'toggleRailwayStatus', 'switchToWidth', 'switchToStatus', 'switchToSkew']);
 
 const isFarmDropdownOpen = ref(false);
 const farmSelectRef = ref(null);
@@ -94,6 +106,18 @@ const selectFarm = (farm) => {
 
 const toggleRailwayStatus = () => {
   emit('toggleRailwayStatus');
+};
+
+const handleWidthClick = () => {
+  emit('switchToWidth');
+};
+
+const handleStatusClick = () => {
+  emit('switchToStatus');
+};
+
+const handleSkewClick = () => {
+  emit('switchToSkew');
 };
 
 // Дополнительный хук для очистки слушателя, если компонент будет уничтожен

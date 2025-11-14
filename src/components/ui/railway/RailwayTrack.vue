@@ -13,16 +13,23 @@
         :style="{
           left: segment.startPercent + '%',
           width: segment.widthPercent + '%',
-          backgroundColor: segment.color
+          background: segment.color
         }"
         @mouseenter="hoveredSegmentKm = segment.km"
         @mouseleave="hoveredSegmentKm = null"
       >
         <Transition name="tooltip-fade">
-          <div v-if="hoveredSegmentKm === segment.km && segment.status" class="segment-tooltip">
-            <div class="tooltip-row"><strong>Состояние:</strong> {{ segment.status }}</div>
-            <div class="tooltip-row"><strong>Балл:</strong> {{ segment.paramsLimit }}</div>
-            <div class="tooltip-row"><strong>Километр:</strong> {{ segment.km }} км</div>
+          <div v-if="hoveredSegmentKm === segment.km && (segment.statuses?.length > 0 || segment.status)" class="segment-tooltip">
+            <template v-if="segment.hasMultiple">
+              <div class="tooltip-row"><strong>Состояния:</strong> {{ segment.statuses.join(', ') }}</div>
+              <div class="tooltip-row"><strong>Значения:</strong> {{ segment.paramsLimits.join(', ') }}</div>
+              <div class="tooltip-row"><strong>Километр:</strong> {{ segment.km }} км</div>
+            </template>
+            <template v-else>
+              <div class="tooltip-row"><strong>Состояние:</strong> {{ segment.statuses?.[0] || segment.status }}</div>
+              <div class="tooltip-row"><strong>Значение:</strong> {{ segment.paramsLimits?.[0] || segment.paramsLimit }}</div>
+              <div class="tooltip-row"><strong>Километр:</strong> {{ segment.km }} км</div>
+            </template>
           </div>
         </Transition>
       </div>
@@ -95,7 +102,9 @@ defineExpose({ railwayTrackRef });
 
 .railway-segment {
   position: absolute;
-  height: 6px;
+  height: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   border-radius: 1px;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -103,8 +112,7 @@ defineExpose({ railwayTrackRef });
 }
 
 .railway-segment:hover {
-  height: 8px;
-  top: -1px;
+  height: 16px;
   z-index: 10;
 }
 
@@ -167,6 +175,7 @@ defineExpose({ railwayTrackRef });
   height: 8px;
   background-color: #475569;
   cursor: default;
+  z-index: 5;
 }
 
 .start-point {

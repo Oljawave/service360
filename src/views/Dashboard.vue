@@ -10,17 +10,22 @@
       :selected-farm="selectedFarm"
       :farms="farms"
       :is-railway-status-open="isRailwayStatusOpen"
+      :railway-view-mode="railwayViewMode"
       @select-farm="selectFarm"
       @toggle-railway-status="toggleRailwayStatus"
+      @switch-to-width="switchToWidthMode"
+      @switch-to-status="switchToStatusMode"
+      @switch-to-skew="switchToSkewMode"
     />
 
-    <Transition name="railway-status-slide">
-      <RailwaySectionStatus
-        v-if="isRailwayStatusOpen"
-        :intermediate-stations="intermediateStations"
-        :status-segments="railwayStatusSegments"
-      />
-    </Transition>
+    <RailwaySectionStatus
+      v-if="isRailwayStatusOpen"
+      :key="railwayViewMode"
+      :intermediate-stations="intermediateStations"
+      :status-segments="railwayStatusSegments"
+      :mode="railwayViewMode"
+      :is-loading="isRailwayModeChanging"
+    />
 
     <div class="kpi-grid">
       <KpiCard 
@@ -110,7 +115,7 @@ import ModalPlanWork from '@/modals/ModalPlanWork.vue';
 import ModalEditPlan from '@/modals/ModalEditPlan.vue';
 import KpiCard from '@/components/ui/KpiCard.vue';
 import CalendarWidget from '@/components/ui/CalendarWidget.vue';
-import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus } from '@/api/dashboardApi.js';
+import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus, loadRailwaySkewData } from '@/api/dashboardApi.js';
 import RailwaySection from '@/components/ui/RailwaySection.vue';
 import RailwaySectionStatus from '@/components/ui/RailwaySectionStatus.vue';
 
@@ -121,10 +126,12 @@ const isPlanWorkModalOpen = ref(false);
 const isEditPlanModalOpen = ref(false);
 const isLoading = ref(true);
 const isMapLoading = ref(false);
+const isRailwayModeChanging = ref(false);
 const selectedDate = ref(null); // Добавим ref для хранения выбранной даты
 const activeKpiFilter = ref('newIncidents');
 const selectedEvent = ref(null);
 const isRailwayStatusOpen = ref(false);
+const railwayViewMode = ref('status'); // 'status', 'width' или 'skew'
 
 const selectedFarm = ref('Все хозяйства');
 const selectedFarmId = ref(null);
@@ -353,10 +360,18 @@ const handleDateSelected = async (dateStr) => {
   }
 };
 
-const loadRailwayStatusData = async () => {
+const loadRailwayStatusData = async (mode = 'status') => {
   try {
-    const statusData = await loadRailwayStatus();
-    railwayStatusSegments.value = statusData;
+    if (mode === 'skew') {
+      // Для режима перекосов загружаем все 4 типа отклонений
+      const skewData = await loadRailwaySkewData(null);
+      railwayStatusSegments.value = skewData;
+    } else {
+      // Для режимов оценки и ширины используем старый метод
+      const relobj = mode === 'width' ? 1700 : 2525;
+      const statusData = await loadRailwayStatus(null, relobj);
+      railwayStatusSegments.value = statusData;
+    }
   } catch (error) {
     console.error('Ошибка при загрузке статуса пути:', error);
     railwayStatusSegments.value = [];
@@ -402,6 +417,30 @@ const handleIncidentClick = (incident) => {
 
 const toggleRailwayStatus = () => {
   isRailwayStatusOpen.value = !isRailwayStatusOpen.value;
+};
+
+const switchToWidthMode = async () => {
+  isRailwayModeChanging.value = true;
+  railwayViewMode.value = 'width';
+  isRailwayStatusOpen.value = true;
+  await loadRailwayStatusData('width');
+  isRailwayModeChanging.value = false;
+};
+
+const switchToStatusMode = async () => {
+  isRailwayModeChanging.value = true;
+  railwayViewMode.value = 'status';
+  isRailwayStatusOpen.value = true;
+  await loadRailwayStatusData('status');
+  isRailwayModeChanging.value = false;
+};
+
+const switchToSkewMode = async () => {
+  isRailwayModeChanging.value = true;
+  railwayViewMode.value = 'skew';
+  isRailwayStatusOpen.value = true;
+  await loadRailwayStatusData('skew');
+  isRailwayModeChanging.value = false;
 };
 
 onMounted(() => {
@@ -475,22 +514,5 @@ onMounted(() => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Анимация для RailwaySectionStatus */
-.railway-status-slide-enter-active,
-.railway-status-slide-leave-active {
-  transition: all 0.3s ease;
-  transform-origin: top;
-}
-
-.railway-status-slide-enter-from {
-  opacity: 0;
-  transform: translateY(-20px) scaleY(0.95);
-}
-
-.railway-status-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scaleY(0.98);
 }
 </style>

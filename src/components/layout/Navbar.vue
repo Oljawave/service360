@@ -15,7 +15,7 @@
     />
 
     <div class="navbar-right">
-      <div class="lang-select" @click="toggleLangMenu">
+      <!-- <div class="lang-select" @click="toggleLangMenu">
         {{ currentLang }}
         <UiIcon name="ChevronDown" class="icon" />
         <div v-if="langMenuOpen" class="lang-dropdown">
@@ -32,7 +32,7 @@
 
       <button class="notif-btn">
         <UiIcon name="Bell" class="icon" />
-      </button>
+      </button> -->
 
       <UserAvatar :initials="'ОГ'" />
     </div>
@@ -207,6 +207,10 @@ onBeforeUnmount(() => {
 .hamburger-btn .icon {
   width: 24px;
   height: 24px;
+}
+
+.navbar > :nth-child(2) {
+  margin-right: 32px;
 }
 
 .navbar-right {

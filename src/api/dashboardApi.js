@@ -99,7 +99,7 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
   return response.data.result?.records || [];
 };
 
-export const loadRailwayStatus = async (customDate = null) => {
+export const loadRailwayStatus = async (customDate = null, relobj = 2525) => {
   let dateStr;
 
   if (customDate) {
@@ -116,7 +116,7 @@ export const loadRailwayStatus = async (customDate = null) => {
 
   const params = {
     date: dateStr,
-    relobj: 2525
+    relobj: relobj
   };
 
   console.log('Вызов метода data/loadParameterLogByComponentParameter для статуса пути', params);
@@ -133,4 +133,66 @@ export const loadRailwayStatus = async (customDate = null) => {
   );
 
   return response.data.result?.records || [];
+};
+
+export const loadRailwaySkewData = async (customDate = null) => {
+  let dateStr;
+
+  if (customDate) {
+    dateStr = customDate;
+  } else {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    dateStr = `${year}-${month}-${day}`;
+  }
+
+  console.log('Загрузка данных о перекосах для даты:', dateStr);
+
+  // Загружаем данные по всем 4 типам отклонений параллельно
+  const [levelData, skewData, subsidence, planDeviation] = await Promise.all([
+    axios.post(
+      API_INSPECTIONS_URL,
+      {
+        method: "data/loadParameterLogByComponentParameter",
+        params: [{ date: dateStr, relobj: 1701 }]
+      },
+      { withCredentials: true }
+    ),
+    axios.post(
+      API_INSPECTIONS_URL,
+      {
+        method: "data/loadParameterLogByComponentParameter",
+        params: [{ date: dateStr, relobj: 1703 }]
+      },
+      { withCredentials: true }
+    ),
+    axios.post(
+      API_INSPECTIONS_URL,
+      {
+        method: "data/loadParameterLogByComponentParameter",
+        params: [{ date: dateStr, relobj: 1694 }]
+      },
+      { withCredentials: true }
+    ),
+    axios.post(
+      API_INSPECTIONS_URL,
+      {
+        method: "data/loadParameterLogByComponentParameter",
+        params: [{ date: dateStr, relobj: 1704 }]
+      },
+      { withCredentials: true }
+    )
+  ]);
+
+  // Объединяем все данные и добавляем тип отклонения
+  const allData = [
+    ...(levelData.data.result?.records || []).map(item => ({ ...item, skewType: 'level' })),
+    ...(skewData.data.result?.records || []).map(item => ({ ...item, skewType: 'skew' })),
+    ...(subsidence.data.result?.records || []).map(item => ({ ...item, skewType: 'subsidence' })),
+    ...(planDeviation.data.result?.records || []).map(item => ({ ...item, skewType: 'planDeviation' }))
+  ];
+
+  return allData;
 };
