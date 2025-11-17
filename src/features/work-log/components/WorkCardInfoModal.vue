@@ -213,7 +213,7 @@ import AppNumberInput from '@/shared/ui/FormControls/AppNumberInput.vue';
 import TabsHeader from '@/shared/ui/TabsHeader.vue';
 import WorkHeaderInfo from '@/shared/ui/WorkHeaderInfo.vue';
 import ExistingDataBlock from '@/shared/ui/ExistingDataBlock.vue';
-import ConfirmationModal from './ConfirmationModal.vue';
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue';
 import { useNotificationStore } from '@/app/stores/notificationStore';
 import { 
   loadInspectionEntriesForWorkPlan, saveFaultInfo, saveParameterInfo, 

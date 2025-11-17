@@ -99,7 +99,7 @@ import ModalWrapper from '@/app/layouts/Modal/ModalWrapper.vue'
 import AppInput from '@/shared/ui/FormControls/AppInput.vue'
 import AppDatePicker from '@/shared/ui/FormControls/AppDatePicker.vue'
 import FullCoordinates from '@/shared/ui/FormControls/FullCoordinates.vue'
-import ConfirmationModal from './ConfirmationModal.vue'
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue'
 import { deleteFaultOrParameter } from '@/shared/api/faultApi'
 import { usePermissions } from '@/shared/api/usePermissions';
 import { useNotificationStore } from '@/app/stores/notificationStore'

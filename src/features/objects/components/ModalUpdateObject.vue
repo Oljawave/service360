@@ -128,7 +128,7 @@ import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue'
 import AppDatePicker from '@/shared/ui/FormControls/AppDatePicker.vue'
 import AppNumberInput from '@/shared/ui/FormControls/AppNumberInput.vue'
 import CoordinateInputs from '@/shared/ui/FormControls/CoordinateInputs.vue'
-import ConfirmationModal from './ConfirmationModal.vue'
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue'
 import { loadTypes, loadSides, fetchStationOfCoord } from '@/shared/api/objectApi'
 import { deleteObject, updateObjectServed } from '@/shared/api/updateObjectApi' // Изменено: Импорт updateObjectServed и удален saveObjectServed
 import { fetchUserData } from '@/shared/api/inspectionsApi'

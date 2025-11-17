@@ -88,7 +88,7 @@ import ModalWrapper from '@/app/layouts/Modal/ModalWrapper.vue'
 import AppInput from '@/shared/ui/FormControls/AppInput.vue'
 import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue'
 import FullCoordinates from '@/shared/ui/FormControls/FullCoordinates.vue'
-import ConfirmationModal from './ConfirmationModal.vue' 
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue' 
 import { useNotificationStore } from '@/app/stores/notificationStore'
 import { usePermissions } from '@/shared/api/usePermissions';
 import { deleteIncident, loadCriticalityLevels, updateIncident } from '@/shared/api/incidentApi' 

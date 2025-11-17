@@ -107,7 +107,7 @@ import ModalWrapper from '@/app/layouts/Modal/ModalWrapper.vue'
 import AppDatePicker from '@/shared/ui/FormControls/AppDatePicker.vue'
 import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue'
 import CoordinateInputs from '@/shared/ui/FormControls/CoordinateInputs.vue'
-import ConfirmationModal from './ConfirmationModal.vue'
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue'
 import { useNotificationStore } from '@/app/stores/notificationStore'
 import { usePermissions } from '@/shared/api/usePermissions';
 import { fetchWorks, fetchLocationByCoords, fetchObjectsForSelect } from '@/shared/api/planWorkApi'
