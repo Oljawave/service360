@@ -136,13 +136,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import BackButton from '@/components/ui/BackButton.vue';
-import ResourceCard from '@/components/ui/ResourceCard.vue';
-import ResourceEditTable from '@/components/ui/ResourceEditTable.vue';
+import BackButton from '@/shared/ui/BackButton.vue';
+import ResourceCard from '@/features/resource-planning/components/ResourceCard.vue';
+import ResourceEditTable from '@/features/resource-planning/components/ResourceEditTable.vue';
 import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
-import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, addResourceTpService, saveComplexPersonnel, deleteComplexPersonnel } from '@/api/executionApi.js';
-import { loadMaterials, loadUnits, loadExternalServices } from '@/api/repairApi.js';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, addResourceTpService, saveComplexPersonnel, deleteComplexPersonnel } from '@/shared/api/executionApi.js';
+import { loadMaterials, loadUnits, loadExternalServices } from '@/shared/api/repairApi.js';
+import { useNotificationStore } from '@/app/stores/notificationStore';
 
 const router = useRouter();
 const route = useRoute();

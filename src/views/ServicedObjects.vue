@@ -28,11 +28,11 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { usePermissions } from '@/api/usePermissions';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue'
-import ModalAddObject from '@/modals/ModalAddObject.vue'
-import ModalUpdateObject from '@/modals/ModalUpdateObject.vue'
-import { loadObjectServed } from '@/api/objectService'
+import { usePermissions } from '@/shared/api/usePermissions';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue'
+import ModalAddObject from '@/features/objects/components/ModalAddObject.vue'
+import ModalUpdateObject from '@/features/objects/components/ModalUpdateObject.vue'
+import { loadObjectServed } from '@/shared/api/objectService'
 
 const tableWrapperRef = ref(null)
 const isAddObjectModalOpen = ref(false)

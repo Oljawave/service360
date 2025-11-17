@@ -21,11 +21,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { usePermissions } from '@/api/usePermissions'
-import TableActions from '@/components/layout/Table/TableActions.vue'
-import ModalOrgStructure from '@/modals/ModalOrgStructure.vue'
-import OrgStructureTree from '@/components/ui/OrgStructureTree.vue'
-import { loadLocation } from '@/api/getLocationApi'
+import { usePermissions } from '@/shared/api/usePermissions'
+import TableActions from '@/app/layouts/Table/TableActions.vue'
+import ModalOrgStructure from '@/features/org-structure/components/ModalOrgStructure.vue'
+import OrgStructureTree from '@/features/org-structure/components/OrgStructureTree.vue'
+import { loadLocation } from '@/shared/api/getLocationApi'
 
 const title = 'Организационная структура'
 const organizationData = ref([])

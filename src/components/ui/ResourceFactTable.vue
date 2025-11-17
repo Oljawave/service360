@@ -115,8 +115,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { Check, Plus, Trash2 } from 'lucide-vue-next';
-import AppNumberInput from '@/components/ui/FormControls/AppNumberInput.vue';
-import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
+import AppNumberInput from '@/shared/ui/FormControls/AppNumberInput.vue';
+import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue';
 
 const props = defineProps({
   title: { type: String, required: true },

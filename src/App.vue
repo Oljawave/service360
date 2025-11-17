@@ -19,11 +19,11 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import Sidebar from './components/layout/Sidebar.vue'
-import Navbar from './components/layout/Navbar.vue'
+import Sidebar from './app/layouts/Sidebar.vue'
+import Navbar from './app/layouts/Navbar.vue'
 import NaiveProvider from './naive.config.js'
-import AppNotification from './components/layout/AppNotification.vue'
-import { useSidebarStore } from './stores/sidebar'
+import AppNotification from './app/layouts/AppNotification.vue'
+import { useSidebarStore } from './app/stores/sidebar'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.path === '/login')

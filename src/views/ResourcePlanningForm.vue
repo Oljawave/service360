@@ -92,17 +92,17 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNotificationStore } from '@/stores/notificationStore';
-import { loadSections } from '@/api/inspectionsApi.js';
-import { loadDateWorkPlanCorrectional, loadObjClsWorkPlanCorrectionalUnfinishedByDate } from '@/api/repairApi.js';
-import { completeThePlanWork } from '@/api/planWorkApi.js'; 
-import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
-import BaseTable from '@/components/layout/Table/BaseTable.vue';
-import BackButton from '@/components/ui/BackButton.vue';
-import MainButton from '@/components/ui/MainButton.vue';
-import UiButton from '@/components/ui/UiButton.vue'; 
-import ResourcePlanningModal from '@/modals/ResourcePlanningModal.vue';
-import ConfirmationModal from '@/modals/ConfirmationModal.vue';
+import { useNotificationStore } from '@/app/stores/notificationStore';
+import { loadSections } from '@/shared/api/inspectionsApi.js';
+import { loadDateWorkPlanCorrectional, loadObjClsWorkPlanCorrectionalUnfinishedByDate } from '@/shared/api/repairApi.js';
+import { completeThePlanWork } from '@/shared/api/planWorkApi.js';
+import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue';
+import BaseTable from '@/app/layouts/Table/BaseTable.vue';
+import BackButton from '@/shared/ui/BackButton.vue';
+import MainButton from '@/shared/ui/MainButton.vue';
+import UiButton from '@/shared/ui/UiButton.vue';
+import ResourcePlanningModal from '@/features/resource-planning/components/ResourcePlanningModal.vue';
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue';
 
 const selectedSection = ref(null);
 const selectedMonth = ref(null);

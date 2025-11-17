@@ -19,10 +19,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadTaskLog, loadObjTaskLog } from '@/api/executionApi';
-import { loadPeriodTypes } from '@/api/periodApi';
-import { usePermissions } from '@/api/usePermissions';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import { loadTaskLog, loadObjTaskLog } from '@/shared/api/executionApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
+import { usePermissions } from '@/shared/api/usePermissions';
 // ResourceEditingModal больше не импортируется
 
 const { hasPermission } = usePermissions();

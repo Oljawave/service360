@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import UiIcon from '@/components/ui/UiIcon.vue';
+import UiIcon from '@/shared/ui/UiIcon.vue';
 
 const props = defineProps({
   showCheck: {

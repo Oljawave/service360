@@ -27,11 +27,11 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadPlanCorrectional } from '@/api/repairApi';
-import { loadPeriodTypes } from '@/api/periodApi';
-import { usePermissions } from '@/api/usePermissions';
-import ResourceEditingModal from '@/modals/ResourceEditingModal.vue';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import { loadPlanCorrectional } from '@/shared/api/repairApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
+import { usePermissions } from '@/shared/api/usePermissions';
+import ResourceEditingModal from '@/features/resource-planning/components/ResourceEditingModal.vue';
 
 const { hasPermission } = usePermissions();
 const canInsert = computed(() => hasPermission('ins:ins'));

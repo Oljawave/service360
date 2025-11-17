@@ -92,16 +92,16 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNotificationStore } from '@/stores/notificationStore'; 
-import { loadSections, loadWorkPlanDates, loadWorkPlanUnfinishedByDate } from '@/api/inspectionsApi.js'; 
-import { completeThePlanWork } from '@/api/planWorkApi.js'; 
-import AppDropdown from '@/components/ui/FormControls/AppDropdown.vue';
-import BaseTable from '@/components/layout/Table/BaseTable.vue';
-import BackButton from '@/components/ui/BackButton.vue';
-import MainButton from '@/components/ui/MainButton.vue';
-import UiButton from '@/components/ui/UiButton.vue';
-import WorkCardModal from '@/modals/WorkCardModal.vue';
-import ConfirmationModal from '@/modals/ConfirmationModal.vue';
+import { useNotificationStore } from '@/app/stores/notificationStore';
+import { loadSections, loadWorkPlanDates, loadWorkPlanUnfinishedByDate } from '@/shared/api/inspectionsApi.js';
+import { completeThePlanWork } from '@/shared/api/planWorkApi.js';
+import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue';
+import BaseTable from '@/app/layouts/Table/BaseTable.vue';
+import BackButton from '@/shared/ui/BackButton.vue';
+import MainButton from '@/shared/ui/MainButton.vue';
+import UiButton from '@/shared/ui/UiButton.vue';
+import WorkCardModal from '@/features/work-log/components/WorkCardModal.vue';
+import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue';
 
 const selectedSection = ref(null);
 const selectedMonth = ref(null);

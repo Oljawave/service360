@@ -15,7 +15,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import UiIcon from '@/components/ui/UiIcon.vue';
+import UiIcon from '@/shared/ui/UiIcon.vue';
 
 const props = defineProps({
   weatherTemp: String,

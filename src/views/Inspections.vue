@@ -30,12 +30,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadInspections } from '@/api/inspectionApi';
-import { loadPeriodTypes } from '@/api/periodApi';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import { loadInspections } from '@/shared/api/inspectionApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
 import WorkStatus from '@/components/ui/WorkStatus.vue';
-import WorkCardInfoModal from '@/modals/WorkCardInfoModal.vue';
-import { usePermissions } from '@/api/usePermissions';
+import WorkCardInfoModal from '@/features/work-log/components/WorkCardInfoModal.vue';
+import { usePermissions } from '@/shared/api/usePermissions';
 
 const { hasPermission } = usePermissions();
 const canInsert = computed(() => hasPermission('ins:ins'));

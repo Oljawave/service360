@@ -110,17 +110,17 @@
 <script setup>  
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import DashboardHeader from '@/components/ui/DashboardHeader.vue';
-import QuickActions from '@/components/ui/QuickActions.vue';
-import WorkPlanWidget from '@/components/ui/WorkPlanWidget.vue';
-import ModalAddIncident from '@/modals/ModalAddIncident.vue';
-import ModalPlanWork from '@/modals/ModalPlanWork.vue';
-import ModalEditPlan from '@/modals/ModalEditPlan.vue';
-import KpiCard from '@/components/ui/KpiCard.vue';
-import CalendarWidget from '@/components/ui/CalendarWidget.vue';
-import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus, loadRailwaySkewData, loadSizeIncidentOfMonth } from '@/api/dashboardApi.js';
-import RailwaySection from '@/components/ui/RailwaySection.vue';
-import RailwaySectionStatus from '@/components/ui/RailwaySectionStatus.vue';
+import DashboardHeader from '@/features/dashboard/components/DashboardHeader.vue';
+import QuickActions from '@/features/dashboard/components/QuickActions.vue';
+import WorkPlanWidget from '@/features/work-plan/components/WorkPlanWidget.vue';
+import ModalAddIncident from '@/features/incidents/components/ModalAddIncident.vue';
+import ModalPlanWork from '@/features/work-plan/components/ModalPlanWork.vue';
+import ModalEditPlan from '@/features/work-plan/components/ModalEditPlan.vue';
+import KpiCard from '@/features/kpi/components/KpiCard.vue';
+import CalendarWidget from '@/features/work-plan/components/CalendarWidget.vue';
+import { loadDepartments, loadWorkPlanForKpi, loadIncidentsForKpi, loadRailwayStatus, loadRailwaySkewData, loadSizeIncidentOfMonth } from '@/shared/api/dashboardApi.js';
+import RailwaySection from '@/features/dashboard/components/RailwaySection.vue';
+import RailwaySectionStatus from '@/features/dashboard/components/RailwaySectionStatus.vue';
 
 const router = useRouter();
 

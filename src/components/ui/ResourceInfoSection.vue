@@ -89,9 +89,9 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { saveTaskLogFact } from '@/api/executionApi'; 
-import CompleteTaskModal from '@/modals/CompleteTaskModal.vue';
-import { useNotificationStore } from '@/stores/notificationStore'; 
+import { saveTaskLogFact } from '@/shared/api/executionApi'; 
+import CompleteTaskModal from '@/features/work-log/components/CompleteTaskModal.vue';
+import { useNotificationStore } from '@/app/stores/notificationStore'; 
 
 const notificationStore = useNotificationStore(); 
 

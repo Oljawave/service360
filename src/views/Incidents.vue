@@ -41,14 +41,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import { loadIncidents } from '@/api/incidentApi'; 
-import { loadPeriodTypes } from '@/api/periodApi';
-import { usePermissions } from '@/api/usePermissions';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import { loadIncidents } from '@/shared/api/incidentApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
+import { usePermissions } from '@/shared/api/usePermissions';
 
-import ModalAddIncident from '@/modals/ModalAddIncident.vue'; 
-import ModalIncidentInfo from '@/modals/ModalIncidentInfo.vue'; 
-import ModalAssignWork from '@/modals/ModalAssignWork.vue';
+import ModalAddIncident from '@/features/incidents/components/ModalAddIncident.vue';
+import ModalIncidentInfo from '@/features/incidents/components/ModalIncidentInfo.vue';
+import ModalAssignWork from '@/features/work-plan/components/ModalAssignWork.vue';
 
 const router = useRouter();
 

@@ -41,11 +41,11 @@
 </template>
 
 <script>
-import AppInput from "@/components/ui/FormControls/AppInput.vue"
-import MainButton from "@/components/ui/MainButton.vue"
-import AppNotification from "@/components/layout/AppNotification.vue"
-import { login, getCurrentUser, getPersonnalInfo } from "@/api/auth.js"
-import { useNotificationStore } from "@/stores/notificationStore"
+import AppInput from "@/shared/ui/FormControls/AppInput.vue"
+import MainButton from "@/shared/ui/MainButton.vue"
+import AppNotification from "@/app/layouts/AppNotification.vue"
+import { login, getCurrentUser, getPersonnalInfo } from "@/shared/api/auth.js"
+import { useNotificationStore } from "@/app/stores/notificationStore"
 
 export default {
   name: "Login",

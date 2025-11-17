@@ -35,12 +35,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import ModalEditPlan from '@/modals/ModalEditPlan.vue';
-import ModalPlanWork from '@/modals/ModalPlanWork.vue';
-import { loadWorkPlan } from '@/api/planApi';
-import { loadPeriodTypes } from '@/api/periodApi';
-import { usePermissions } from '@/api/usePermissions';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import ModalEditPlan from '@/features/work-plan/components/ModalEditPlan.vue';
+import ModalPlanWork from '@/features/work-plan/components/ModalPlanWork.vue';
+import { loadWorkPlan } from '@/shared/api/planApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
+import { usePermissions } from '@/shared/api/usePermissions';
 
 const { hasPermission } = usePermissions();
 

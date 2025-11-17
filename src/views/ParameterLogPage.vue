@@ -28,10 +28,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import TableWrapper from '@/components/layout/Table/TableWrapper.vue';
-import ModalParameterLogInfo from '@/modals/ModalParameterLogInfo.vue';
-import { loadParameterLog } from '@/api/parameterLogApi';
-import { loadPeriodTypes } from '@/api/periodApi';
+import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
+import ModalParameterLogInfo from '@/features/parameters/components/ModalParameterLogInfo.vue';
+import { loadParameterLog } from '@/shared/api/parameterLogApi';
+import { loadPeriodTypes } from '@/shared/api/periodApi';
 
 const limit = 10;
 const tableWrapperRef = ref(null);
