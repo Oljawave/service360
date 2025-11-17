@@ -1,5 +1,5 @@
 import { defineComponent, h } from 'vue'
-import { NConfigProvider } from 'naive-ui'
+import { NConfigProvider, ruRU, dateRuRU } from 'naive-ui'
 
 const themeOverrides = {
   common: {
@@ -15,7 +15,11 @@ export default defineComponent({
     return () =>
       h(
         NConfigProvider,
-        { themeOverrides },
+        {
+          themeOverrides,
+          locale: ruRU,
+          dateLocale: dateRuRU
+        },
         slots.default ? slots.default() : null
       )
   }
