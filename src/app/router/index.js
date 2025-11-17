@@ -1,18 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Dashboard from '@/views/Dashboard.vue';
-import ServicedObjects from '../views/ServicedObjects.vue'
-import OrgStructure from '../views/OrgStructure.vue';
-import Login from '../views/Login.vue';
-import WorkPlan from '@/views/WorkPlan.vue';
-import Inspections from '@/views/Inspections.vue';
-import FaultJournalPage from '@/views/FaultJournalPage.vue';
-import ParameterLogPage from '@/views/ParameterLogPage.vue';
-import Incidents from '@/views/Incidents.vue';
-import WorkPlanForm from '@/views/WorkPlanForm.vue';
-import ResourcePlanning from '@/views/ResourcePlanning.vue';
-import ResourcePlanningForm from '@/views/ResourcePlanningForm.vue';
-import WorkLog from '@/views/WorkLog.vue';
-import WorkLogForm from '@/views/WorkLogForm.vue';
+import Dashboard from '@/views/Dashboard.vue'
+import ServicedObjects from '@/views/ServicedObjects.vue'
+import OrgStructure from '@/views/OrgStructure.vue'
+import Login from '@/views/Login.vue'
+import WorkPlan from '@/views/WorkPlan.vue'
+import Inspections from '@/views/Inspections.vue'
+import FaultJournalPage from '@/views/FaultJournalPage.vue'
+import ParameterLogPage from '@/views/ParameterLogPage.vue'
+import Incidents from '@/views/Incidents.vue'
+import WorkPlanForm from '@/views/WorkPlanForm.vue'
+import ResourcePlanning from '@/views/ResourcePlanning.vue'
+import ResourcePlanningForm from '@/views/ResourcePlanningForm.vue'
+import WorkLog from '@/views/WorkLog.vue'
+import WorkLogForm from '@/views/WorkLogForm.vue'
 
 const routes = [
   {
