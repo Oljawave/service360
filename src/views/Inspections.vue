@@ -33,7 +33,7 @@ import { useRouter } from 'vue-router';
 import TableWrapper from '@/app/layouts/Table/TableWrapper.vue';
 import { loadInspections } from '@/shared/api/inspectionApi';
 import { loadPeriodTypes } from '@/shared/api/periodApi';
-import WorkStatus from '@/components/ui/WorkStatus.vue';
+import WorkStatus from '@/features/work-log/components/WorkStatus.vue';
 import WorkCardInfoModal from '@/features/work-log/components/WorkCardInfoModal.vue';
 import { usePermissions } from '@/shared/api/usePermissions';
 

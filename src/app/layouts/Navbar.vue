@@ -42,9 +42,9 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import UiIcon from '@/shared/ui/UiIcon.vue'
-import SearchBox from '../ui/SearchBox.vue'
-import UserAvatar from '../ui/UserAvatar.vue'
-import WeatherAndDate from '../../components/ui/WeatherAndDate.vue'
+import SearchBox from '@/shared/ui/SearchBox.vue'
+import UserAvatar from '@/shared/ui/UserAvatar.vue'
+import WeatherAndDate from '@/shared/ui/WeatherAndDate.vue'
 import { useSidebarStore } from '@/app/stores/sidebar'
 
 

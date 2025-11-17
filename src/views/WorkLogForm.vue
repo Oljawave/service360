@@ -139,7 +139,7 @@ import { useRouter, useRoute } from 'vue-router';
 import BackButton from '@/shared/ui/BackButton.vue';
 import ResourceCard from '@/features/resource-planning/components/ResourceCard.vue';
 import ResourceEditTable from '@/features/resource-planning/components/ResourceEditTable.vue';
-import ResourceInfoSection from '@/components/ui/ResourceInfoSection.vue';
+import ResourceInfoSection from '@/features/resource-planning/components/ResourceInfoSection.vue';
 import { loadObjTaskLog, saveResourceFact, saveServiceFact, addResourceMaterial, addResourceTpService, saveComplexPersonnel, deleteComplexPersonnel } from '@/shared/api/executionApi.js';
 import { loadMaterials, loadUnits, loadExternalServices } from '@/shared/api/repairApi.js';
 import { useNotificationStore } from '@/app/stores/notificationStore';

@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import SidebarItem from '../ui/SidebarItem.vue'
+import SidebarItem from '@/shared/ui/SidebarItem.vue'
 import UiIcon from '@/shared/ui/UiIcon.vue'
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useSidebarStore } from '@/app/stores/sidebar'
