@@ -65,7 +65,8 @@ const getIsOverdue = (event) => {
   if (event.FactDateEnd && event.FactDateEnd !== '0000-01-01') return false;
   if (!event.PlanDateEnd) return false;
 
-  const endDate = new Date(event.PlanDateEnd.split('T')[0]);
+  const [year, month, day] = event.PlanDateEnd.split('T')[0].split('-');
+  const endDate = new Date(year, month - 1, day);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -79,7 +80,8 @@ const getStatusText = (event) => {
 
   if (!event.PlanDateEnd) return 'Срок не указан';
 
-  const endDate = new Date(event.PlanDateEnd.split('T')[0]);
+  const [year, month, day] = event.PlanDateEnd.split('T')[0].split('-');
+  const endDate = new Date(year, month - 1, day);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
