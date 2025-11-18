@@ -10,7 +10,13 @@
       "Bash(tree:*)",
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
-      "Bash(timeout 15 npm run dev:*)"
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(rsync:*)",
+      "Bash(robocopy:*)",
+      "Bash(powershell -Command \"Remove-Item -Recurse -Force ../service360-operations\")"
     ],
     "deny": [],
     "ask": []

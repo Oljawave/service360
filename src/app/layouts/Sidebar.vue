@@ -56,46 +56,25 @@ onBeforeUnmount(() => {
 })
 
 const allItems = [
-  { 
-    label: 'Главная', 
-    path: '/main', 
-    icon: 'Home' 
-  },
-  { 
-    label: 'Обслуживаемые объекты', 
-    path: '/objects', 
-    icon: 'Folder', 
-    permission: 'obj' 
-  },
-  { 
-    label: 'Планирование', 
-    icon: 'ClipboardList',
+  {
+    label: 'Объекты',
+    icon: 'Package',
     children: [
-      { label: 'План работ', path: '/work-plan', permission: 'plan' },
-      { label: 'Планирование ресурсов', path: '/resource-planning', permission: 'plan' }
+      { label: 'Обслуживаемые объекты', path: '/objects', permission: 'obj' }
     ]
   },
-  { 
-    label: 'Исполнение', 
-    icon: 'CheckSquare',
+  {
+    label: 'Ресурсы',
+    icon: 'Boxes',
     children: [
-      { label: 'Журнал работ', path: '/work-log', permission: '' },
-      { label: 'Журнал осмотров и проверок', path: '/inspections', permission: 'ins' },
-      { label: 'Журнал параметров', path: '/parameters', permission: 'par' },
-      { label: 'Журнал неисправностей', path: '/defects', permission: 'def' },
-      { label: 'Журнал событий и запросов на работы', path: '/incidents', permission: 'inc' }
+      { label: 'Материалы', path: '/resources/materials' },
+      { label: 'Инструменты', path: '/resources/tools' },
+      { label: 'Техника', path: '/resources/equipment' },
+      { label: 'Услуги сторонних организаций', path: '/resources/services' }
     ]
   },
-  { 
-    label: 'Отчеты', 
-    icon: 'FileText',
-    children: [
-      { label: 'Отчеты по объектам', path: '/reports/objects', permission: 'rep' },
-      { label: 'Отчеты по работам', path: '/reports/work', permission: 'rep' }
-    ]
-  },
-  { 
-    label: 'Организация', 
+  {
+    label: 'Организация',
     icon: 'FolderTree',
     children: [
       { label: 'Организационная структура', path: '/organization', permission: 'org' }
