@@ -1,10 +1,41 @@
-import axios from 'axios';
-
+import axios from 'axios'
+import { formatDateForBackend } from '../common/formatters'
 
 const API_URL = import.meta.env.VITE_LOCATION_URL;
 
-export const saveLocation = async (form, multiOptions) => {
-  const now = new Date().toISOString().split('T')[0];
+// ============================================
+// LOAD методы (загрузка данных)
+// ============================================
+
+/**
+ * Загрузить список локаций
+ */
+export async function loadLocation() {
+  try {
+    console.log('📡 Отправка запроса на сервер...');
+    const response = await axios.post(API_URL, {
+      method: 'data/loadLocation',
+      params: [0]
+    });
+    console.log('📬 Ответ от сервера:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка при загрузке локаций:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// SAVE методы (сохранение)
+// ============================================
+
+/**
+ * Сохранить новую локацию
+ * @param {Object} form - Данные формы
+ * @param {Array} multiOptions - Опции для множественного выбора
+ */
+export async function saveLocation(form, multiOptions) {
+  const now = formatDateForBackend(new Date());
 
   const multiObjects = form.multipleSelect.map(id => {
     const match = multiOptions.find(opt => opt.value === id);
@@ -49,4 +80,4 @@ export const saveLocation = async (form, multiOptions) => {
     console.error('Error during saveLocation request:', error.response?.data || error.message);
     throw error;
   }
-};
+}

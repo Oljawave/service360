@@ -1,37 +1,50 @@
-import axios from "axios";
+import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_LOCATION_URL;
 const API_PLAN_URL = import.meta.env.VITE_PLAN_URL;
 const API_INCIDENTS_URL = import.meta.env.VITE_INCIDENTS_URL;
 const API_INSPECTIONS_URL = import.meta.env.VITE_INSPECTIONS_URL;
 
-export const loadDepartments = async () => {
+// ============================================
+// LOAD методы - Справочники
+// ============================================
+
+/**
+ * Загрузить список отделений/хозяйств
+ * @returns {Promise<Array>} Список отделений
+ */
+export async function loadDepartments() {
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await axios.post(
+      API_URL,
+      {
         method: "data/loadDepartmentForSelect",
         params: []
-      }),
-    });
+      },
+      {
+        withCredentials: true
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    return data.result?.records || [];
+    return response.data.result?.records || [];
   } catch (error) {
     console.error('Ошибка при загрузке списка хозяйств:', error);
     throw error;
   }
-};
+}
 
-export const loadWorkPlanForKpi = async (date, periodType = null, objLocation = null) => {
+// ============================================
+// LOAD методы - KPI данные
+// ============================================
+
+/**
+ * Загрузить план работ для KPI
+ * @param {string} date - Дата в формате YYYY-MM-DD
+ * @param {number|null} periodType - Тип периода
+ * @param {number|null} objLocation - ID локации (null для всех хозяйств)
+ * @returns {Promise<Array>} План работ
+ */
+export async function loadWorkPlanForKpi(date, periodType = null, objLocation = null) {
   const params = {
     date,
     codCls: "Cls_WorkPlanCorrectional"
@@ -58,9 +71,18 @@ export const loadWorkPlanForKpi = async (date, periodType = null, objLocation = 
   );
 
   return response.data.result?.records || [];
-};
+}
 
-export const loadIncidentsForKpi = async (date, periodType, objLocation = null, status = null, event = null) => {
+/**
+ * Загрузить инциденты для KPI
+ * @param {string} date - Дата в формате YYYY-MM-DD
+ * @param {number} periodType - Тип периода
+ * @param {number|null} objLocation - ID локации
+ * @param {string|null} status - Статус инцидента
+ * @param {number|null} event - ID события
+ * @returns {Promise<Array>} Список инцидентов
+ */
+export async function loadIncidentsForKpi(date, periodType, objLocation = null, status = null, event = null) {
   const params = {
     date,
     periodType
@@ -81,7 +103,6 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
     params.event = event;
   }
 
-
   const response = await axios.post(
     API_INCIDENTS_URL,
     {
@@ -94,9 +115,66 @@ export const loadIncidentsForKpi = async (date, periodType, objLocation = null, 
   );
 
   return response.data.result?.records || [];
-};
+}
 
-export const loadRailwayStatus = async (customDate = null, relobj = 2525) => {
+/**
+ * Загрузить количество инцидентов за месяц
+ * @param {number|null} objLocation - ID локации
+ * @param {number|null} event - ID события
+ * @param {boolean|null} open - Флаг открытых инцидентов
+ * @returns {Promise<number>} Количество инцидентов
+ */
+export async function loadSizeIncidentOfMonth(objLocation = null, event = null, open = null) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  const params = {
+    date: dateStr
+  };
+
+  // Добавляем objLocation только если он не null
+  if (objLocation !== null) {
+    params.objLocation = objLocation;
+  }
+
+  // Добавляем event только если он не null
+  if (event !== null) {
+    params.event = event;
+  }
+
+  // Добавляем open только если он не null
+  if (open !== null) {
+    params.open = open;
+  }
+
+  const response = await axios.post(
+    API_INCIDENTS_URL,
+    {
+      method: "data/loadSizeIncidentOfMonth",
+      params: [params]
+    },
+    {
+      withCredentials: true
+    }
+  );
+
+  return response.data.result || 0;
+}
+
+// ============================================
+// LOAD методы - Статус железной дороги
+// ============================================
+
+/**
+ * Загрузить статус железной дороги
+ * @param {string|null} customDate - Дата в формате YYYY-MM-DD
+ * @param {number} relobj - ID связанного объекта
+ * @returns {Promise<Array>} Статус железной дороги
+ */
+export async function loadRailwayStatus(customDate = null, relobj = 2525) {
   let dateStr;
 
   if (customDate) {
@@ -128,9 +206,14 @@ export const loadRailwayStatus = async (customDate = null, relobj = 2525) => {
   );
 
   return response.data.result?.records || [];
-};
+}
 
-export const loadRailwaySkewData = async (customDate = null) => {
+/**
+ * Загрузить данные об отклонениях ж/д пути
+ * @param {string|null} customDate - Дата в формате YYYY-MM-DD
+ * @returns {Promise<Array>} Данные об отклонениях
+ */
+export async function loadRailwaySkewData(customDate = null) {
   let dateStr;
 
   if (customDate) {
@@ -188,44 +271,4 @@ export const loadRailwaySkewData = async (customDate = null) => {
   ];
 
   return allData;
-};
-
-export const loadSizeIncidentOfMonth = async (objLocation = null, event = null, open = null) => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const dateStr = `${year}-${month}-${day}`;
-
-  const params = {
-    date: dateStr
-  };
-
-  // Добавляем objLocation только если он не null
-  if (objLocation !== null) {
-    params.objLocation = objLocation;
-  }
-
-  // Добавляем event только если он не null
-  if (event !== null) {
-    params.event = event;
-  }
-
-  // Добавляем open только если он не null
-  if (open !== null) {
-    params.open = open;
-  }
-
-  const response = await axios.post(
-    API_INCIDENTS_URL,
-    {
-      method: "data/loadSizeIncidentOfMonth",
-      params: [params]
-    },
-    {
-      withCredentials: true
-    }
-  );
-
-  return response.data.result || 0;
-};
+}

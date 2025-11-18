@@ -129,11 +129,10 @@ import AppDatePicker from '@/shared/ui/FormControls/AppDatePicker.vue'
 import AppNumberInput from '@/shared/ui/FormControls/AppNumberInput.vue'
 import CoordinateInputs from '@/shared/ui/FormControls/CoordinateInputs.vue'
 import ConfirmationModal from '@/shared/ui/ConfirmationModal.vue'
-import { loadTypes, loadSides, fetchStationOfCoord } from '@/shared/api/objectApi'
-import { deleteObject, updateObjectServed } from '@/shared/api/updateObjectApi' // Изменено: Импорт updateObjectServed и удален saveObjectServed
-import { fetchUserData } from '@/shared/api/inspectionsApi'
+import { loadTypes, loadSides, fetchStationOfCoord, deleteObject, updateObjectServed } from '@/shared/api/objects/objectService'
+import { getUserData } from '@/shared/api/common/userCache'
 import { useNotificationStore } from '@/app/stores/notificationStore'
-import { usePermissions } from '@/shared/api/usePermissions';
+import { usePermissions } from '@/shared/api/auth/usePermissions';
 
 const props = defineProps({
   rowData: {
@@ -246,7 +245,7 @@ const saveData = async () => {
     return
   }
   try {
-    const user = await fetchUserData()
+    const user = await getUserData()
     const installDate = formatDateToString(form.value.installDate)
     const updatedAt = new Date().toISOString().slice(0, 10)
     const typeLabel = selectedType.value?.label || typeOptions.value.find(t => t.value === form.value.type)?.label || ''

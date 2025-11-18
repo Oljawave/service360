@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ServicedObjects from '@/views/ServicedObjects.vue'
 import OrgStructure from '@/views/OrgStructure.vue'
 import Login from '@/views/Login.vue'
+import Tools from '@/views/Tools.vue'
+import Equipment from '@/views/Equipment.vue'
 
 const routes = [
   {
@@ -17,6 +19,16 @@ const routes = [
     path: '/objects',
     name: 'ServicedObjects',
     component: ServicedObjects
+  },
+  {
+    path: '/resources/tools',
+    name: 'Tools',
+    component: Tools
+  },
+  {
+    path: '/resources/equipment',
+    name: 'Equipment',
+    component: Equipment
   },
   {
     path: '/organization',

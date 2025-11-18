@@ -1,7 +1,17 @@
-import axios from "axios";
+import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_INSPECTIONS_URL;
 
+// ============================================
+// LOAD методы (загрузка данных)
+// ============================================
+
+/**
+ * Загрузить список неисправностей
+ * @param {string} date - Дата в формате YYYY-MM-DD
+ * @param {number} periodType - Тип периода
+ * @returns {Promise<Array>} Список неисправностей
+ */
 export async function loadFaults(date = "2025-07-30", periodType = 11) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -16,7 +26,7 @@ export async function loadFaults(date = "2025-07-30", periodType = 11) {
   });
 
   const response = await axios.post(
-    API_BASE_URL, 
+    API_BASE_URL,
     {
       method: "data/loadFault",
       params: [
@@ -35,13 +45,22 @@ export async function loadFaults(date = "2025-07-30", periodType = 11) {
   return response.data.result?.records || [];
 }
 
+// ============================================
+// DELETE методы (удаление)
+// ============================================
+
+/**
+ * Удалить неисправность или параметр
+ * @param {number} id - ID записи
+ * @returns {Promise<Object>} Результат удаления
+ */
 export async function deleteFaultOrParameter(id) {
   if (!id) {
     throw new Error("ID записи для удаления не предоставлен.");
   }
 
   const response = await axios.post(
-    API_BASE_URL, 
+    API_BASE_URL,
     {
       method: "data/deleteObjWithProperties",
       params: [id]
@@ -52,8 +71,7 @@ export async function deleteFaultOrParameter(id) {
   );
 
   if (response.data.result === undefined || response.data.result === null) {
-
-      console.warn("API не вернул 'result' при удалении, возможно, ошибка или специфичный формат ответа.");
+    console.warn("API не вернул 'result' при удалении, возможно, ошибка или специфичный формат ответа.");
   }
 
   return response.data;

@@ -109,8 +109,8 @@ import AppDropdown from '@/shared/ui/FormControls/AppDropdown.vue'
 import AppDatePicker from '@/shared/ui/FormControls/AppDatePicker.vue'
 import AppNumberInput from '@/shared/ui/FormControls/AppNumberInput.vue'
 import CoordinateInputs from '@/shared/ui/FormControls/CoordinateInputs.vue'
-import { loadTypes, loadSides, fetchStationOfCoord, saveObjectServed } from '@/shared/api/objectApi'
-import { fetchUserData } from '@/shared/api/inspectionsApi'
+import { loadTypes, loadSides, fetchStationOfCoord, saveObjectServed } from '@/shared/api/objects/objectService'
+import { getUserData } from '@/shared/api/common/userCache'
 import { useNotificationStore } from '@/app/stores/notificationStore'
 
 const notificationStore = useNotificationStore()
@@ -178,7 +178,7 @@ const saveData = async () => {
     if (!validateForm()) {
       return
     }
-    const user = await fetchUserData()
+    const user = await getUserData()
     const installDate = formatDateToString(form.value.installDate)
     const createdAt = new Date().toISOString().slice(0, 10)
     const updatedAt = createdAt

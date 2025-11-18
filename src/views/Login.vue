@@ -44,7 +44,7 @@
 import AppInput from "@/shared/ui/FormControls/AppInput.vue"
 import MainButton from "@/shared/ui/MainButton.vue"
 import AppNotification from "@/app/layouts/AppNotification.vue"
-import { login, getCurrentUser, getPersonnalInfo } from "@/shared/api/auth.js"
+import { login, getCurrentUser, getPersonnalInfo } from "@/shared/api/auth/auth.js"
 import { useNotificationStore } from "@/app/stores/notificationStore"
 
 export default {

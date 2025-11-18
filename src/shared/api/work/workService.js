@@ -1,31 +1,134 @@
-import axios from "axios";
+import axios from 'axios'
+import { getUserData } from '../common/userCache'
+import { formatDateForBackend } from '../common/formatters'
 
+const WORKS_API_URL = import.meta.env.VITE_OBJECT_URL;
+const DATA_API_URL = import.meta.env.VITE_PLAN_URL;
 const API_REPAIR_URL = import.meta.env.VITE_REPAIR_URL;
-const AUTH_API_URL = import.meta.env.VITE_OBJECT_URL;
 const API_PERSONAL = import.meta.env.VITE_PERSONAL_URL;
 
-let userDataCache = null;
+// ============================================
+// LOAD методы - Работы и места
+// ============================================
 
-const fetchUserData = async () => {
-  if (userDataCache) return userDataCache;
-
+/**
+ * Загрузить список работ
+ * @returns {Promise<Array>} Список работ
+ */
+export async function fetchWorks() {
   try {
-    const response = await axios.post(AUTH_API_URL, {
+    const response = await axios.post(WORKS_API_URL, {
       method: 'data/loadObjList',
-      params: ['Typ_Personnel', 'Prop_User', 'personnaldata']
+      params: ['Typ_Work', 'Prop_Work', 'nsidata']
     });
 
-    const user = response.data?.result?.records?.[0];
-    if (!user) throw new Error('Данные пользователя не найдены');
+    if (!response.data || !response.data.result || !Array.isArray(response.data.result.records)) {
+      console.error('Ошибка структуры ответа:', response.data);
+      throw new Error('Некорректный ответ от сервера: нет records');
+    }
 
-    userDataCache = user;
-    return user;
+    const records = response.data.result.records;
+
+    const processedRecords = records.map(item => ({
+      label: item.fullName,
+      value: item.id,
+      cls: item.cls,
+      pv: item.pv,
+      fullRecord: item
+    }));
+
+    return processedRecords;
   } catch (error) {
-    console.error('Ошибка при загрузке данных пользователя:', error);
-    throw error;
+    console.error('Ошибка загрузки работ:', error);
+    throw new Error(error.response?.data?.message || 'Не удалось загрузить работы');
   }
-};
+}
 
+/**
+ * Загрузить места для работы
+ * @param {number} workId - ID работы
+ * @returns {Promise<Array>} Список мест
+ */
+export async function fetchPlacesForWork(workId) {
+  const response = await axios.post(DATA_API_URL, {
+    method: 'data/loadObjectServedForSelect',
+    params: [workId]
+  });
+
+  if (response.data && response.data.result && response.data.result.records) {
+    return response.data.result.records.map(item => ({
+      label: item.nameSection,
+      value: item.objSection,
+      fullRecord: item
+    }));
+  } else {
+    throw new Error('Нет данных о местах для выбранной работы');
+  }
+}
+
+/**
+ * Загрузить объекты для выбора
+ * @param {number} objWork - ID работы
+ * @returns {Promise<Array>} Список объектов
+ */
+export async function fetchObjectsForSelect(objWork) {
+  const response = await axios.post(DATA_API_URL, {
+    method: 'data/loadObjectServedForSelect',
+    params: [objWork]
+  });
+
+  if (response.data && response.data.result && response.data.result.records) {
+    return response.data.result.records;
+  } else {
+    throw new Error('Нет данных о объектах для выбранной работы');
+  }
+}
+
+/**
+ * Найти локацию по координатам
+ * @param {number} workId - ID работы
+ * @param {number} startKm - Начальный км
+ * @param {number} finishKm - Конечный км
+ * @param {number} startPicket - Начальный пикет
+ * @param {number} finishPicket - Конечный пикет
+ * @returns {Promise<Array>} Список найденных локаций
+ */
+export async function fetchLocationByCoords(workId, startKm, finishKm, startPicket, finishPicket) {
+  const response = await axios.post(DATA_API_URL, {
+    method: 'data/findLocationOfCoord',
+    params: [
+      {
+        objWork: workId ?? 0,
+        StartKm: startKm,
+        FinishKm: finishKm,
+        StartPicket: startPicket,
+        FinishPicket: finishPicket
+      }
+    ]
+  });
+
+  if (response.data && response.data.result && response.data.result.records) {
+    return response.data.result.records.map(item => ({
+      label: item.name,
+      value: item.id,
+      pv: item.pv,
+      fullRecord: item
+    }));
+  } else {
+    throw new Error('Нет данных для координат');
+  }
+}
+
+// ============================================
+// LOAD методы - Журналы задач
+// ============================================
+
+/**
+ * Загрузить журнал задач
+ * @param {string} date - Дата в формате YYYY-MM-DD
+ * @param {number} periodType - Тип периода
+ * @returns {Promise<Array>} Журнал задач
+ */
 export async function loadTaskLog(date, periodType) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -57,6 +160,11 @@ export async function loadTaskLog(date, periodType) {
   return result?.store?.records || result || [];
 }
 
+/**
+ * Загрузить объект журнала задач
+ * @param {number} taskLogId - ID записи журнала задач
+ * @returns {Promise<Object>} Объект журнала задач
+ */
 export async function loadObjTaskLog(taskLogId) {
   if (!taskLogId) {
     console.warn("loadObjTaskLog вызван без ID записи.");
@@ -82,6 +190,11 @@ export async function loadObjTaskLog(taskLogId) {
   }
 }
 
+/**
+ * Загрузить персонал по должности
+ * @param {number} pvPosition - PV должности
+ * @returns {Promise<Array>} Список персонала
+ */
 export async function loadPersonnalByPosition(pvPosition) {
   if (!pvPosition) {
     throw new Error("pvPosition обязателен для загрузки персонала");
@@ -109,14 +222,23 @@ export async function loadPersonnalByPosition(pvPosition) {
   }
 }
 
+// ============================================
+// SAVE методы - Ресурсы (факт)
+// ============================================
+
+/**
+ * Сохранить факт по материалу
+ * @param {Object} materialData - Данные материала
+ * @returns {Promise<Object>} Результат сохранения
+ */
 export async function saveResourceFact(materialData) {
   if (!materialData || !materialData.id) {
     throw new Error("Для сохранения факта по материалу необходимо передать данные с ID.");
   }
 
   try {
-    const user = await fetchUserData();
-    const today = new Date().toISOString().split('T')[0];
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
 
     const payload = {
       id: materialData.id,
@@ -130,7 +252,7 @@ export async function saveResourceFact(materialData) {
     };
 
     console.log('Отправка data/saveResourceFact с данными:', payload);
-    
+
     const response = await axios.post(
       API_REPAIR_URL,
       {
@@ -141,7 +263,7 @@ export async function saveResourceFact(materialData) {
         withCredentials: true,
       }
     );
-    
+
     console.log('Ответ от data/saveResourceFact:', response.data);
     return response.data.result;
   } catch (error) {
@@ -151,14 +273,19 @@ export async function saveResourceFact(materialData) {
   }
 }
 
+/**
+ * Сохранить факт по услуге
+ * @param {Object} serviceData - Данные услуги
+ * @returns {Promise<Object>} Результат сохранения
+ */
 export async function saveServiceFact(serviceData) {
   if (!serviceData || !serviceData.id) {
     throw new Error("Для сохранения факта по услуге необходимо передать данные с ID.");
   }
 
   try {
-    const user = await fetchUserData();
-    const today = new Date().toISOString().split('T')[0];
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
 
     const payload = {
       id: serviceData.id,
@@ -172,7 +299,7 @@ export async function saveServiceFact(serviceData) {
     };
 
     console.log('Отправка data/saveResourceFact (услуга) с данными:', payload);
-    
+
     const response = await axios.post(
       API_REPAIR_URL,
       {
@@ -183,7 +310,7 @@ export async function saveServiceFact(serviceData) {
         withCredentials: true,
       }
     );
-    
+
     console.log('Ответ от data/saveResourceFact (услуга):', response.data);
     return response.data.result;
   } catch (error) {
@@ -193,14 +320,25 @@ export async function saveServiceFact(serviceData) {
   }
 }
 
+// ============================================
+// ADD методы - Добавление ресурсов
+// ============================================
+
+/**
+ * Добавить материал к задаче
+ * @param {Object} materialData - Данные материала
+ * @param {number} taskLogId - ID задачи
+ * @param {string} taskLogCls - CLS задачи
+ * @returns {Promise<Object>} Результат добавления
+ */
 export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   if (!materialData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные материала, ID и PV задачи.");
   }
 
   try {
-    const user = await fetchUserData();
-    const today = new Date().toISOString().split('T')[0];
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
 
     const payload = {
       name: `${taskLogId}-${materialData.objMaterial}-${today}`,
@@ -219,7 +357,7 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
     };
 
     console.log('Вызов метода data/saveResourceMaterial (добавление) с данными:', payload);
-    
+
     const response = await axios.post(
       API_REPAIR_URL,
       {
@@ -230,7 +368,7 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
         withCredentials: true,
       }
     );
-    
+
     console.log('Ответ от data/saveResourceMaterial (добавление):', response.data);
     return response.data.result;
   } catch (error) {
@@ -240,14 +378,21 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   }
 }
 
+/**
+ * Добавить услугу к задаче
+ * @param {Object} serviceData - Данные услуги
+ * @param {number} taskLogId - ID задачи
+ * @param {string} taskLogCls - CLS задачи
+ * @returns {Promise<Object>} Результат добавления
+ */
 export async function addResourceTpService(serviceData, taskLogId, taskLogCls) {
   if (!serviceData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные услуги, ID и CLS задачи.");
   }
 
   try {
-    const user = await fetchUserData();
-    const today = new Date().toISOString().split('T')[0];
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
 
     const payload = {
       name: `${taskLogId}-${serviceData.objTpService}-${today}`,
@@ -285,14 +430,21 @@ export async function addResourceTpService(serviceData, taskLogId, taskLogCls) {
   }
 }
 
+/**
+ * Добавить исполнителя к задаче
+ * @param {Object} personnelData - Данные исполнителя
+ * @param {number} taskLogId - ID задачи
+ * @param {string} taskLogCls - CLS задачи
+ * @returns {Promise<Object>} Результат добавления
+ */
 export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls) {
   if (!personnelData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные исполнителя, ID и CLS задачи.");
   }
 
   try {
-    const user = await fetchUserData();
-    const today = new Date().toISOString().split('T')[0];
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
 
     const payload = {
       name: `${taskLogId}-${personnelData.id}-${today}`,
@@ -329,13 +481,22 @@ export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls)
   }
 }
 
+// ============================================
+// SAVE/UPDATE методы - Комплексные операции
+// ============================================
+
+/**
+ * Сохранить комплексного исполнителя
+ * @param {number} personnelId - ID исполнителя
+ * @param {Object} performerData - Данные исполнителя
+ * @returns {Promise<Object>} Результат сохранения
+ */
 export async function saveComplexPersonnel(personnelId, performerData) {
   if (!personnelId || !performerData) {
     throw new Error("Необходимо передать ID personnel и данные исполнителя.");
   }
 
   try {
-    // Определяем операцию: "ins" для новых, "upd" для существующих
     const operation = performerData.isNew ? "ins" : "upd";
 
     const payload = {
@@ -345,7 +506,6 @@ export async function saveComplexPersonnel(personnelId, performerData) {
       PerformerValue: Number(performerData.PerformerValue)
     };
 
-    // Для обновления существующих исполнителей добавляем дополнительные поля
     if (!performerData.isNew) {
       payload.idPerformer = performerData.idPerformer;
       payload.idPerformerValue = performerData.idPerformerValue;
@@ -373,6 +533,75 @@ export async function saveComplexPersonnel(personnelId, performerData) {
   }
 }
 
+/**
+ * Сохранить факт журнала задач
+ * @param {Object} payload - Данные для сохранения
+ * @returns {Promise<Object>} Результат сохранения
+ */
+export async function saveTaskLogFact(payload) {
+  if (!payload || !payload.id) {
+    throw new Error("Payload должен содержать ID записи.");
+  }
+
+  try {
+    console.log('Вызов метода data/saveTaskLogFact с данными:', payload);
+    const response = await axios.post(
+      API_REPAIR_URL,
+      {
+        method: "data/saveTaskLogFact",
+        params: [payload],
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data.result;
+  } catch (error) {
+    console.error(`Ошибка при вызове saveTaskLogFact для ID ${payload.id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Завершить плановую работу
+ * @param {number} id - ID работы
+ * @param {string} date - Дата завершения
+ * @returns {Promise<Object>} Результат завершения
+ */
+export async function completeThePlanWork(id, date) {
+  try {
+    const response = await axios.post(DATA_API_URL, {
+      method: 'data/completeThePlanWork',
+      params: [
+        {
+          id: id,
+          date: date
+        }
+      ]
+    });
+
+    if (response.data && response.data.result) {
+      return response.data.result;
+    } else if (response.data && response.data.error) {
+      throw new Error(response.data.error);
+    } else {
+      return response.data;
+    }
+  } catch (error) {
+    console.error('Ошибка завершения работы:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Не удалось завершить работу');
+  }
+}
+
+// ============================================
+// DELETE методы (удаление)
+// ============================================
+
+/**
+ * Удалить комплексного исполнителя
+ * @param {number} complexId - ID комплекса
+ * @returns {Promise<Object>} Результат удаления
+ */
 export async function deleteComplexPersonnel(complexId) {
   if (!complexId) {
     throw new Error("Необходимо передать ID комплекса для удаления.");
@@ -397,30 +626,6 @@ export async function deleteComplexPersonnel(complexId) {
   } catch (error) {
     console.error(`Ошибка при вызове deleteComplexData для ID ${complexId}:`, error);
     console.error('Детали ошибки (ответ сервера):', error.response?.data);
-    throw error;
-  }
-}
-
-export async function saveTaskLogFact(payload) {
-  if (!payload || !payload.id) {
-    throw new Error("Payload должен содержать ID записи.");
-  }
-
-  try {
-    console.log('Вызов метода data/saveTaskLogFact с данными:', payload);
-    const response = await axios.post(
-      API_REPAIR_URL,
-      {
-        method: "data/saveTaskLogFact",
-        params: [payload],
-      },
-      {
-        withCredentials: true,
-      }
-    );
-    return response.data.result;
-  } catch (error) {
-    console.error(`Ошибка при вызове saveTaskLogFact для ID ${payload.id}:`, error);
     throw error;
   }
 }

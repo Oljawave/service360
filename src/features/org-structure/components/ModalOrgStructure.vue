@@ -119,9 +119,9 @@ import {
   fetchRegions,
   fetchActiveOptions,
   loadTypes
-} from '@/shared/api/organization'
+} from '@/shared/api/organization/organizationService'
 
-import { saveLocation } from '@/shared/api/saveLocationApi'
+import { saveLocation } from '@/shared/api/locations/locationService'
 import { useNotificationStore } from '@/app/stores/notificationStore'
 
 const emit = defineEmits(['close', 'update-table'])
