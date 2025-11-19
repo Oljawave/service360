@@ -88,12 +88,17 @@ export default {
           console.warn("objLocation не найден в personnalInfo")
         }
 
+        // Сохраняем ID пользователя для userCache
+        if (info.id) {
+          localStorage.setItem("userId", info.id.toString())
+        }
+
         localStorage.setItem("userAuth", JSON.stringify(loginResponse))
         localStorage.setItem("curUser", JSON.stringify(curUser))
         localStorage.setItem("personnalInfo", JSON.stringify(info))
 
         notify.showNotification("Успешный вход!", "success")
-        this.$router.push("/main")
+        this.$router.push("/objects")
       } catch (err) {
         console.error("Ошибка при входе:", err)
 

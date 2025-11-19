@@ -13,6 +13,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { logout as authLogout } from '@/shared/api/auth/auth'
 
 const menuOpen = ref(false)
 const avatarRef = ref(null)
@@ -36,10 +37,8 @@ const toggleMenu = () => {
 }
 
 const logout = () => {
-  localStorage.removeItem('user')
-  localStorage.removeItem('authToken')
-  localStorage.removeItem('personnalInfo')
   menuOpen.value = false
+  authLogout()
   router.push('/login')
 }
 

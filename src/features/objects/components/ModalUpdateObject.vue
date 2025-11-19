@@ -287,6 +287,9 @@ const saveData = async () => {
       pvSide: selectedSide.value?.pv ?? (form.value.side === null ? null : props.rowData.rawData?.pvSide),
       objUser: user.id,
       pvUser: user.pv,
+      // idSection остается из базы (rawData), а objSection и pvSection обновляются если координаты изменились
+      objSection: stationData.value?.id ?? props.rowData.rawData?.objSection,
+      pvSection: stationData.value?.pv ?? props.rowData.rawData?.pvSection,
     }
 
     // Удаляем поля, которые не должны отправляться или отправляются автоматом

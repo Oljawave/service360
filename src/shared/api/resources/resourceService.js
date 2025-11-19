@@ -1,7 +1,9 @@
 import axios from 'axios'
-import { formatDate } from '../common/formatters'
+import { formatDate, formatDateForBackend } from '../common/formatters'
+import { getUserData } from '../common/userCache'
 
 const API_RESOURCE_URL = import.meta.env.VITE_RESOURCE_URL;
+const OBJECT_URL = import.meta.env.VITE_OBJECT_URL;
 
 export async function loadTools({ page = 1, limit = 10 }) {
   const response = await axios.post(API_RESOURCE_URL, {
@@ -82,6 +84,256 @@ export async function loadEquipment({ page = 1, limit = 10 }) {
       _originalIndex: i + 1,
     })),
     total: records.length
+  }
+}
+
+// ============================================
+// LOAD методы - Справочники
+// ============================================
+
+/**
+ * Загрузить типы инструментов
+ * @returns {Promise<Array>} Список типов инструментов
+ */
+export async function loadToolTypes() {
+  try {
+    const response = await axios.post(OBJECT_URL, {
+      method: 'data/loadFactorValForSelect',
+      params: ['Prop_TypTool']
+    });
+
+    const records = response.data.result?.records || [];
+    return records.map(record => ({
+      label: record.name,
+      value: record.id,
+      pv: record.pv,
+      factor: record.factor
+    }));
+  } catch (error) {
+    console.error('Ошибка при загрузке типов инструментов:', error);
+    throw error;
+  }
+}
+
+/**
+ * Загрузить участки
+ * @returns {Promise<Array>} Список участков
+ */
+export async function loadSections() {
+  try {
+    const response = await axios.post(OBJECT_URL, {
+      method: 'data/loadObjList',
+      params: ['Typ_Location', 'Prop_LocationClsSection', 'orgstructuredata']
+    });
+
+    const records = response.data.result?.records || [];
+    return records.map(record => ({
+      label: record.fullName || record.name,
+      value: record.id,
+      cls: record.cls,
+      pv: record.pv
+    }));
+  } catch (error) {
+    console.error('Ошибка при загрузке участков:', error);
+    throw error;
+  }
+}
+
+/**
+ * Загрузить типы техники
+ * @returns {Promise<Array>} Список типов техники
+ */
+export async function loadEquipmentTypes() {
+  try {
+    const response = await axios.post(OBJECT_URL, {
+      method: 'data/loadFactorValForSelect',
+      params: ['Prop_TypEquipment']
+    });
+
+    const records = response.data.result?.records || [];
+    return records.map(record => ({
+      label: record.name,
+      value: record.id,
+      pv: record.pv,
+      factor: record.factor
+    }));
+  } catch (error) {
+    console.error('Ошибка при загрузке типов техники:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// SAVE методы (сохранение)
+// ============================================
+
+/**
+ * Сохранить новый инструмент
+ * @param {Object} toolData - Данные инструмента
+ * @returns {Promise<Object>} Результат сохранения
+ */
+export async function saveTool(toolData) {
+  try {
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
+
+    const payload = {
+      Number: toolData.inventoryNumber,
+      name: toolData.name,
+      fvTypTool: toolData.toolType.value,
+      pvTypTool: toolData.toolType.pv,
+      objLocationClsSection: toolData.section.value,
+      pvLocationClsSection: toolData.section.pv,
+      objUser: user.id,
+      pvUser: user.pv,
+      CreatedAt: today,
+      UpdatedAt: today,
+      Description: toolData.description || ''
+    };
+
+    console.log('Отправка данных для сохранения инструмента:', payload);
+
+    const response = await axios.post(API_RESOURCE_URL, {
+      method: 'data/saveTool',
+      params: ['ins', payload]
+    });
+
+    console.log('Ответ от сервера:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка при сохранении инструмента:', error);
+    throw error;
+  }
+}
+
+/**
+ * Сохранить новую технику
+ * @param {Object} equipmentData - Данные техники
+ * @returns {Promise<Object>} Результат сохранения
+ */
+export async function saveEquipment(equipmentData) {
+  try {
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
+
+    const payload = {
+      Number: equipmentData.inventoryNumber,
+      name: equipmentData.name,
+      fvTypEquipment: equipmentData.equipmentType.value,
+      pvTypEquipment: equipmentData.equipmentType.pv,
+      objLocationClsSection: equipmentData.section.value,
+      pvLocationClsSection: equipmentData.section.pv,
+      objUser: user.id,
+      pvUser: user.pv,
+      CreatedAt: today,
+      UpdatedAt: today,
+      Description: equipmentData.description || ''
+    };
+
+    console.log('Отправка данных для сохранения техники:', payload);
+
+    const response = await axios.post(API_RESOURCE_URL, {
+      method: 'data/saveEquipment',
+      params: ['ins', payload]
+    });
+
+    console.log('Ответ от сервера:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка при сохранении техники:', error);
+    throw error;
+  }
+}
+
+/**
+ * Обновить инструмент
+ * @param {Object} toolData - Данные инструмента с rawData
+ * @returns {Promise<Object>} Результат обновления
+ */
+export async function updateTool(toolData) {
+  try {
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
+
+    const payload = {
+      id: toolData.rawData.id,
+      cls: toolData.rawData.cls,
+      name: toolData.name,
+      idNumber: toolData.rawData.idNumber,
+      Number: toolData.inventoryNumber,
+      idTypTool: toolData.rawData.idTypTool,
+      fvTypTool: toolData.toolType.value,
+      pvTypTool: toolData.toolType.pv,
+      idLocationClsSection: toolData.rawData.idLocationClsSection,
+      pvLocationClsSection: toolData.section.pv,
+      objLocationClsSection: toolData.section.value,
+      idUpdatedAt: toolData.rawData.idUpdatedAt,
+      UpdatedAt: today,
+      idUser: toolData.rawData.idUser,
+      pvUser: user.pv,
+      objUser: user.id,
+      idDescription: toolData.rawData.idDescription,
+      Description: toolData.description || ''
+    };
+
+    console.log('Отправка данных для обновления инструмента:', payload);
+
+    const response = await axios.post(API_RESOURCE_URL, {
+      method: 'data/saveTool',
+      params: ['upd', payload]
+    });
+
+    console.log('Ответ от сервера:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка при обновлении инструмента:', error);
+    throw error;
+  }
+}
+
+/**
+ * Обновить технику
+ * @param {Object} equipmentData - Данные техники с rawData
+ * @returns {Promise<Object>} Результат обновления
+ */
+export async function updateEquipment(equipmentData) {
+  try {
+    const user = await getUserData();
+    const today = formatDateForBackend(new Date());
+
+    const payload = {
+      id: equipmentData.rawData.id,
+      cls: equipmentData.rawData.cls,
+      name: equipmentData.name,
+      idNumber: equipmentData.rawData.idNumber,
+      Number: equipmentData.inventoryNumber,
+      idTypEquipment: equipmentData.rawData.idTypEquipment,
+      fvTypEquipment: equipmentData.equipmentType.value,
+      pvTypEquipment: equipmentData.equipmentType.pv,
+      idLocationClsSection: equipmentData.rawData.idLocationClsSection,
+      pvLocationClsSection: equipmentData.section.pv,
+      objLocationClsSection: equipmentData.section.value,
+      idUpdatedAt: equipmentData.rawData.idUpdatedAt,
+      UpdatedAt: today,
+      idUser: equipmentData.rawData.idUser,
+      pvUser: user.pv,
+      objUser: user.id,
+      idDescription: equipmentData.rawData.idDescription,
+      Description: equipmentData.description || ''
+    };
+
+    console.log('Отправка данных для обновления техники:', payload);
+
+    const response = await axios.post(API_RESOURCE_URL, {
+      method: 'data/saveEquipment',
+      params: ['upd', payload]
+    });
+
+    console.log('Ответ от сервера:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка при обновлении техники:', error);
+    throw error;
   }
 }
 

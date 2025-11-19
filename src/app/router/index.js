@@ -4,6 +4,7 @@ import OrgStructure from '@/views/OrgStructure.vue'
 import Login from '@/views/Login.vue'
 import Tools from '@/views/Tools.vue'
 import Equipment from '@/views/Equipment.vue'
+import { isAuthenticated } from '@/shared/api/auth/auth'
 
 const routes = [
   {
@@ -13,27 +14,32 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: Login,
+    meta: { requiresAuth: false }
   },
   {
     path: '/objects',
     name: 'ServicedObjects',
-    component: ServicedObjects
+    component: ServicedObjects,
+    meta: { requiresAuth: true }
   },
   {
     path: '/resources/tools',
     name: 'Tools',
-    component: Tools
+    component: Tools,
+    meta: { requiresAuth: true }
   },
   {
     path: '/resources/equipment',
     name: 'Equipment',
-    component: Equipment
+    component: Equipment,
+    meta: { requiresAuth: true }
   },
   {
     path: '/organization',
     name: 'OrgStructure',
-    component: OrgStructure
+    component: OrgStructure,
+    meta: { requiresAuth: true }
   },
 ];
 
@@ -41,6 +47,23 @@ const routes = [
 const router = createRouter({
   history: createWebHistory('/dtj/service/'),
   routes
+})
+
+// Navigation Guard - защита роутов
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const authenticated = isAuthenticated()
+
+  if (requiresAuth && !authenticated) {
+    // Пытается зайти на защищенную страницу без авторизации
+    next('/login')
+  } else if (to.path === '/login' && authenticated) {
+    // Уже авторизован, пытается зайти на логин - редирект на объекты
+    next('/objects')
+  } else {
+    // Всё ок, пропускаем
+    next()
+  }
 })
 
 export default router
