@@ -4,6 +4,7 @@ import OrgStructure from '@/views/OrgStructure.vue'
 import Login from '@/views/Login.vue'
 import Tools from '@/views/Tools.vue'
 import Equipment from '@/views/Equipment.vue'
+import Personnel from '@/views/Personnel.vue'
 import { isAuthenticated } from '@/shared/api/auth/auth'
 
 const routes = [
@@ -39,6 +40,12 @@ const routes = [
     path: '/organization',
     name: 'OrgStructure',
     component: OrgStructure,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/personnel',
+    name: 'Personnel',
+    component: Personnel,
     meta: { requiresAuth: true }
   },
 ];

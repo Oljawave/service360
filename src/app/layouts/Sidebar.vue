@@ -77,7 +77,8 @@ const allItems = [
     label: 'Организация',
     icon: 'FolderTree',
     children: [
-      { label: 'Организационная структура', path: '/organization', permission: 'org' }
+      { label: 'Организационная структура', path: '/organization', permission: 'org' },
+      { label: 'Сотрудники', path: '/personnel', permission: 'org' }
     ]
   }
 ]
