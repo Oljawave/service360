@@ -2,7 +2,8 @@ import axios from "axios";
 
 export async function login(username, password) {
   try {
-    const response = await axios.get(`/dtj/service/auth/login`, {
+    // URL-адрес оставлен коротким: /auth/login
+    const response = await axios.get(`/auth/login`, {
       params: { username, password },
       withCredentials: true,
     });
@@ -21,8 +22,9 @@ export async function login(username, password) {
 }
 
 export async function getCurrentUser() {
+  // URL-адрес оставлен коротким: /userapi
   const response = await axios.post(
-    `/dtj/service/userapi`,
+    `/userapi`,
     {
       method: "data/getCurUserInfo",
       params: [],
@@ -37,8 +39,9 @@ export async function getCurrentUser() {
 
 export async function getPersonnalInfo(userId) {
   try {
+    // URL-адрес оставлен коротким: /userinfo
     const response = await axios.post(
-      `/dtj/service/userinfo`,
+      `/userinfo`,
       {
         method: "data/getPersonnalInfo",
         params: [userId],
@@ -49,12 +52,14 @@ export async function getPersonnalInfo(userId) {
     );
 
     return response.data.result;
+
   } catch (err) {
     console.error("Ошибка в getPersonnalInfo:", err.response?.data || err.message);
     throw err;
   }
 }
 
+// ДОБАВЛЕНО: Функция для проверки авторизации (из Логин 360)
 /**
  * Проверить авторизован ли пользователь
  * @returns {boolean} true если пользователь авторизован
@@ -66,6 +71,7 @@ export function isAuthenticated() {
   return !!(userAuth && curUser)
 }
 
+// ДОБАВЛЕНО: Функция для выхода из системы (из Логин 360)
 /**
  * Выход из системы - очистка всех данных авторизации
  */

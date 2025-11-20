@@ -19,7 +19,7 @@
               Для входа во внутреннюю систему DTJ Service введите логин и пароль.
             </p>
           </div>
-
+          
           <form @submit.prevent="handleLogin">
             <div class="form-fields">
               <AppInput v-model="username" placeholder="Логин" />
@@ -63,20 +63,16 @@ export default {
   },
   methods: {
     async handleLogin() {
-      if (this.loading) return; // Предотвращаем повторные вызовы
-
+      if (this.loading) return;
+      
       const notify = useNotificationStore()
       this.loading = true
 
       try {
         const loginResponse = await login(this.username, this.password)
-        
-        // This is the correct way to get the user ID
-        const curUser = await getCurrentUser()
-        console.log('User target:', curUser?.result?.target)
 
+        const curUser = await getCurrentUser()
         const userId = curUser?.result?.id
-        
         if (!userId) throw new Error("Не удалось получить ID пользователя")
 
         const personnalInfo = await getPersonnalInfo(userId)
@@ -88,7 +84,7 @@ export default {
           console.warn("objLocation не найден в personnalInfo")
         }
 
-        // Сохраняем ID пользователя для userCache
+        // 👉 ДОБАВЛЕНО: сохраняем userId (как в первой версии)
         if (info.id) {
           localStorage.setItem("userId", info.id.toString())
         }
@@ -98,6 +94,8 @@ export default {
         localStorage.setItem("personnalInfo", JSON.stringify(info))
 
         notify.showNotification("Успешный вход!", "success")
+
+        // 👉 ДОБАВЛЕНО: перенаправление на /objects (как в первой версии)
         this.$router.push("/objects")
       } catch (err) {
         console.error("Ошибка при входе:", err)
@@ -130,6 +128,7 @@ export default {
   },
 }
 </script>
+
 
 
 
@@ -243,11 +242,7 @@ export default {
   height: 100%;
 }
 
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+
 @media (max-width: 480px) {
   .logo-fixed,
   .language-fixed {
