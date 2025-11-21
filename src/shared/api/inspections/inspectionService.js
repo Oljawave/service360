@@ -3,16 +3,6 @@ import { getUserData } from '../common/userCache'
 
 const API_BASE_URL = import.meta.env.VITE_INSPECTIONS_URL;
 
-// ============================================
-// LOAD методы (загрузка данных)
-// ============================================
-
-/**
- * Загрузить список осмотров
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number} periodType - Тип периода
- * @returns {Promise<Array>} Список осмотров
- */
 export async function loadInspections(date = "2025-07-30", periodType = 11) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -46,10 +36,6 @@ export async function loadInspections(date = "2025-07-30", periodType = 11) {
   return response.data.result?.records || [];
 }
 
-/**
- * Загрузить секции для выбранной локации
- * @returns {Promise<Array>} Список секций
- */
 export async function loadSections() {
   try {
     const objLocation = localStorage.getItem("objLocation");
@@ -75,12 +61,6 @@ export async function loadSections() {
   }
 }
 
-/**
- * Загрузить даты плана работ для осмотров
- * @param {number} selectedSectionId - ID выбранной секции
- * @param {number} pv - PV секции
- * @returns {Promise<Array>} Список дат
- */
 export async function loadWorkPlanDates(selectedSectionId, pv) {
   try {
     const response = await axios.post(
@@ -105,13 +85,6 @@ export async function loadWorkPlanDates(selectedSectionId, pv) {
   }
 }
 
-/**
- * Загрузить незавершенные планы работ по дате
- * @param {number} sectionId - ID секции
- * @param {number} pv - PV секции
- * @param {string} date - Дата
- * @returns {Promise<Array>} Список незавершенных планов
- */
 export async function loadWorkPlanUnfinishedByDate(sectionId, pv, date) {
   try {
     const response = await axios.post(
@@ -137,12 +110,6 @@ export async function loadWorkPlanUnfinishedByDate(sectionId, pv, date) {
   }
 }
 
-/**
- * Загрузить записи осмотров для плана работ
- * @param {number} workPlanId - ID плана работ
- * @param {number} workPlanPv - PV плана работ
- * @returns {Promise<Array>} Список записей осмотров
- */
 export async function loadInspectionEntriesForWorkPlan(workPlanId, workPlanPv) {
   try {
     const response = await axios.post(
@@ -167,11 +134,6 @@ export async function loadInspectionEntriesForWorkPlan(workPlanId, workPlanPv) {
   }
 }
 
-/**
- * Загрузить компоненты по типу объекта
- * @param {number} objObject - ID объекта
- * @returns {Promise<Array>} Список компонентов
- */
 export async function loadComponentsByTypObjectForSelect(objObject) {
   try {
     const response = await axios.post(
@@ -190,11 +152,6 @@ export async function loadComponentsByTypObjectForSelect(objObject) {
   }
 }
 
-/**
- * Загрузить дефекты по компоненту
- * @param {number} objComponent - ID компонента
- * @returns {Promise<Array>} Список дефектов
- */
 export async function loadDefectsByComponentForSelect(objComponent) {
   try {
     const response = await axios.post(
@@ -213,11 +170,6 @@ export async function loadDefectsByComponentForSelect(objComponent) {
   }
 }
 
-/**
- * Загрузить параметры компонента
- * @param {number} objComponent - ID компонента
- * @returns {Promise<Array>} Список параметров
- */
 export async function loadComponentParametersForSelect(objComponent) {
   try {
     const response = await axios.post(
@@ -236,11 +188,6 @@ export async function loadComponentParametersForSelect(objComponent) {
   }
 }
 
-/**
- * Загрузить записи о неисправностях для осмотра
- * @param {number} inspectionId - ID осмотра
- * @returns {Promise<Array>} Список записей о неисправностях
- */
 export async function loadFaultEntriesForInspection(inspectionId) {
   try {
     const response = await axios.post(
@@ -260,11 +207,6 @@ export async function loadFaultEntriesForInspection(inspectionId) {
   }
 }
 
-/**
- * Загрузить записи о параметрах для осмотра
- * @param {number} inspectionId - ID осмотра
- * @returns {Promise<Array>} Список записей о параметрах
- */
 export async function loadParameterEntriesForInspection(inspectionId) {
   try {
     const response = await axios.post(
@@ -284,15 +226,6 @@ export async function loadParameterEntriesForInspection(inspectionId) {
   }
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
-
-/**
- * Сохранить информацию об осмотре
- * @param {Object} payload - Данные осмотра
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveInspectionInfo(payload) {
   try {
     const response = await axios.post(
@@ -311,11 +244,6 @@ export async function saveInspectionInfo(payload) {
   }
 }
 
-/**
- * Сохранить информацию о неисправности
- * @param {Object} payload - Данные неисправности
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveFaultInfo(payload) {
   try {
     const response = await axios.post(
@@ -334,11 +262,6 @@ export async function saveFaultInfo(payload) {
   }
 }
 
-/**
- * Сохранить информацию о параметре
- * @param {Object} payload - Данные параметра
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveParameterInfo(payload) {
   try {
     const response = await axios.post(
@@ -357,11 +280,4 @@ export async function saveParameterInfo(payload) {
   }
 }
 
-// ============================================
-// LEGACY - для обратной совместимости
-// ============================================
-
-/**
- * @deprecated Используйте getUserData из common/userCache
- */
 export const fetchUserData = getUserData;

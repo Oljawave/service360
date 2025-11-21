@@ -5,11 +5,6 @@ import { getUserData } from '../common/userCache'
 const API_PERSONNEL_URL = import.meta.env.VITE_PERSONAL_URL
 const OBJECT_URL = import.meta.env.VITE_OBJECT_URL
 
-/**
- * Загрузить список сотрудников
- * @param {Object} options - Опции пагинации
- * @returns {Promise<Object>} Список сотрудников с общим количеством
- */
 export async function loadPersonnel({ page = 1, limit = 10 }) {
   try {
     const response = await axios.post(API_PERSONNEL_URL, {
@@ -73,14 +68,6 @@ export async function loadPersonnel({ page = 1, limit = 10 }) {
   }
 }
 
-// ============================================
-// LOAD методы - Справочники
-// ============================================
-
-/**
- * Загрузить должности
- * @returns {Promise<Array>} Список должностей
- */
 export async function loadPositions() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -101,10 +88,6 @@ export async function loadPositions() {
   }
 }
 
-/**
- * Загрузить участки (локации)
- * @returns {Promise<Array>} Список участков
- */
 export async function loadLocations() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -125,10 +108,6 @@ export async function loadLocations() {
   }
 }
 
-/**
- * Загрузить пол (справочник)
- * @returns {Promise<Array>} Список значений пола
- */
 export async function loadUserSex() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -149,15 +128,6 @@ export async function loadUserSex() {
   }
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
-
-/**
- * Сохранить нового сотрудника
- * @param {Object} personnelData - Данные сотрудника
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function savePersonnel(personnelData) {
   try {
     const today = formatDateForBackend(new Date())
@@ -197,11 +167,6 @@ export async function savePersonnel(personnelData) {
   }
 }
 
-/**
- * Обновить данные сотрудника
- * @param {Object} personnelData - Данные сотрудника с rawData
- * @returns {Promise<Object>} Результат обновления
- */
 export async function updatePersonnel(personnelData) {
   try {
     const today = formatDateForBackend(new Date())

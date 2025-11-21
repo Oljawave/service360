@@ -3,13 +3,6 @@ import { formatDateForBackend } from '../common/formatters'
 
 const API_URL = import.meta.env.VITE_LOCATION_URL;
 
-// ============================================
-// LOAD методы (загрузка данных)
-// ============================================
-
-/**
- * Загрузить список локаций
- */
 export async function loadLocation() {
   try {
     console.log('📡 Отправка запроса на сервер...');
@@ -25,15 +18,6 @@ export async function loadLocation() {
   }
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
-
-/**
- * Сохранить новую локацию
- * @param {Object} form - Данные формы
- * @param {Array} multiOptions - Опции для множественного выбора
- */
 export async function saveLocation(form, multiOptions) {
   const now = formatDateForBackend(new Date());
 

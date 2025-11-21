@@ -26,7 +26,6 @@ export async function loadTools({ page = 1, limit = 10 }) {
       updatedAt: formatDate(item.UpdatedAt),
       fullNameUser: item.fullNameUser || '',
 
-      // ID полей для возможного редактирования
       idNumber: item.idNumber,
       idTypTool: item.idTypTool,
       fvTypTool: item.fvTypTool,
@@ -87,14 +86,6 @@ export async function loadEquipment({ page = 1, limit = 10 }) {
   }
 }
 
-// ============================================
-// LOAD методы - Справочники
-// ============================================
-
-/**
- * Загрузить типы инструментов
- * @returns {Promise<Array>} Список типов инструментов
- */
 export async function loadToolTypes() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -115,10 +106,6 @@ export async function loadToolTypes() {
   }
 }
 
-/**
- * Загрузить участки
- * @returns {Promise<Array>} Список участков
- */
 export async function loadSections() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -139,10 +126,6 @@ export async function loadSections() {
   }
 }
 
-/**
- * Загрузить типы техники
- * @returns {Promise<Array>} Список типов техники
- */
 export async function loadEquipmentTypes() {
   try {
     const response = await axios.post(OBJECT_URL, {
@@ -163,15 +146,6 @@ export async function loadEquipmentTypes() {
   }
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
-
-/**
- * Сохранить новый инструмент
- * @param {Object} toolData - Данные инструмента
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveTool(toolData) {
   try {
     const user = await getUserData();
@@ -206,11 +180,6 @@ export async function saveTool(toolData) {
   }
 }
 
-/**
- * Сохранить новую технику
- * @param {Object} equipmentData - Данные техники
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveEquipment(equipmentData) {
   try {
     const user = await getUserData();
@@ -245,11 +214,6 @@ export async function saveEquipment(equipmentData) {
   }
 }
 
-/**
- * Обновить инструмент
- * @param {Object} toolData - Данные инструмента с rawData
- * @returns {Promise<Object>} Результат обновления
- */
 export async function updateTool(toolData) {
   try {
     const user = await getUserData();
@@ -291,11 +255,6 @@ export async function updateTool(toolData) {
   }
 }
 
-/**
- * Обновить технику
- * @param {Object} equipmentData - Данные техники с rawData
- * @returns {Promise<Object>} Результат обновления
- */
 export async function updateEquipment(equipmentData) {
   try {
     const user = await getUserData();
@@ -337,6 +296,3 @@ export async function updateEquipment(equipmentData) {
   }
 }
 
-// Здесь можно будет добавить методы для материалов и услуг
-// export async function loadMaterials({ page = 1, limit = 10 }) { ... }
-// export async function loadServices({ page = 1, limit = 10 }) { ... }

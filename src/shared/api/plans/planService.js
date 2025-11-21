@@ -4,16 +4,6 @@ import { formatDateForBackend } from '../common/formatters'
 
 const API_PLAN_URL = import.meta.env.VITE_PLAN_URL;
 
-// ============================================
-// LOAD методы (загрузка данных)
-// ============================================
-
-/**
- * Загрузить план работ
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number} periodType - Тип периода (по умолчанию 11)
- * @returns {Promise<Array>} Список планов работ
- */
 export async function loadWorkPlan(date = "2025-07-30", periodType = 11) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -41,15 +31,7 @@ export async function loadWorkPlan(date = "2025-07-30", periodType = 11) {
   return response.data.result?.records || [];
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
 
-/**
- * Сохранить один план работ
- * @param {Object} workData - Данные о работе
- * @param {Object} formData - Данные формы
- */
 export async function savePlan(workData, formData) {
   try {
     const user = await getUserData();
@@ -100,11 +82,6 @@ export async function savePlan(workData, formData) {
   }
 }
 
-/**
- * Сохранить несколько планов работ
- * @param {Object} workData - Данные о работе
- * @param {Array} forms - Массив форм с данными
- */
 export async function saveAllPlans(workData, forms) {
   const results = [];
   for (const form of forms) {
@@ -118,14 +95,6 @@ export async function saveAllPlans(workData, forms) {
   return results;
 }
 
-// ============================================
-// UPDATE методы (обновление)
-// ============================================
-
-/**
- * Обновить план работ
- * @param {Object} planData - Данные плана для обновления
- */
 export async function updatePlan(planData) {
   // Форматируем дату если она есть
   if (planData.PlanDateEnd) {
@@ -163,27 +132,18 @@ export async function updatePlan(planData) {
   }
 }
 
-// ============================================
-// DELETE методы (удаление)
-// ============================================
-
-/**
- * Удалить план работ
- * @param {number} planId - ID плана для удаления
- */
 export async function deletePlan(planId) {
   if (!planId) {
     throw new Error('ID плана не указан');
   }
 
   try {
-    // Используем axios вместо fetch для единообразия
+
     const response = await axios.post(API_PLAN_URL, {
       method: 'data/deleteObjWithProperties',
       params: [planId]
     });
 
-    // Проверяем на наличие ошибок в ответе
     if (response.data?.error) {
       throw new Error(response.data.error.message || 'Ошибка при удалении плана');
     }

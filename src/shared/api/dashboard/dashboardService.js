@@ -5,14 +5,7 @@ const API_PLAN_URL = import.meta.env.VITE_PLAN_URL;
 const API_INCIDENTS_URL = import.meta.env.VITE_INCIDENTS_URL;
 const API_INSPECTIONS_URL = import.meta.env.VITE_INSPECTIONS_URL;
 
-// ============================================
-// LOAD методы - Справочники
-// ============================================
 
-/**
- * Загрузить список отделений/хозяйств
- * @returns {Promise<Array>} Список отделений
- */
 export async function loadDepartments() {
   try {
     const response = await axios.post(
@@ -33,17 +26,6 @@ export async function loadDepartments() {
   }
 }
 
-// ============================================
-// LOAD методы - KPI данные
-// ============================================
-
-/**
- * Загрузить план работ для KPI
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number|null} periodType - Тип периода
- * @param {number|null} objLocation - ID локации (null для всех хозяйств)
- * @returns {Promise<Array>} План работ
- */
 export async function loadWorkPlanForKpi(date, periodType = null, objLocation = null) {
   const params = {
     date,
@@ -54,7 +36,6 @@ export async function loadWorkPlanForKpi(date, periodType = null, objLocation = 
     params.periodType = periodType;
   }
 
-  // Только добавляем objLocation если он не null (не "Все хозяйства")
   if (objLocation !== null) {
     params.objLocation = objLocation;
   }
@@ -73,32 +54,20 @@ export async function loadWorkPlanForKpi(date, periodType = null, objLocation = 
   return response.data.result?.records || [];
 }
 
-/**
- * Загрузить инциденты для KPI
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number} periodType - Тип периода
- * @param {number|null} objLocation - ID локации
- * @param {string|null} status - Статус инцидента
- * @param {number|null} event - ID события
- * @returns {Promise<Array>} Список инцидентов
- */
 export async function loadIncidentsForKpi(date, periodType, objLocation = null, status = null, event = null) {
   const params = {
     date,
     periodType
   };
 
-  // Добавляем objLocation только если он не null
   if (objLocation !== null) {
     params.objLocation = objLocation;
   }
 
-  // Добавляем status только если он не null
   if (status !== null) {
     params.status = status;
   }
 
-  // Добавляем event только если он не null
   if (event !== null) {
     params.event = event;
   }
@@ -117,13 +86,6 @@ export async function loadIncidentsForKpi(date, periodType, objLocation = null, 
   return response.data.result?.records || [];
 }
 
-/**
- * Загрузить количество инцидентов за месяц
- * @param {number|null} objLocation - ID локации
- * @param {number|null} event - ID события
- * @param {boolean|null} open - Флаг открытых инцидентов
- * @returns {Promise<number>} Количество инцидентов
- */
 export async function loadSizeIncidentOfMonth(objLocation = null, event = null, open = null) {
   const today = new Date();
   const year = today.getFullYear();
@@ -135,17 +97,14 @@ export async function loadSizeIncidentOfMonth(objLocation = null, event = null, 
     date: dateStr
   };
 
-  // Добавляем objLocation только если он не null
   if (objLocation !== null) {
     params.objLocation = objLocation;
   }
 
-  // Добавляем event только если он не null
   if (event !== null) {
     params.event = event;
   }
 
-  // Добавляем open только если он не null
   if (open !== null) {
     params.open = open;
   }
@@ -164,24 +123,14 @@ export async function loadSizeIncidentOfMonth(objLocation = null, event = null, 
   return response.data.result || 0;
 }
 
-// ============================================
-// LOAD методы - Статус железной дороги
-// ============================================
-
-/**
- * Загрузить статус железной дороги
- * @param {string|null} customDate - Дата в формате YYYY-MM-DD
- * @param {number} relobj - ID связанного объекта
- * @returns {Promise<Array>} Статус железной дороги
- */
 export async function loadRailwayStatus(customDate = null, relobj = 2525) {
   let dateStr;
 
   if (customDate) {
-    // Если передана кастомная дата, используем её
+ 
     dateStr = customDate;
   } else {
-    // Иначе используем сегодняшнюю дату
+   
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -208,11 +157,6 @@ export async function loadRailwayStatus(customDate = null, relobj = 2525) {
   return response.data.result?.records || [];
 }
 
-/**
- * Загрузить данные об отклонениях ж/д пути
- * @param {string|null} customDate - Дата в формате YYYY-MM-DD
- * @returns {Promise<Array>} Данные об отклонениях
- */
 export async function loadRailwaySkewData(customDate = null) {
   let dateStr;
 
@@ -226,7 +170,6 @@ export async function loadRailwaySkewData(customDate = null) {
     dateStr = `${year}-${month}-${day}`;
   }
 
-  // Загружаем данные по всем 4 типам отклонений параллельно
   const [levelData, skewData, subsidence, planDeviation] = await Promise.all([
     axios.post(
       API_INSPECTIONS_URL,
@@ -262,7 +205,7 @@ export async function loadRailwaySkewData(customDate = null) {
     )
   ]);
 
-  // Объединяем все данные и добавляем тип отклонения
+
   const allData = [
     ...(levelData.data.result?.records || []).map(item => ({ ...item, skewType: 'level' })),
     ...(skewData.data.result?.records || []).map(item => ({ ...item, skewType: 'skew' })),

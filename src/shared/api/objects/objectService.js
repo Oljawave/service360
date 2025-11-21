@@ -4,13 +4,6 @@ import { formatDate } from '../common/formatters'
 
 const API_URL = import.meta.env.VITE_OBJECT_URL;
 
-// ============================================
-// LOAD методы (загрузка данных)
-// ============================================
-
-/**
- * Загрузить типы объектов
- */
 export async function loadTypes() {
   try {
     const records = await loadObjList('Typ_ObjectTyp', 'Prop_ObjectType', 'nsidata')
@@ -25,9 +18,6 @@ export async function loadTypes() {
   }
 }
 
-/**
- * Загрузить стороны для объекта
- */
 export async function loadSides() {
   try {
     const response = await axios.post(API_URL, {
@@ -46,16 +36,10 @@ export async function loadSides() {
   }
 }
 
-/**
- * Внутренняя функция для загрузки типов объектов (для loadObjectServed)
- */
 async function loadObjectTypes() {
   return loadObjList("Typ_ObjectTyp", "Prop_ObjectType", "nsidata")
 }
 
-/**
- * Загрузить список обслуживаемых объектов
- */
 export async function loadObjectServed({ page = 1, limit = 10 }) {
   const objectTypes = await loadObjectTypes()
   const typeMap = Object.fromEntries(objectTypes.map(t => [t.id, t.name]))
@@ -107,9 +91,6 @@ export async function loadObjectServed({ page = 1, limit = 10 }) {
   }
 }
 
-/**
- * Найти станцию по координатам
- */
 export async function fetchStationOfCoord(coords) {
   try {
     const response = await axios.post(API_URL, {
@@ -122,13 +103,6 @@ export async function fetchStationOfCoord(coords) {
   }
 }
 
-// ============================================
-// SAVE/UPDATE методы (сохранение/обновление)
-// ============================================
-
-/**
- * Сохранить новый обслуживаемый объект
- */
 export async function saveObjectServed(payload) {
   try {
     const response = await axios.post(API_URL, {
@@ -141,9 +115,6 @@ export async function saveObjectServed(payload) {
   }
 }
 
-/**
- * Обновить обслуживаемый объект
- */
 export async function updateObjectServed(payload) {
   try {
     const response = await axios.post(API_URL, {
@@ -156,13 +127,6 @@ export async function updateObjectServed(payload) {
   }
 }
 
-// ============================================
-// DELETE методы (удаление)
-// ============================================
-
-/**
- * Удалить объект со всеми свойствами
- */
 export async function deleteObject(objectId) {
   try {
     const response = await axios.post(API_URL, {

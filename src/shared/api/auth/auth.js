@@ -2,8 +2,7 @@ import axios from "axios";
 
 export async function login(username, password) {
   try {
-    // URL-адрес оставлен коротким: /auth/login
-    const response = await axios.get(`/auth/login`, {
+    const response = await axios.get(`/dtj/service/auth/login`, {
       params: { username, password },
       withCredentials: true,
     });
@@ -22,9 +21,8 @@ export async function login(username, password) {
 }
 
 export async function getCurrentUser() {
-  // URL-адрес оставлен коротким: /userapi
   const response = await axios.post(
-    `/userapi`,
+    `/dtj/service/userapi`,
     {
       method: "data/getCurUserInfo",
       params: [],
@@ -39,9 +37,8 @@ export async function getCurrentUser() {
 
 export async function getPersonnalInfo(userId) {
   try {
-    // URL-адрес оставлен коротким: /userinfo
     const response = await axios.post(
-      `/userinfo`,
+      `/dtj/service/userinfo`,
       {
         method: "data/getPersonnalInfo",
         params: [userId],
@@ -52,18 +49,12 @@ export async function getPersonnalInfo(userId) {
     );
 
     return response.data.result;
-
   } catch (err) {
     console.error("Ошибка в getPersonnalInfo:", err.response?.data || err.message);
     throw err;
   }
 }
 
-// ДОБАВЛЕНО: Функция для проверки авторизации (из Логин 360)
-/**
- * Проверить авторизован ли пользователь
- * @returns {boolean} true если пользователь авторизован
- */
 export function isAuthenticated() {
   const userAuth = localStorage.getItem('userAuth')
   const curUser = localStorage.getItem('curUser')
@@ -71,12 +62,8 @@ export function isAuthenticated() {
   return !!(userAuth && curUser)
 }
 
-// ДОБАВЛЕНО: Функция для выхода из системы (из Логин 360)
-/**
- * Выход из системы - очистка всех данных авторизации
- */
 export function logout() {
-  // Очищаем все данные связанные с авторизацией
+
   localStorage.removeItem('userAuth')
   localStorage.removeItem('curUser')
   localStorage.removeItem('personnalInfo')
@@ -85,7 +72,6 @@ export function logout() {
   localStorage.removeItem('user')
   localStorage.removeItem('authToken')
 
-  // Очищаем кэш пользователя (если есть)
   import('@/shared/api/common/userCache').then(module => {
     module.clearUserCache()
   })

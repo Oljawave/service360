@@ -2,10 +2,6 @@ import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_OBJECT_URL;
 
-/**
- * Загрузить типы периодов
- * @returns {Promise<Array>} Список типов периодов с label и value
- */
 export async function loadPeriodTypes() {
   try {
     const response = await axios.post(

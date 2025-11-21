@@ -7,14 +7,6 @@ const DATA_API_URL = import.meta.env.VITE_PLAN_URL;
 const API_REPAIR_URL = import.meta.env.VITE_REPAIR_URL;
 const API_PERSONAL = import.meta.env.VITE_PERSONAL_URL;
 
-// ============================================
-// LOAD методы - Работы и места
-// ============================================
-
-/**
- * Загрузить список работ
- * @returns {Promise<Array>} Список работ
- */
 export async function fetchWorks() {
   try {
     const response = await axios.post(WORKS_API_URL, {
@@ -44,11 +36,6 @@ export async function fetchWorks() {
   }
 }
 
-/**
- * Загрузить места для работы
- * @param {number} workId - ID работы
- * @returns {Promise<Array>} Список мест
- */
 export async function fetchPlacesForWork(workId) {
   const response = await axios.post(DATA_API_URL, {
     method: 'data/loadObjectServedForSelect',
@@ -66,11 +53,6 @@ export async function fetchPlacesForWork(workId) {
   }
 }
 
-/**
- * Загрузить объекты для выбора
- * @param {number} objWork - ID работы
- * @returns {Promise<Array>} Список объектов
- */
 export async function fetchObjectsForSelect(objWork) {
   const response = await axios.post(DATA_API_URL, {
     method: 'data/loadObjectServedForSelect',
@@ -84,15 +66,6 @@ export async function fetchObjectsForSelect(objWork) {
   }
 }
 
-/**
- * Найти локацию по координатам
- * @param {number} workId - ID работы
- * @param {number} startKm - Начальный км
- * @param {number} finishKm - Конечный км
- * @param {number} startPicket - Начальный пикет
- * @param {number} finishPicket - Конечный пикет
- * @returns {Promise<Array>} Список найденных локаций
- */
 export async function fetchLocationByCoords(workId, startKm, finishKm, startPicket, finishPicket) {
   const response = await axios.post(DATA_API_URL, {
     method: 'data/findLocationOfCoord',
@@ -119,16 +92,6 @@ export async function fetchLocationByCoords(workId, startKm, finishKm, startPick
   }
 }
 
-// ============================================
-// LOAD методы - Журналы задач
-// ============================================
-
-/**
- * Загрузить журнал задач
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number} periodType - Тип периода
- * @returns {Promise<Array>} Журнал задач
- */
 export async function loadTaskLog(date, periodType) {
   const objLocation = localStorage.getItem("objLocation");
 
@@ -160,11 +123,6 @@ export async function loadTaskLog(date, periodType) {
   return result?.store?.records || result || [];
 }
 
-/**
- * Загрузить объект журнала задач
- * @param {number} taskLogId - ID записи журнала задач
- * @returns {Promise<Object>} Объект журнала задач
- */
 export async function loadObjTaskLog(taskLogId) {
   if (!taskLogId) {
     console.warn("loadObjTaskLog вызван без ID записи.");
@@ -190,11 +148,6 @@ export async function loadObjTaskLog(taskLogId) {
   }
 }
 
-/**
- * Загрузить персонал по должности
- * @param {number} pvPosition - PV должности
- * @returns {Promise<Array>} Список персонала
- */
 export async function loadPersonnalByPosition(pvPosition) {
   if (!pvPosition) {
     throw new Error("pvPosition обязателен для загрузки персонала");
@@ -222,15 +175,6 @@ export async function loadPersonnalByPosition(pvPosition) {
   }
 }
 
-// ============================================
-// SAVE методы - Ресурсы (факт)
-// ============================================
-
-/**
- * Сохранить факт по материалу
- * @param {Object} materialData - Данные материала
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveResourceFact(materialData) {
   if (!materialData || !materialData.id) {
     throw new Error("Для сохранения факта по материалу необходимо передать данные с ID.");
@@ -273,11 +217,6 @@ export async function saveResourceFact(materialData) {
   }
 }
 
-/**
- * Сохранить факт по услуге
- * @param {Object} serviceData - Данные услуги
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveServiceFact(serviceData) {
   if (!serviceData || !serviceData.id) {
     throw new Error("Для сохранения факта по услуге необходимо передать данные с ID.");
@@ -320,17 +259,6 @@ export async function saveServiceFact(serviceData) {
   }
 }
 
-// ============================================
-// ADD методы - Добавление ресурсов
-// ============================================
-
-/**
- * Добавить материал к задаче
- * @param {Object} materialData - Данные материала
- * @param {number} taskLogId - ID задачи
- * @param {string} taskLogCls - CLS задачи
- * @returns {Promise<Object>} Результат добавления
- */
 export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   if (!materialData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные материала, ID и PV задачи.");
@@ -378,13 +306,6 @@ export async function addResourceMaterial(materialData, taskLogId, taskLogCls) {
   }
 }
 
-/**
- * Добавить услугу к задаче
- * @param {Object} serviceData - Данные услуги
- * @param {number} taskLogId - ID задачи
- * @param {string} taskLogCls - CLS задачи
- * @returns {Promise<Object>} Результат добавления
- */
 export async function addResourceTpService(serviceData, taskLogId, taskLogCls) {
   if (!serviceData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные услуги, ID и CLS задачи.");
@@ -430,13 +351,6 @@ export async function addResourceTpService(serviceData, taskLogId, taskLogCls) {
   }
 }
 
-/**
- * Добавить исполнителя к задаче
- * @param {Object} personnelData - Данные исполнителя
- * @param {number} taskLogId - ID задачи
- * @param {string} taskLogCls - CLS задачи
- * @returns {Promise<Object>} Результат добавления
- */
 export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls) {
   if (!personnelData || !taskLogId || !taskLogCls) {
     throw new Error("Необходимо передать данные исполнителя, ID и CLS задачи.");
@@ -481,16 +395,6 @@ export async function addResourcePersonnel(personnelData, taskLogId, taskLogCls)
   }
 }
 
-// ============================================
-// SAVE/UPDATE методы - Комплексные операции
-// ============================================
-
-/**
- * Сохранить комплексного исполнителя
- * @param {number} personnelId - ID исполнителя
- * @param {Object} performerData - Данные исполнителя
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveComplexPersonnel(personnelId, performerData) {
   if (!personnelId || !performerData) {
     throw new Error("Необходимо передать ID personnel и данные исполнителя.");
@@ -533,11 +437,6 @@ export async function saveComplexPersonnel(personnelId, performerData) {
   }
 }
 
-/**
- * Сохранить факт журнала задач
- * @param {Object} payload - Данные для сохранения
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveTaskLogFact(payload) {
   if (!payload || !payload.id) {
     throw new Error("Payload должен содержать ID записи.");
@@ -562,12 +461,6 @@ export async function saveTaskLogFact(payload) {
   }
 }
 
-/**
- * Завершить плановую работу
- * @param {number} id - ID работы
- * @param {string} date - Дата завершения
- * @returns {Promise<Object>} Результат завершения
- */
 export async function completeThePlanWork(id, date) {
   try {
     const response = await axios.post(DATA_API_URL, {
@@ -597,11 +490,7 @@ export async function completeThePlanWork(id, date) {
 // DELETE методы (удаление)
 // ============================================
 
-/**
- * Удалить комплексного исполнителя
- * @param {number} complexId - ID комплекса
- * @returns {Promise<Object>} Результат удаления
- */
+
 export async function deleteComplexPersonnel(complexId) {
   if (!complexId) {
     throw new Error("Необходимо передать ID комплекса для удаления.");

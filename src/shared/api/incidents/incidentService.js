@@ -6,14 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_INCIDENTS_URL;
 const PLAN_URL = import.meta.env.VITE_PLAN_URL;
 const OBJECT_URL = import.meta.env.VITE_OBJECT_URL;
 
-// ============================================
-// Утилиты для работы с датой/временем
-// ============================================
 
-/**
- * Получить ISO строку для часового пояса Астаны (UTC+5)
- * @returns {string} ISO строка с timezone offset +05:00
- */
 function getAstanaISOString() {
   const now = new Date();
 
@@ -37,16 +30,6 @@ function getAstanaISOString() {
   return isoString;
 }
 
-// ============================================
-// LOAD методы (загрузка данных)
-// ============================================
-
-/**
- * Загрузить список инцидентов
- * @param {string} date - Дата в формате YYYY-MM-DD
- * @param {number} periodType - Тип периода
- * @returns {Promise<Array>} Список инцидентов
- */
 export async function loadIncidents(date = "2025-07-30", periodType = 11) {
   console.log('Вызов метода data/loadIncident', {
     date,
@@ -72,10 +55,7 @@ export async function loadIncidents(date = "2025-07-30", periodType = 11) {
   return response.data.result?.records || [];
 }
 
-/**
- * Загрузить список событий/запросов
- * @returns {Promise<Array>} Список событий с полями label и value
- */
+
 export async function loadEvents() {
   try {
     console.log('Вызов метода data/loadEvent');
@@ -103,10 +83,6 @@ export async function loadEvents() {
   }
 }
 
-/**
- * Загрузить уровни критичности
- * @returns {Promise<Array>} Список уровней критичности
- */
 export async function loadCriticalityLevels() {
   try {
     console.log('Вызов метода data/loadFactorValForSelect для Prop_Criticality');
@@ -134,11 +110,6 @@ export async function loadCriticalityLevels() {
   }
 }
 
-/**
- * Загрузить работы для объекта инцидента
- * @param {number} objObject - ID объекта
- * @returns {Promise<Array>} Список работ
- */
 export async function loadWorksForIncidentObject(objObject) {
   if (!objObject) {
     console.warn("loadWorksForIncidentObject вызван без objObject");
@@ -170,15 +141,6 @@ export async function loadWorksForIncidentObject(objObject) {
   }
 }
 
-// ============================================
-// SAVE методы (сохранение)
-// ============================================
-
-/**
- * Сохранить новое событие
- * @param {string} eventName - Название события
- * @returns {Promise<Object>} Созданное событие с id, name, label, value
- */
 export async function saveNewEvent(eventName) {
   try {
     const payload = {
@@ -212,11 +174,6 @@ export async function saveNewEvent(eventName) {
   }
 }
 
-/**
- * Сохранить новый инцидент
- * @param {Object} payloadData - Данные инцидента
- * @returns {Promise<Object>} Результат сохранения
- */
 export async function saveIncident(payloadData) {
   try {
     const user = await getUserData();
@@ -251,7 +208,6 @@ export async function saveIncident(payloadData) {
       }]
     };
 
-    // Добавляем критичность, если она есть
     if (payloadData.criticalityFv !== undefined && payloadData.criticalityPv !== undefined) {
       payload.params[1].fvCriticality = payloadData.criticalityFv;
       payload.params[1].pvCriticality = payloadData.criticalityPv;
@@ -278,15 +234,6 @@ export async function saveIncident(payloadData) {
   }
 }
 
-// ============================================
-// UPDATE методы (обновление)
-// ============================================
-
-/**
- * Обновить существующий инцидент
- * @param {Object} payloadData - Данные для обновления
- * @returns {Promise<Object>} Результат обновления
- */
 export async function updateIncident(payloadData) {
   try {
     const user = await getUserData();
@@ -336,11 +283,6 @@ export async function updateIncident(payloadData) {
 // DELETE методы (удаление)
 // ============================================
 
-/**
- * Удалить инцидент
- * @param {number} id - ID инцидента
- * @returns {Promise<Object>} Результат удаления
- */
 export async function deleteIncident(id) {
   if (!id) {
     throw new Error("ID инцидента для удаления не предоставлен.");
@@ -365,20 +307,6 @@ export async function deleteIncident(id) {
   }
 }
 
-// ============================================
-// ASSIGN методы (назначение работ)
-// ============================================
-
-/**
- * Назначить работу на инцидент
- * @param {Object} incident - Объект инцидента
- * @param {Object} work - Объект работы
- * @param {Date} completionDate - Дата завершения
- * @param {Object} selectedCriticality - Выбранная критичность
- * @param {Object} selectedSection - Выбранная секция
- * @param {string} assignDateTime - Дата/время назначения
- * @returns {Promise<Object>} Результат назначения
- */
 export async function assignWorkToIncident(incident, work, completionDate, selectedCriticality, selectedSection, assignDateTime) {
   if (!incident || !work || !completionDate || !selectedCriticality || !selectedSection || !assignDateTime) {
     throw new Error("Недостаточно данных для назначения работы.");
